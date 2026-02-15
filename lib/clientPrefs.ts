@@ -67,6 +67,11 @@ export function addOrderToHistory(entry: OrderHistoryEntry) {
   setCookie(HISTORY_COOKIE, JSON.stringify(next));
 }
 
+export function removeOrderFromHistory(orderId: string) {
+  const next = getOrderHistory().filter((entry) => entry.orderId !== orderId);
+  setCookie(HISTORY_COOKIE, JSON.stringify(next));
+}
+
 export function getLastOrderId() {
   return getOrderHistory()[0]?.orderId ?? null;
 }

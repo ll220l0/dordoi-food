@@ -1,10 +1,19 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Button, Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { clearPendingPayOrderId, getLastOrderId, getOrderHistory, getPendingPayOrderId, getSavedPhone, setPendingPayOrderId } from "@/lib/clientPrefs";
+import {
+  clearPendingPayOrderId,
+  getLastOrderId,
+  getOrderHistory,
+  getPendingPayOrderId,
+  getSavedPhone,
+  removeOrderFromHistory,
+  setPendingPayOrderId
+} from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
 
@@ -53,7 +62,7 @@ function notifyUser(title: string, body: string) {
     try {
       new Notification(title, { body });
     } catch {
-      // Ignore notification errors in unsupported browsers.
+      // Ignore notification errors.
     }
   };
 
@@ -74,7 +83,7 @@ function StatusProgress({ status }: { status: string }) {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-        <div className="text-sm font-semibold text-amber-700">РћР¶РёРґР°РµРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р·Р°РєР°Р·Р°</div>
+        <div className="text-sm font-semibold text-amber-700">Ожидаем подтверждения заказа</div>
       </div>
     );
   }
@@ -82,8 +91,8 @@ function StatusProgress({ status }: { status: string }) {
   if (status === "delivered") {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">вњ“</div>
-        <div className="text-sm font-semibold text-emerald-700">РЎРїР°СЃРёР±Рѕ Р·Р° РІС‹Р±РѕСЂ. Р—Р°РєР°Р· РґРѕСЃС‚Р°РІР»РµРЅ.</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
+        <div className="text-sm font-semibold text-emerald-700">Спасибо за выбор. Заказ доставлен.</div>
       </div>
     );
   }
@@ -91,8 +100,8 @@ function StatusProgress({ status }: { status: string }) {
   if (isApprovedStatus(status)) {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">вњ“</div>
-        <div className="text-sm font-semibold text-emerald-700">Р—Р°РєР°Р· РїРѕРґС‚РІРµСЂР¶РґРµРЅ</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
+        <div className="text-sm font-semibold text-emerald-700">Заказ подтвержден</div>
       </div>
     );
   }
@@ -100,7 +109,7 @@ function StatusProgress({ status }: { status: string }) {
   return (
     <div className="mt-4 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-white">!</div>
-      <div className="text-sm font-semibold text-rose-700">Р—Р°РєР°Р· РѕС‚РјРµРЅРµРЅ</div>
+      <div className="text-sm font-semibold text-rose-700">Заказ отменен</div>
     </div>
   );
 }
@@ -111,6 +120,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadOrder = useCallback(async (silent = false) => {
     if (!silent) setOrderLoading(true);
@@ -122,6 +132,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
         return;
       }
       if (!res.ok) return;
+
       const j = (await res.json()) as OrderData;
       setData(j);
       setOrderMissing(false);
@@ -131,9 +142,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, [orderId]);
 
   const loadHistory = useCallback(async () => {
-    const ids = getOrderHistory()
-      .map((entry) => entry.orderId)
-      .filter(Boolean);
+    const ids = getOrderHistory().map((entry) => entry.orderId).filter(Boolean);
     const phone = getSavedPhone().trim();
 
     if (ids.length === 0 && phone.length < 7) {
@@ -142,27 +151,21 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     }
 
     const params = new URLSearchParams();
-    if (ids.length > 0) {
-      params.set("ids", ids.slice(0, 30).join(","));
-    }
-    if (phone.length >= 7) {
-      params.set("phone", phone);
-    }
+    if (ids.length > 0) params.set("ids", ids.slice(0, 30).join(","));
+    if (phone.length >= 7) params.set("phone", phone);
 
     const res = await fetch(`/api/orders/history?${params.toString()}`, { cache: "no-store" });
     if (!res.ok) {
       setHistory([]);
       return;
     }
+
     const j = (await res.json()) as { orders: HistoryOrder[] };
     setHistory((j.orders ?? []).filter((order) => isHistoryStatus(order.status)));
   }, []);
 
   useEffect(() => {
     setLastOrderId(getLastOrderId());
-  }, []);
-
-  useEffect(() => {
     const pendingPayOrderId = getPendingPayOrderId();
     if (pendingPayOrderId) {
       setLastOrderId((current) => current ?? pendingPayOrderId);
@@ -199,12 +202,12 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     const lastNotifiedStatus = window.localStorage.getItem(notifyKey);
 
     if (data.status === "confirmed" && lastNotifiedStatus !== "confirmed") {
-      notifyUser("?????????? ??????????????????????", "???????????????? ?????????? ?????????????????? ???????????? ????????????.");
+      notifyUser("Заказ подтвержден", "Ресторан подтвердил ваш заказ.");
       window.localStorage.setItem(notifyKey, "confirmed");
     }
 
     if (data.status === "delivered" && lastNotifiedStatus !== "delivered") {
-      notifyUser("?????????? ??????????????????", "?????????????? ???? ?????????? Dordoi Food.");
+      notifyUser("Заказ доставлен", "Спасибо, что выбрали Dordoi Food.");
       window.localStorage.setItem(notifyKey, "delivered");
     }
   }, [data?.status, orderId]);
@@ -219,30 +222,53 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
+  const canCancel = Boolean(data && !isArchived && data.status !== "delivered");
+
+  async function cancelOrder() {
+    if (!data) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${data.id}/cancel`, { method: "POST" });
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
+
+      removeOrderFromHistory(data.id);
+      clearPendingPayOrderId(data.id);
+      setLastOrderId(getLastOrderId());
+      setData(null);
+      setOrderMissing(true);
+      await loadHistory();
+      toast.success("Заказ отменен");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   return (
     <main className="min-h-screen p-5 pb-40">
       <div className="mx-auto max-w-md space-y-4">
-        <div className="text-3xl font-extrabold">Р—Р°РєР°Р·</div>
+        <div className="text-3xl font-extrabold">Заказ</div>
 
         {orderLoading && !data ? (
           <Card className="p-4">
-            <div className="text-sm text-black/60">Р—Р°РіСЂСѓР·РєР° Р·Р°РєР°Р·Р°...</div>
+            <div className="text-sm text-black/60">Загрузка заказа...</div>
           </Card>
         ) : hasNoActiveOrder ? (
           <Card className="p-4">
-            <div className="text-sm text-black/60">РђРєС‚РёРІРЅС‹Р№ Р·Р°РєР°Р·</div>
-            <div className="mt-2 text-sm text-black/70">РќРµС‚ Р°РєС‚РёРІРЅС‹С… Р·Р°РєР°Р·РѕРІ.</div>
+            <div className="text-sm text-black/60">Активный заказ</div>
+            <div className="mt-2 text-sm text-black/70">Нет активных заказов.</div>
             <div className="mt-3">
               <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-                Р’ РјРµРЅСЋ
+                В меню
               </Link>
             </div>
           </Card>
         ) : !isArchived ? (
           <>
             <Card className="p-4">
-              <div className="text-sm text-black/60">РЎС‚Р°С‚СѓСЃ</div>
+              <div className="text-sm text-black/60">Статус</div>
               <div className="mt-2">
                 <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
               </div>
@@ -250,26 +276,26 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
               <StatusProgress status={data?.status ?? ""} />
 
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="text-black/60">РС‚РѕРіРѕ</div>
+                <div className="text-black/60">Итого</div>
                 <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
-                <div className="text-black/60">РљРѕРґ РѕРїР»Р°С‚С‹</div>
+                <div className="text-black/60">Код оплаты</div>
                 <div className="text-right font-bold">{data?.paymentCode ?? ""}</div>
-                <div className="text-black/60">РЎРїРѕСЃРѕР± РѕРїР»Р°С‚С‹</div>
+                <div className="text-black/60">Способ оплаты</div>
                 <div className="text-right">{data?.paymentMethod ?? "-"}</div>
-                <div className="text-black/60">РўРµР»РµС„РѕРЅ</div>
+                <div className="text-black/60">Телефон</div>
                 <div className="text-right">{data?.customerPhone ?? "-"}</div>
-                <div className="text-black/60">Р’СЂРµРјСЏ Р·Р°РєР°Р·Р°</div>
+                <div className="text-black/60">Время заказа</div>
                 <div className="text-right">{data?.createdAt ? new Date(data.createdAt).toLocaleString() : "-"}</div>
-                <div className="text-black/60">РћР±РЅРѕРІР»РµРЅ</div>
+                <div className="text-black/60">Обновлен</div>
                 <div className="text-right">{data?.updatedAt ? new Date(data.updatedAt).toLocaleString() : "-"}</div>
               </div>
 
               <div className="mt-3 text-sm text-black/70">
-                РџСЂРѕС…РѕРґ <span className="font-bold">{data?.location?.line ?? ""}</span>, РєРѕРЅС‚РµР№РЅРµСЂ{" "}
+                Проход <span className="font-bold">{data?.location?.line ?? ""}</span>, контейнер{" "}
                 <span className="font-bold">{data?.location?.container ?? ""}</span>
                 {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
               </div>
-              {data?.comment ? <div className="mt-1 text-sm text-black/55">РљРѕРјРјРµРЅС‚Р°СЂРёР№: {data.comment}</div> : null}
+              {data?.comment ? <div className="mt-1 text-sm text-black/55">Комментарий: {data.comment}</div> : null}
 
               <div className="mt-4 space-y-2">
                 <Button variant="secondary" onClick={() => void loadOrder()} className="w-full">
@@ -284,6 +310,11 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       К оплате
                     </Link>
                   )}
+                {canCancel && (
+                  <Button variant="secondary" onClick={() => void cancelOrder()} disabled={cancelling} className="w-full text-rose-700">
+                    {cancelling ? "Отменяем..." : "Отменить заказ"}
+                  </Button>
+                )}
                 <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
                   В меню
                 </Link>
@@ -311,20 +342,20 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
           </>
         ) : (
           <Card className="p-4">
-            <div className="text-sm text-black/60">РђРєС‚РёРІРЅС‹Р№ Р·Р°РєР°Р·</div>
+            <div className="text-sm text-black/60">Активный заказ</div>
             <div className="mt-2 text-sm text-black/70">
-              Р­С‚РѕС‚ Р·Р°РєР°Р· Р·Р°РІРµСЂС€РµРЅ Рё РїРµСЂРµРЅРµСЃРµРЅ РІ РёСЃС‚РѕСЂРёСЋ. РћС„РѕСЂРјРёС‚Рµ РЅРѕРІС‹Р№ Р·Р°РєР°Р· РІ РјРµРЅСЋ.
+              Этот заказ завершен и перенесен в историю. Оформите новый заказ в меню.
             </div>
             <div className="mt-3">
               <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-                Р’ РјРµРЅСЋ
+                В меню
               </Link>
             </div>
           </Card>
         )}
 
         <Card className="p-4">
-          <div className="text-sm font-semibold">РСЃС‚РѕСЂРёСЏ Р·Р°РєР°Р·РѕРІ</div>
+          <div className="text-sm font-semibold">История заказов</div>
           <div className="mt-3 space-y-2">
             {history.map((order) => {
               const meta = getOrderStatusMeta(order.status);
@@ -338,13 +369,13 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.badgeClassName}`}>{meta.label}</span>
                   </div>
                   <div className="mt-2 text-sm text-black/70">
-                    {order.restaurant?.name ?? "-"} вЂў {formatKgs(order.totalKgs)} вЂў {order.items.length} РїРѕР·.
+                    {order.restaurant?.name ?? "-"} - {formatKgs(order.totalKgs)} - {order.items.length} поз.
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    РџСЂРѕС…РѕРґ {order.location?.line ?? "-"}, РєРѕРЅС‚РµР№РЅРµСЂ {order.location?.container ?? "-"}
+                    Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    РњРµС‚РѕРґ: {order.paymentMethod} вЂў РљРѕРґ: {order.paymentCode} вЂў РћР±РЅРѕРІР»РµРЅ: {new Date(order.updatedAt).toLocaleString()}
+                    Метод: {order.paymentMethod} - Код: {order.paymentCode} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-black/60">
                     {order.items.map((item) => (
@@ -356,11 +387,11 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       </div>
                     ))}
                   </div>
-                  {order.comment ? <div className="mt-1 text-xs text-black/55">РљРѕРјРјРµРЅС‚Р°СЂРёР№: {order.comment}</div> : null}
+                  {order.comment ? <div className="mt-1 text-xs text-black/55">Комментарий: {order.comment}</div> : null}
                 </div>
               );
             })}
-            {history.length === 0 && <div className="text-sm text-black/50">РСЃС‚РѕСЂРёСЏ Р·Р°РєР°Р·РѕРІ РїРѕРєР° РїСѓСЃС‚Р°.</div>}
+            {history.length === 0 && <div className="text-sm text-black/50">История заказов пока пуста.</div>}
           </div>
         </Card>
       </div>
@@ -369,4 +400,3 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     </main>
   );
 }
-
