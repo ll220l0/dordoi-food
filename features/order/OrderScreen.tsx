@@ -108,20 +108,26 @@ function StatusProgress({ status }: { status: string }) {
 export default function OrderScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<OrderData | null>(null);
   const [orderMissing, setOrderMissing] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
-  const loadOrder = useCallback(async () => {
-    const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
-    if (res.status === 404) {
-      setData(null);
-      setOrderMissing(true);
-      return;
+  const loadOrder = useCallback(async (silent = false) => {
+    if (!silent) setOrderLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
+      if (res.status === 404) {
+        setData(null);
+        setOrderMissing(true);
+        return;
+      }
+      if (!res.ok) return;
+      const j = (await res.json()) as OrderData;
+      setData(j);
+      setOrderMissing(false);
+    } finally {
+      if (!silent) setOrderLoading(false);
     }
-    if (!res.ok) return;
-    const j = (await res.json()) as OrderData;
-    setData(j);
-    setOrderMissing(false);
   }, [orderId]);
 
   const loadHistory = useCallback(async () => {
@@ -184,21 +190,25 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
   useEffect(() => {
     if (!data || orderMissing || isHistoryStatus(data.status)) return;
-    const timer = setInterval(() => void loadOrder(), 4000);
+    const timer = setInterval(() => void loadOrder(true), 4000);
     return () => clearInterval(timer);
   }, [data, orderMissing, loadOrder]);
 
   const statusMeta = useMemo(() => getOrderStatusMeta(data?.status ?? ""), [data?.status]);
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
-  const hasNoActiveOrder = orderMissing || !data;
+  const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
 
   return (
     <main className="min-h-screen p-5 pb-40">
       <div className="mx-auto max-w-md space-y-4">
         <div className="text-3xl font-extrabold">Заказ</div>
 
-        {hasNoActiveOrder ? (
+        {orderLoading && !data ? (
+          <Card className="p-4">
+            <div className="text-sm text-black/60">Загрузка заказа...</div>
+          </Card>
+        ) : hasNoActiveOrder ? (
           <Card className="p-4">
             <div className="text-sm text-black/60">Активный заказ</div>
             <div className="mt-2 text-sm text-black/70">Нет активных заказов.</div>

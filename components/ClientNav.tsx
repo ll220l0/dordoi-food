@@ -12,6 +12,7 @@ type Props = {
 
 export function ClientNav({ menuHref, orderHref }: Props) {
   const pathname = usePathname();
+  const resolvedOrderHref = orderHref ?? "/order";
 
   const itemClassName = (active: boolean) =>
     clsx(
@@ -28,13 +29,12 @@ export function ClientNav({ menuHref, orderHref }: Props) {
         <Link href="/cart" className={itemClassName(pathname === "/cart")}>
           Корзина
         </Link>
-        {orderHref ? (
-          <Link href={orderHref} className={itemClassName(pathname.startsWith("/order/") || pathname.startsWith("/pay/"))}>
-            Заказ
-          </Link>
-        ) : (
-          <span className={itemClassName(false)}>Заказ</span>
-        )}
+        <Link
+          href={resolvedOrderHref}
+          className={itemClassName(pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/"))}
+        >
+          Заказ
+        </Link>
         <InstallAppButton className={itemClassName(false)} />
       </div>
     </div>
