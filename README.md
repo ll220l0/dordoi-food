@@ -66,10 +66,10 @@ git push -u origin main
    - `ADMIN_QR_PASS`
    - `NEXT_PUBLIC_APP_NAME`
 3. Deploy.
-4. This repo includes `vercel.json`, so Vercel build runs migrations automatically (`prisma migrate deploy`).
+4. This repo includes `vercel.json`; Vercel build runs `npm run vercel-build` (without DB migrations).
 
 ### 4) Production DB migration
-Run once for production database:
+Run once for production database (or after adding new migrations):
 ```bash
 npm run prisma:migrate:deploy
 ```
