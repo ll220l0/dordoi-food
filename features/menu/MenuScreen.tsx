@@ -26,13 +26,17 @@ type MenuResp = {
 };
 
 async function fetchMenu(slug: string): Promise<MenuResp> {
-  const res = await fetch(`/api/restaurants/${slug}/menu`);
+  const res = await fetch(`/api/restaurants/${slug}/menu`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load menu");
   return res.json();
 }
 
 export default function MenuScreen({ slug }: { slug: string }) {
-  const { data, isLoading } = useQuery({ queryKey: ["menu", slug], queryFn: () => fetchMenu(slug) });
+  const { data, isLoading } = useQuery({
+    queryKey: ["menu", slug],
+    queryFn: () => fetchMenu(slug),
+    refetchInterval: 5000
+  });
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);

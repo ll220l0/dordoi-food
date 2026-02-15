@@ -107,13 +107,21 @@ function StatusProgress({ status }: { status: string }) {
 
 export default function OrderScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<OrderData | null>(null);
+  const [orderMissing, setOrderMissing] = useState(false);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   const loadOrder = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
+    if (res.status === 404) {
+      setData(null);
+      setOrderMissing(true);
+      return;
+    }
+    if (!res.ok) return;
     const j = (await res.json()) as OrderData;
     setData(j);
+    setOrderMissing(false);
   }, [orderId]);
 
   const loadHistory = useCallback(async () => {
@@ -175,21 +183,32 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, [data?.status, orderId]);
 
   useEffect(() => {
-    if (isHistoryStatus(data?.status ?? "")) return;
+    if (!data || orderMissing || isHistoryStatus(data.status)) return;
     const timer = setInterval(() => void loadOrder(), 4000);
     return () => clearInterval(timer);
-  }, [data?.status, loadOrder]);
+  }, [data, orderMissing, loadOrder]);
 
   const statusMeta = useMemo(() => getOrderStatusMeta(data?.status ?? ""), [data?.status]);
-  const menuSlug = data?.restaurant?.slug ?? "demo-restaurant";
+  const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
+  const hasNoActiveOrder = orderMissing || !data;
 
   return (
     <main className="min-h-screen p-5 pb-40">
       <div className="mx-auto max-w-md space-y-4">
         <div className="text-3xl font-extrabold">Заказ</div>
 
-        {!isArchived ? (
+        {hasNoActiveOrder ? (
+          <Card className="p-4">
+            <div className="text-sm text-black/60">Активный заказ</div>
+            <div className="mt-2 text-sm text-black/70">Нет активных заказов.</div>
+            <div className="mt-3">
+              <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
+                В меню
+              </Link>
+            </div>
+          </Card>
+        ) : !isArchived ? (
           <>
             <Card className="p-4">
               <div className="text-sm text-black/60">Статус</div>
