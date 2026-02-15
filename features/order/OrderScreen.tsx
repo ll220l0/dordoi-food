@@ -222,7 +222,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
-  const canCancel = Boolean(data && !isArchived && data.status !== "delivered");
+  const canCancel = false;
 
   async function cancelOrder() {
     if (!data) return;

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { clearPendingPayOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
+import { clearPendingPayOrderId, removeOrderFromHistory, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { formatKgs } from "@/lib/money";
 
@@ -77,6 +77,7 @@ async function decodeQrLinkFromImage(imageUrl: string) {
 export default function PayScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<OrderResp | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
   const [bankPayUrl, setBankPayUrl] = useState<string | null>(null);
   const [resolvingBankUrl, setResolvingBankUrl] = useState(false);
@@ -187,6 +188,24 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }
 
+  async function cancelOrder() {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
+
+      clearPendingPayOrderId(orderId);
+      removeOrderFromHistory(orderId);
+      toast.success("Заказ отменен");
+      router.replace("/order");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   async function copyCode() {
     if (!code) return;
     try {
@@ -228,21 +247,24 @@ export default function PayScreen({ orderId }: { orderId: string }) {
           </div>
 
           <div className="mt-4 space-y-2">
-            <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder} className="w-full">
+            <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder || cancelling} className="w-full">
               Я оплатил(а)
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={goToBankPayment}
-              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl}
-              className="w-full border-black/10 bg-white text-black"
+              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || cancelling}
+              className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
               <div className="flex items-center justify-center">
-                <div className="relative h-10 w-48 overflow-hidden rounded-md bg-white">
-                  <Image src="/mbank-logo.png" alt="Bank payment" fill className="object-contain" sizes="192px" />
+                <div className="relative h-8 w-40 overflow-hidden">
+                  <Image src="/mbank-logo-white.svg" alt="Bank payment" fill className="object-contain" sizes="160px" priority />
                 </div>
                 <span className="sr-only">{resolvingBankUrl ? "Считываем ссылку из QR..." : "Оплатить через банк"}</span>
               </div>
+            </Button>
+            <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || navigatingToOrder || cancelling} className="w-full text-rose-700">
+              {cancelling ? "Отменяем..." : "Отменить заказ"}
             </Button>
           </div>
         </Card>
