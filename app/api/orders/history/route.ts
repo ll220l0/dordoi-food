@@ -6,13 +6,27 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const phone = url.searchParams.get("phone")?.trim() ?? "";
+  const idsParam = url.searchParams.get("ids")?.trim() ?? "";
+  const orderIds = idsParam
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .slice(0, 30);
 
-  if (phone.length < 7) {
-    return NextResponse.json({ error: "phone required" }, { status: 400 });
+  if (phone.length < 7 && orderIds.length === 0) {
+    return NextResponse.json({ error: "phone or ids required" }, { status: 400 });
   }
 
+  const where =
+    orderIds.length > 0
+      ? {
+          id: { in: orderIds },
+          ...(phone.length >= 7 ? { customerPhone: phone } : {})
+        }
+      : { customerPhone: phone };
+
   const orders = await prisma.order.findMany({
-    where: { customerPhone: phone },
+    where,
     include: { restaurant: true, items: true },
     orderBy: { createdAt: "desc" },
     take: 30

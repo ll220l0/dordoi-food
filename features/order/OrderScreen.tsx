@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getLastOrderId } from "@/lib/clientPrefs";
+import { getLastOrderId, getOrderHistory, getSavedPhone } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
 
@@ -116,10 +116,30 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     setData(j);
   }, [orderId]);
 
-  const loadHistory = useCallback(async (phone: string) => {
-    const encodedPhone = encodeURIComponent(phone.trim());
-    const res = await fetch(`/api/orders/history?phone=${encodedPhone}`, { cache: "no-store" });
-    if (!res.ok) return;
+  const loadHistory = useCallback(async () => {
+    const ids = getOrderHistory()
+      .map((entry) => entry.orderId)
+      .filter(Boolean);
+    const phone = getSavedPhone().trim();
+
+    if (ids.length === 0 && phone.length < 7) {
+      setHistory([]);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (ids.length > 0) {
+      params.set("ids", ids.slice(0, 30).join(","));
+    }
+    if (phone.length >= 7) {
+      params.set("phone", phone);
+    }
+
+    const res = await fetch(`/api/orders/history?${params.toString()}`, { cache: "no-store" });
+    if (!res.ok) {
+      setHistory([]);
+      return;
+    }
     const j = (await res.json()) as { orders: HistoryOrder[] };
     setHistory((j.orders ?? []).filter((order) => isHistoryStatus(order.status)));
   }, []);
@@ -133,9 +153,8 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, [loadOrder]);
 
   useEffect(() => {
-    if (!data?.customerPhone) return;
-    void loadHistory(data.customerPhone);
-  }, [data?.customerPhone, data?.status, loadHistory]);
+    void loadHistory();
+  }, [loadHistory, data?.status]);
 
   useEffect(() => {
     if (!data?.status) return;
