@@ -60,8 +60,26 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     void load();
-    const t = setInterval(() => void load(true), 4000);
-    return () => clearInterval(t);
+    const t = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void load(true);
+    }, 1000);
+    const onFocus = () => void load(true);
+    const onOnline = () => void load(true);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void load(true);
+    };
+
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [load]);
 
   async function confirm(id: string) {

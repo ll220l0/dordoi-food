@@ -11,7 +11,6 @@ import {
   getOrderHistory,
   getPendingPayOrderId,
   getSavedPhone,
-  removeOrderFromHistory,
   setPendingPayOrderId
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
@@ -56,25 +55,13 @@ type HistoryOrder = {
 };
 
 function notifyUser(title: string, body: string) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-
-  const show = () => {
-    try {
-      new Notification(title, { body });
-    } catch {
-      // Ignore notification errors.
-    }
-  };
-
-  if (Notification.permission === "granted") {
-    show();
-    return;
-  }
-
-  if (Notification.permission === "default") {
-    void Notification.requestPermission().then((permission) => {
-      if (permission === "granted") show();
-    });
+  if (typeof window === "undefined" || !("Notification" in window)) return false;
+  if (Notification.permission !== "granted") return false;
+  try {
+    new Notification(title, { body });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -120,7 +107,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
 
   const loadOrder = useCallback(async (silent = false) => {
     if (!silent) setOrderLoading(true);
@@ -173,6 +160,11 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    setNotificationPermission(Notification.permission);
+  }, []);
+
+  useEffect(() => {
     void loadOrder();
   }, [loadOrder]);
 
@@ -202,12 +194,14 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     const lastNotifiedStatus = window.localStorage.getItem(notifyKey);
 
     if (data.status === "confirmed" && lastNotifiedStatus !== "confirmed") {
-      notifyUser("Заказ подтвержден", "Ресторан подтвердил ваш заказ.");
+      const shown = notifyUser("Заказ подтвержден", "Ресторан подтвердил ваш заказ.");
+      if (!shown) toast.success("Заказ подтвержден");
       window.localStorage.setItem(notifyKey, "confirmed");
     }
 
     if (data.status === "delivered" && lastNotifiedStatus !== "delivered") {
-      notifyUser("Заказ доставлен", "Спасибо, что выбрали Dordoi Food.");
+      const shown = notifyUser("Заказ доставлен", "Спасибо, что выбрали Dordoi Food.");
+      if (!shown) toast.success("Заказ доставлен");
       window.localStorage.setItem(notifyKey, "delivered");
     }
   }, [data?.status, orderId]);
@@ -222,27 +216,24 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
-  const canCancel = false;
+  const canEnableNotifications = notificationPermission !== "granted";
 
-  async function cancelOrder() {
-    if (!data) return;
-    setCancelling(true);
+  async function enableNotifications() {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      toast.error("Уведомления не поддерживаются на этом устройстве");
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/orders/${data.id}/cancel`, { method: "POST" });
-      const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
-
-      removeOrderFromHistory(data.id);
-      clearPendingPayOrderId(data.id);
-      setLastOrderId(getLastOrderId());
-      setData(null);
-      setOrderMissing(true);
-      await loadHistory();
-      toast.success("Заказ отменен");
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Ошибка");
-    } finally {
-      setCancelling(false);
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === "granted") {
+        toast.success("Уведомления включены");
+      } else {
+        toast.error("Разрешите уведомления в настройках браузера");
+      }
+    } catch {
+      toast.error("Не удалось включить уведомления");
     }
   }
 
@@ -301,6 +292,11 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                 <Button variant="secondary" onClick={() => void loadOrder()} className="w-full">
                   Обновить
                 </Button>
+                {canEnableNotifications && (
+                  <Button variant="secondary" onClick={() => void enableNotifications()} className="w-full">
+                    Включить уведомления
+                  </Button>
+                )}
                 {data?.paymentMethod === "qr_image" &&
                   (data?.status === "created" || data?.status === "pending_confirmation") && (
                     <Link
@@ -310,11 +306,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       К оплате
                     </Link>
                   )}
-                {canCancel && (
-                  <Button variant="secondary" onClick={() => void cancelOrder()} disabled={cancelling} className="w-full text-rose-700">
-                    {cancelling ? "Отменяем..." : "Отменить заказ"}
-                  </Button>
-                )}
                 <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
                   В меню
                 </Link>
