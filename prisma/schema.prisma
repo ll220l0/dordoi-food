@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  qrImageUrl String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  categories Category[]
+  items      MenuItem[]
+  orders     Order[]
+}
+
+model Category {
+  id           String @id @default(cuid())
+  restaurantId String
+  title        String
+  sortOrder    Int    @default(0)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      MenuItem[]
+
+  @@index([restaurantId, sortOrder])
+}
+
+model MenuItem {
+  id           String @id @default(cuid())
+  restaurantId String
+  categoryId   String
+  title        String
+  description  String?
+  photoUrl     String
+  priceKgs     Int
+  isAvailable  Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+
+  @@index([restaurantId, categoryId, sortOrder])
+}
+
+enum OrderStatus {
+  created
+  pending_confirmation
+  confirmed
+  cooking
+  delivering
+  delivered
+  canceled
+}
+
+enum PaymentMethod {
+  qr_image
+  cash
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  restaurantId  String
+  status        OrderStatus   @default(created)
+  paymentMethod PaymentMethod @default(qr_image)
+  totalKgs      Int
+  customerPhone String?
+  paymentCode   String
+  location      Json
+  comment       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  menuItemId String
+  qty        Int
+  priceKgs   Int
+  titleSnap  String
+  photoSnap  String
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+}

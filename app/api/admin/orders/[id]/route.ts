@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { restaurant: true, items: true }
+  });
+
+  if (!order) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    id: order.id,
+    status: order.status,
+    totalKgs: order.totalKgs,
+    paymentCode: order.paymentCode,
+    paymentMethod: order.paymentMethod,
+    customerPhone: order.customerPhone ?? "",
+    comment: order.comment ?? "",
+    location: order.location,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    restaurant: {
+      name: order.restaurant.name,
+      slug: order.restaurant.slug
+    },
+    items: order.items.map((x) => ({
+      id: x.id,
+      title: x.titleSnap,
+      qty: x.qty,
+      priceKgs: x.priceKgs,
+      photoUrl: x.photoSnap
+    }))
+  });
+}

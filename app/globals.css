@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg-start: #f5f7fb;
+  --bg-mid: #edf2ff;
+  --bg-end: #f8fafc;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 10% 5%, rgba(191, 219, 254, 0.42), transparent 35%),
+    radial-gradient(circle at 90% 0%, rgba(196, 181, 253, 0.35), transparent 32%),
+    linear-gradient(160deg, var(--bg-start), var(--bg-mid) 40%, var(--bg-end));
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: #0f172a;
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+a,
+button,
+input,
+select {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main {
+  animation: page-enter 260ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  main {
+    animation: none;
+  }
+  a,
+  button,
+  input,
+  select {
+    transition: none;
+  }
+}

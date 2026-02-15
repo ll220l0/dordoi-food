@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dordoi_food
+    ports:
+      - "5433:5432"
+    volumes:
+      - dordoi_food_pg:/var/lib/postgresql/data
+volumes:
+  dordoi_food_pg:
