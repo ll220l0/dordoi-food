@@ -71,3 +71,41 @@ Run once for production database:
 ```bash
 npm run prisma:migrate:deploy
 ```
+
+## Vercel: quick fix for server error
+
+If you see `Application error: a server-side exception has occurred`, usually DB/env is not configured.
+
+### Required environment variables (Production)
+- `DATABASE_URL`
+- `ADMIN_USER`
+- `ADMIN_PASS`
+- `ADMIN_QR_PASS`
+- `NEXT_PUBLIC_APP_NAME`
+
+### `DATABASE_URL` format examples
+- Neon:
+`postgresql://USER:PASSWORD@ep-xxxx.REGION.aws.neon.tech/DBNAME?sslmode=require&channel_binding=require`
+- Supabase:
+`postgresql://postgres:PASSWORD@db.xxxxx.supabase.co:5432/postgres?sslmode=require`
+- Railway:
+`postgresql://postgres:PASSWORD@HOST:PORT/railway?sslmode=require`
+
+Important:
+- if password has special chars (`@`, `:`, `/`, `#`, `%`) URL-encode it.
+- never use `localhost` in Vercel production.
+
+### Validate deployment after redeploy
+Open:
+- `https://<your-domain>/api/health`
+
+Expected:
+- `"ok": true`
+- `"db.ok": true`
+- `missingEnv` is empty.
+
+### Run production migrations
+From local terminal (PowerShell), point Prisma to production DB once:
+```powershell
+$env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
+```
