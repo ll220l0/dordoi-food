@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,11 @@ export default async function Home() {
       redirect(`/r/${restaurant.slug}`);
     }
   } catch (error) {
-    console.error("Home page DB lookup failed:", error);
+    const isMissingTable =
+      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021";
+    if (!isMissingTable) {
+      console.error("Home page DB lookup failed:", error);
+    }
   }
 
   return (

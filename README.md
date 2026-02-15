@@ -65,6 +65,7 @@ git push -u origin main
    - `ADMIN_QR_PASS`
    - `NEXT_PUBLIC_APP_NAME`
 3. Deploy.
+4. This repo includes `vercel.json`, so Vercel build runs migrations automatically (`prisma migrate deploy`).
 
 ### 4) Production DB migration
 Run once for production database:
@@ -109,3 +110,8 @@ From local terminal (PowerShell), point Prisma to production DB once:
 ```powershell
 $env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
 ```
+
+### If you see `P2021` (`public.Restaurant` does not exist)
+- Your production database is empty or migrations were not applied.
+- Redeploy after setting correct `DATABASE_URL`.
+- Verify: `https://<your-domain>/api/health` must return `"db.ok": true`.
