@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { Button, Card, Photo, Pill } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import { useCart } from "@/lib/cartStore";
-import { getLastOrderId } from "@/lib/clientPrefs";
+import { getLastOrderId, getPendingPayOrderId } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 
 type MenuResp = {
@@ -40,7 +40,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [orderHref, setOrderHref] = useState<string | null>(null);
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
   const total = useCart((state) => state.total());
@@ -49,7 +49,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   useEffect(() => {
     setIsHydrated(true);
-    setLastOrderId(getLastOrderId());
+    const pendingPayOrderId = getPendingPayOrderId();
+    const lastOrderId = getLastOrderId();
+    setOrderHref(pendingPayOrderId ? `/pay/${pendingPayOrderId}` : lastOrderId ? `/order/${lastOrderId}` : null);
   }, []);
 
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
         )}
       </div>
 
-      <ClientNav menuHref={`/r/${effectiveSlug}`} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
+      <ClientNav menuHref={`/r/${effectiveSlug}`} orderHref={orderHref} />
     </main>
   );
 }

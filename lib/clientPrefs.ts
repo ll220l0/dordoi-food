@@ -17,6 +17,7 @@ export type OrderHistoryEntry = {
 
 const PHONE_COOKIE = "dordoi_phone";
 const HISTORY_COOKIE = "dordoi_order_history";
+const PENDING_PAY_ORDER_KEY = "dordoi_pending_pay_order_id";
 const COOKIE_DAYS = 120;
 const HISTORY_LIMIT = 8;
 
@@ -68,6 +69,30 @@ export function addOrderToHistory(entry: OrderHistoryEntry) {
 
 export function getLastOrderId() {
   return getOrderHistory()[0]?.orderId ?? null;
+}
+
+export function getPendingPayOrderId() {
+  if (typeof window === "undefined") return null;
+  const value = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
+  return value?.trim() ? value : null;
+}
+
+export function setPendingPayOrderId(orderId: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PENDING_PAY_ORDER_KEY, orderId);
+}
+
+export function clearPendingPayOrderId(orderId?: string) {
+  if (typeof window === "undefined") return;
+  if (!orderId) {
+    window.localStorage.removeItem(PENDING_PAY_ORDER_KEY);
+    return;
+  }
+
+  const current = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
+  if (current === orderId) {
+    window.localStorage.removeItem(PENDING_PAY_ORDER_KEY);
+  }
 }
 
 export function getFrequentMenuItems(restaurantSlug: string) {

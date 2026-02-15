@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getLastOrderId, getOrderHistory } from "@/lib/clientPrefs";
+import { getLastOrderId, getOrderHistory, getPendingPayOrderId } from "@/lib/clientPrefs";
 
 export default function OrderHubPage() {
   const router = useRouter();
@@ -14,6 +14,13 @@ export default function OrderHubPage() {
   const [menuSlug, setMenuSlug] = useState("dordoi-food");
 
   useEffect(() => {
+    const pendingPayOrderId = getPendingPayOrderId();
+    if (pendingPayOrderId) {
+      setHasOrder(true);
+      router.replace(`/pay/${pendingPayOrderId}`);
+      return;
+    }
+
     const lastOrderId = getLastOrderId();
     const history = getOrderHistory();
     const slug = history[0]?.restaurantSlug || "dordoi-food";

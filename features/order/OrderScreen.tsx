@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getLastOrderId, getOrderHistory, getSavedPhone } from "@/lib/clientPrefs";
+import { clearPendingPayOrderId, getLastOrderId, getOrderHistory, getPendingPayOrderId, getSavedPhone, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
 
@@ -74,7 +74,7 @@ function StatusProgress({ status }: { status: string }) {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-        <div className="text-sm font-semibold text-amber-700">Ожидаем подтверждения заказа</div>
+        <div className="text-sm font-semibold text-amber-700">РћР¶РёРґР°РµРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р·Р°РєР°Р·Р°</div>
       </div>
     );
   }
@@ -82,8 +82,8 @@ function StatusProgress({ status }: { status: string }) {
   if (status === "delivered") {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
-        <div className="text-sm font-semibold text-emerald-700">Спасибо за выбор. Заказ доставлен.</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">вњ“</div>
+        <div className="text-sm font-semibold text-emerald-700">РЎРїР°СЃРёР±Рѕ Р·Р° РІС‹Р±РѕСЂ. Р—Р°РєР°Р· РґРѕСЃС‚Р°РІР»РµРЅ.</div>
       </div>
     );
   }
@@ -91,8 +91,8 @@ function StatusProgress({ status }: { status: string }) {
   if (isApprovedStatus(status)) {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
-        <div className="text-sm font-semibold text-emerald-700">Заказ подтвержден</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">вњ“</div>
+        <div className="text-sm font-semibold text-emerald-700">Р—Р°РєР°Р· РїРѕРґС‚РІРµСЂР¶РґРµРЅ</div>
       </div>
     );
   }
@@ -100,7 +100,7 @@ function StatusProgress({ status }: { status: string }) {
   return (
     <div className="mt-4 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-white">!</div>
-      <div className="text-sm font-semibold text-rose-700">Заказ отменен</div>
+      <div className="text-sm font-semibold text-rose-700">Р—Р°РєР°Р· РѕС‚РјРµРЅРµРЅ</div>
     </div>
   );
 }
@@ -163,12 +163,33 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, []);
 
   useEffect(() => {
+    const pendingPayOrderId = getPendingPayOrderId();
+    if (pendingPayOrderId) {
+      setLastOrderId((current) => current ?? pendingPayOrderId);
+    }
+  }, []);
+
+  useEffect(() => {
     void loadOrder();
   }, [loadOrder]);
 
   useEffect(() => {
     void loadHistory();
   }, [loadHistory, data?.status]);
+
+  useEffect(() => {
+    if (!data?.id) return;
+
+    const isQrPayment = data.paymentMethod === "qr_image";
+    const isPendingPayStatus = data.status === "created" || data.status === "pending_confirmation";
+
+    if (isQrPayment && isPendingPayStatus) {
+      setPendingPayOrderId(data.id);
+      return;
+    }
+
+    clearPendingPayOrderId(data.id);
+  }, [data?.id, data?.paymentMethod, data?.status]);
 
   useEffect(() => {
     if (!data?.status) return;
@@ -202,26 +223,26 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   return (
     <main className="min-h-screen p-5 pb-40">
       <div className="mx-auto max-w-md space-y-4">
-        <div className="text-3xl font-extrabold">Заказ</div>
+        <div className="text-3xl font-extrabold">Р—Р°РєР°Р·</div>
 
         {orderLoading && !data ? (
           <Card className="p-4">
-            <div className="text-sm text-black/60">Загрузка заказа...</div>
+            <div className="text-sm text-black/60">Р—Р°РіСЂСѓР·РєР° Р·Р°РєР°Р·Р°...</div>
           </Card>
         ) : hasNoActiveOrder ? (
           <Card className="p-4">
-            <div className="text-sm text-black/60">Активный заказ</div>
-            <div className="mt-2 text-sm text-black/70">Нет активных заказов.</div>
+            <div className="text-sm text-black/60">РђРєС‚РёРІРЅС‹Р№ Р·Р°РєР°Р·</div>
+            <div className="mt-2 text-sm text-black/70">РќРµС‚ Р°РєС‚РёРІРЅС‹С… Р·Р°РєР°Р·РѕРІ.</div>
             <div className="mt-3">
               <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-                В меню
+                Р’ РјРµРЅСЋ
               </Link>
             </div>
           </Card>
         ) : !isArchived ? (
           <>
             <Card className="p-4">
-              <div className="text-sm text-black/60">Статус</div>
+              <div className="text-sm text-black/60">РЎС‚Р°С‚СѓСЃ</div>
               <div className="mt-2">
                 <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
               </div>
@@ -229,31 +250,40 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
               <StatusProgress status={data?.status ?? ""} />
 
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="text-black/60">Итого</div>
+                <div className="text-black/60">РС‚РѕРіРѕ</div>
                 <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
-                <div className="text-black/60">Код оплаты</div>
+                <div className="text-black/60">РљРѕРґ РѕРїР»Р°С‚С‹</div>
                 <div className="text-right font-bold">{data?.paymentCode ?? ""}</div>
-                <div className="text-black/60">Способ оплаты</div>
+                <div className="text-black/60">РЎРїРѕСЃРѕР± РѕРїР»Р°С‚С‹</div>
                 <div className="text-right">{data?.paymentMethod ?? "-"}</div>
-                <div className="text-black/60">Телефон</div>
+                <div className="text-black/60">РўРµР»РµС„РѕРЅ</div>
                 <div className="text-right">{data?.customerPhone ?? "-"}</div>
-                <div className="text-black/60">Время заказа</div>
+                <div className="text-black/60">Р’СЂРµРјСЏ Р·Р°РєР°Р·Р°</div>
                 <div className="text-right">{data?.createdAt ? new Date(data.createdAt).toLocaleString() : "-"}</div>
-                <div className="text-black/60">Обновлен</div>
+                <div className="text-black/60">РћР±РЅРѕРІР»РµРЅ</div>
                 <div className="text-right">{data?.updatedAt ? new Date(data.updatedAt).toLocaleString() : "-"}</div>
               </div>
 
               <div className="mt-3 text-sm text-black/70">
-                Проход <span className="font-bold">{data?.location?.line ?? ""}</span>, контейнер{" "}
+                РџСЂРѕС…РѕРґ <span className="font-bold">{data?.location?.line ?? ""}</span>, РєРѕРЅС‚РµР№РЅРµСЂ{" "}
                 <span className="font-bold">{data?.location?.container ?? ""}</span>
                 {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
               </div>
-              {data?.comment ? <div className="mt-1 text-sm text-black/55">Комментарий: {data.comment}</div> : null}
+              {data?.comment ? <div className="mt-1 text-sm text-black/55">РљРѕРјРјРµРЅС‚Р°СЂРёР№: {data.comment}</div> : null}
 
               <div className="mt-4 space-y-2">
                 <Button variant="secondary" onClick={() => void loadOrder()} className="w-full">
                   Обновить
                 </Button>
+                {data?.paymentMethod === "qr_image" &&
+                  (data?.status === "created" || data?.status === "pending_confirmation") && (
+                    <Link
+                      href={`/pay/${data.id}?code=${encodeURIComponent(data.paymentCode ?? "")}`}
+                      className="block rounded-xl border border-black/15 bg-white py-3 text-center font-semibold text-black"
+                    >
+                      К оплате
+                    </Link>
+                  )}
                 <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
                   В меню
                 </Link>
@@ -281,20 +311,20 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
           </>
         ) : (
           <Card className="p-4">
-            <div className="text-sm text-black/60">Активный заказ</div>
+            <div className="text-sm text-black/60">РђРєС‚РёРІРЅС‹Р№ Р·Р°РєР°Р·</div>
             <div className="mt-2 text-sm text-black/70">
-              Этот заказ завершен и перенесен в историю. Оформите новый заказ в меню.
+              Р­С‚РѕС‚ Р·Р°РєР°Р· Р·Р°РІРµСЂС€РµРЅ Рё РїРµСЂРµРЅРµСЃРµРЅ РІ РёСЃС‚РѕСЂРёСЋ. РћС„РѕСЂРјРёС‚Рµ РЅРѕРІС‹Р№ Р·Р°РєР°Р· РІ РјРµРЅСЋ.
             </div>
             <div className="mt-3">
               <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-                В меню
+                Р’ РјРµРЅСЋ
               </Link>
             </div>
           </Card>
         )}
 
         <Card className="p-4">
-          <div className="text-sm font-semibold">История заказов</div>
+          <div className="text-sm font-semibold">РСЃС‚РѕСЂРёСЏ Р·Р°РєР°Р·РѕРІ</div>
           <div className="mt-3 space-y-2">
             {history.map((order) => {
               const meta = getOrderStatusMeta(order.status);
@@ -308,13 +338,13 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.badgeClassName}`}>{meta.label}</span>
                   </div>
                   <div className="mt-2 text-sm text-black/70">
-                    {order.restaurant?.name ?? "-"} • {formatKgs(order.totalKgs)} • {order.items.length} поз.
+                    {order.restaurant?.name ?? "-"} вЂў {formatKgs(order.totalKgs)} вЂў {order.items.length} РїРѕР·.
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
+                    РџСЂРѕС…РѕРґ {order.location?.line ?? "-"}, РєРѕРЅС‚РµР№РЅРµСЂ {order.location?.container ?? "-"}
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    Метод: {order.paymentMethod} • Код: {order.paymentCode} • Обновлен: {new Date(order.updatedAt).toLocaleString()}
+                    РњРµС‚РѕРґ: {order.paymentMethod} вЂў РљРѕРґ: {order.paymentCode} вЂў РћР±РЅРѕРІР»РµРЅ: {new Date(order.updatedAt).toLocaleString()}
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-black/60">
                     {order.items.map((item) => (
@@ -326,11 +356,11 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       </div>
                     ))}
                   </div>
-                  {order.comment ? <div className="mt-1 text-xs text-black/55">Комментарий: {order.comment}</div> : null}
+                  {order.comment ? <div className="mt-1 text-xs text-black/55">РљРѕРјРјРµРЅС‚Р°СЂРёР№: {order.comment}</div> : null}
                 </div>
               );
             })}
-            {history.length === 0 && <div className="text-sm text-black/50">История заказов пока пуста.</div>}
+            {history.length === 0 && <div className="text-sm text-black/50">РСЃС‚РѕСЂРёСЏ Р·Р°РєР°Р·РѕРІ РїРѕРєР° РїСѓСЃС‚Р°.</div>}
           </div>
         </Card>
       </div>
@@ -339,3 +369,4 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     </main>
   );
 }
+

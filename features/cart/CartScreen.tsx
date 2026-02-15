@@ -8,7 +8,9 @@ import { ClientNav } from "@/components/ClientNav";
 import { useCart } from "@/lib/cartStore";
 import {
   addOrderToHistory,
+  clearPendingPayOrderId,
   getLastOrderId,
+  setPendingPayOrderId,
   getSavedPhone,
   setSavedPhone
 } from "@/lib/clientPrefs";
@@ -129,6 +131,11 @@ export default function CartScreen() {
       });
       setSavedPhone(phone);
       clear();
+      if (paymentMethod === "qr_image") {
+        setPendingPayOrderId(j.orderId);
+      } else {
+        clearPendingPayOrderId();
+      }
       const nextUrl =
         paymentMethod === "qr_image"
           ? `/pay/${j.orderId}?code=${encodeURIComponent(j.paymentCode ?? "")}`

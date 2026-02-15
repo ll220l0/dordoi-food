@@ -91,7 +91,7 @@ export default function AdminOrdersPage() {
       <Card key={order.id} className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-bold">{order.restaurant.name}</div>
+            <div className="font-bold">Код оплаты: {order.paymentCode}</div>
             <div className="mt-1 text-sm text-black/60">
               Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
               {order.location?.landmark ? <> ({order.location.landmark})</> : null}

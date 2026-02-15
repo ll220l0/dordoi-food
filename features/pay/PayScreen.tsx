@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getLastOrderId } from "@/lib/clientPrefs";
+import { clearPendingPayOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { formatKgs } from "@/lib/money";
 
@@ -78,12 +78,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<OrderResp | null>(null);
   const [loading, setLoading] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [bankPayUrl, setBankPayUrl] = useState<string | null>(null);
   const [resolvingBankUrl, setResolvingBankUrl] = useState(false);
   const search = useSearchParams();
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
+
+  useEffect(() => {
+    setPendingPayOrderId(orderId);
+  }, [orderId]);
 
   useEffect(() => {
     let stopped = false;
@@ -101,7 +104,6 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
     void loadOrder();
     const timer = window.setInterval(() => void loadOrder(), 4000);
-    setLastOrderId(getLastOrderId());
 
     return () => {
       stopped = true;
@@ -175,6 +177,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
       toast.success("Ожидаем подтверждения ресторана");
+      clearPendingPayOrderId(orderId);
       clearCart();
       goToOrder();
     } catch (error: unknown) {
@@ -245,7 +248,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         </Card>
       </div>
 
-      <ClientNav menuHref={menuHref} orderHref={lastOrderId ? `/order/${lastOrderId}` : `/order/${orderId}`} />
+      <ClientNav menuHref={menuHref} orderHref={`/pay/${orderId}`} />
       {navigatingToOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 backdrop-blur-md">
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
