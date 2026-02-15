@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ensureActiveRestaurant } from "@/lib/restaurant";
 
 export async function GET() {
+  await ensureActiveRestaurant();
   const restaurants = await prisma.restaurant.findMany({
     where: { isActive: true },
     orderBy: { createdAt: "asc" }

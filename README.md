@@ -60,6 +60,7 @@ git push -u origin main
 1. Import repository in Vercel.
 2. Add environment variables in project settings:
    - `DATABASE_URL`
+   - `BLOB_READ_WRITE_TOKEN` (required on Vercel for image uploads)
    - `ADMIN_USER`
    - `ADMIN_PASS`
    - `ADMIN_QR_PASS`

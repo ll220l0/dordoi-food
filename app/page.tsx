@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { ensureActiveRestaurant } from "@/lib/restaurant";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   try {
-    const restaurant = await prisma.restaurant.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: "asc" }
-    });
+    const restaurant = await ensureActiveRestaurant();
 
     if (restaurant) {
       redirect(`/r/${restaurant.slug}`);
