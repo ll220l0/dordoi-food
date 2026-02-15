@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const restaurant = await prisma.restaurant.findUnique({
+  const bySlug = await prisma.restaurant.findUnique({
     where: { slug },
     include: {
       categories: { orderBy: { sortOrder: "asc" } },
@@ -11,7 +11,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     }
   });
 
-  if (!restaurant || !restaurant.isActive) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const restaurant =
+    bySlug && bySlug.isActive
+      ? bySlug
+      : await prisma.restaurant.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: "asc" },
+          include: {
+            categories: { orderBy: { sortOrder: "asc" } },
+            items: { orderBy: { sortOrder: "asc" } }
+          }
+        });
+
+  if (!restaurant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({
     restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, qrImageUrl: restaurant.qrImageUrl },

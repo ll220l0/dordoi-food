@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button, Card, Photo, Pill } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
@@ -32,6 +33,7 @@ async function fetchMenu(slug: string): Promise<MenuResp> {
 
 export default function MenuScreen({ slug }: { slug: string }) {
   const { data, isLoading } = useQuery({ queryKey: ["menu", slug], queryFn: () => fetchMenu(slug) });
+  const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const add = useCart((state) => state.add);
   const total = useCart((state) => state.total());
   const count = useCart((state) => state.count());
+  const effectiveSlug = data?.restaurant?.slug ?? slug;
 
   useEffect(() => {
     setIsHydrated(true);
@@ -46,8 +49,14 @@ export default function MenuScreen({ slug }: { slug: string }) {
   }, []);
 
   useEffect(() => {
-    setRestaurant(slug);
-  }, [slug, setRestaurant]);
+    setRestaurant(effectiveSlug);
+  }, [effectiveSlug, setRestaurant]);
+
+  useEffect(() => {
+    if (data?.restaurant?.slug && data.restaurant.slug !== slug) {
+      router.replace(`/r/${data.restaurant.slug}`);
+    }
+  }, [data?.restaurant?.slug, slug, router]);
 
   useEffect(() => {
     if (data?.categories?.length && !activeCat) setActiveCat(data.categories[0].id);
@@ -127,7 +136,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
         )}
       </div>
 
-      <ClientNav menuHref={`/r/${slug}`} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
+      <ClientNav menuHref={`/r/${effectiveSlug}`} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
     </main>
   );
 }
