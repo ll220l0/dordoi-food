@@ -20,7 +20,7 @@ type Item = {
 };
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "РћС€РёР±РєР°";
+  return error instanceof Error ? error.message : "Ошибка";
 }
 
 async function resizeImage(file: File) {
@@ -30,7 +30,7 @@ async function resizeImage(file: File) {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new window.Image();
       image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ"));
+      image.onerror = () => reject(new Error("Не удалось обработать изображение"));
       image.src = url;
     });
 
@@ -47,7 +47,7 @@ async function resizeImage(file: File) {
     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, target, target);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => (result ? resolve(result) : reject(new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СЃР¶Р°С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ"))), "image/webp", 0.9);
+      canvas.toBlob((result) => (result ? resolve(result) : reject(new Error("Не удалось сжать изображение"))), "image/webp", 0.9);
     });
 
     return new File([blob], `${Date.now()}.webp`, { type: "image/webp" });
@@ -131,10 +131,10 @@ export default function AdminMenuPage() {
 
       const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
       const j = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !j.url) throw new Error(j.error ?? "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„РѕС‚Рѕ");
+      if (!res.ok || !j.url) throw new Error(j.error ?? "Не удалось загрузить фото");
 
       setItemPhoto(j.url);
-      toast.success("Р¤РѕС‚Рѕ Р·Р°РіСЂСѓР¶РµРЅРѕ");
+      toast.success("Фото загружено");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -150,10 +150,10 @@ export default function AdminMenuPage() {
 
       const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
       const j = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !j.url) throw new Error(j.error ?? "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ QR");
+      if (!res.ok || !j.url) throw new Error(j.error ?? "Не удалось загрузить QR");
 
       setQrImageUrl(j.url);
-      toast.success("QR Р·Р°РіСЂСѓР¶РµРЅ");
+      toast.success("QR загружен");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -163,7 +163,7 @@ export default function AdminMenuPage() {
 
   async function saveQr() {
     if (!restaurantSlug || !qrImageUrl || !qrPassword.trim()) {
-      toast.error("Р’РІРµРґРёС‚Рµ РїР°СЂРѕР»СЊ РґР»СЏ СЃРјРµРЅС‹ QR");
+      toast.error("Введите пароль для смены QR");
       return;
     }
     setSavingQr(true);
@@ -174,8 +174,8 @@ export default function AdminMenuPage() {
         body: JSON.stringify({ slug: restaurantSlug, qrImageUrl, qrPassword: qrPassword.trim() })
       });
       const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ QR");
-      toast.success("QR РѕР±РЅРѕРІР»РµРЅ");
+      if (!res.ok) throw new Error(j.error ?? "Не удалось сохранить QR");
+      toast.success("QR обновлен");
       setQrPassword("");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
@@ -197,8 +197,8 @@ export default function AdminMenuPage() {
         })
       });
       const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "РћС€РёР±РєР°");
-      toast.success("РљР°С‚РµРіРѕСЂРёСЏ СЃРѕР·РґР°РЅР°");
+      if (!res.ok) throw new Error(j.error ?? "Ошибка");
+      toast.success("Категория создана");
       setCatTitle("");
       await loadMenu(restaurantSlug);
     } catch (error: unknown) {
@@ -207,11 +207,11 @@ export default function AdminMenuPage() {
   }
 
   async function deleteCategory(id: string) {
-    if (!confirm("РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ РІРјРµСЃС‚Рµ СЃ Р±Р»СЋРґР°РјРё?")) return;
+    if (!confirm("Удалить категорию вместе с блюдами?")) return;
     const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
     const j = (await res.json()) as { error?: string };
-    if (!res.ok) toast.error(j.error ?? "РћС€РёР±РєР°");
-    else toast.success("РЈРґР°Р»РµРЅРѕ");
+    if (!res.ok) toast.error(j.error ?? "Ошибка");
+    else toast.success("Удалено");
     await loadMenu(restaurantSlug);
   }
 
@@ -243,9 +243,9 @@ export default function AdminMenuPage() {
         body: JSON.stringify(payload)
       });
       const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "РћС€РёР±РєР°");
+      if (!res.ok) throw new Error(j.error ?? "Ошибка");
 
-      toast.success(itemId ? "Р‘Р»СЋРґРѕ РѕР±РЅРѕРІР»РµРЅРѕ" : "Р‘Р»СЋРґРѕ СЃРѕР·РґР°РЅРѕ");
+      toast.success(itemId ? "Блюдо обновлено" : "Блюдо создано");
       resetItemForm();
       await loadMenu(restaurantSlug);
     } catch (error: unknown) {
@@ -264,16 +264,16 @@ export default function AdminMenuPage() {
 
     if (!res.ok) {
       setItems((current) => current.map((item) => (item.id === id ? { ...item, isAvailable: !isAvailable } : item)));
-      toast.error("РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РЅР°Р»РёС‡РёРµ");
+      toast.error("Не удалось обновить наличие");
     }
   }
 
   async function deleteItem(id: string) {
-    if (!confirm("РЈРґР°Р»РёС‚СЊ Р±Р»СЋРґРѕ?")) return;
+    if (!confirm("Удалить блюдо?")) return;
     const res = await fetch(`/api/admin/items/${id}`, { method: "DELETE" });
     const j = (await res.json()) as { error?: string };
-    if (!res.ok) toast.error(j.error ?? "РћС€РёР±РєР°");
-    else toast.success("РЈРґР°Р»РµРЅРѕ");
+    if (!res.ok) toast.error(j.error ?? "Ошибка");
+    else toast.success("Удалено");
     await loadMenu(restaurantSlug);
   }
 
@@ -294,18 +294,18 @@ export default function AdminMenuPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-black/50">Admin</div>
-            <div className="text-3xl font-extrabold">Р РµРґР°РєС‚РѕСЂ РјРµРЅСЋ</div>
+            <div className="text-3xl font-extrabold">Редактор меню</div>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
-            РќР°Р·Р°Рґ
+            Назад
           </Link>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-4">
             <Card className="p-4">
-              <div className="text-sm font-semibold">QR РґР»СЏ РѕРїР»Р°С‚С‹</div>
-              <div className="mt-2 text-xs text-black/55">Р—Р°РіСЂСѓР·Рё РЅРѕРІС‹Р№ QR, С‡С‚РѕР±С‹ РѕР±РЅРѕРІРёС‚СЊ СЃСЃС‹Р»РєСѓ РєРЅРѕРїРєРё Р±Р°РЅРєР° Сѓ РєР»РёРµРЅС‚Р°.</div>
+              <div className="text-sm font-semibold">QR для оплаты</div>
+              <div className="mt-2 text-xs text-black/55">Загрузи новый QR, чтобы обновить ссылку кнопки банка у клиента.</div>
               <label className="mt-3 flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
                 <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ QR</span>
                 <input
@@ -328,7 +328,7 @@ export default function AdminMenuPage() {
               <input
                 className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
                 type="password"
-                placeholder="РџР°СЂРѕР»СЊ РґР»СЏ СЃРјРµРЅС‹ QR"
+                placeholder="Пароль для смены QR"
                 value={qrPassword}
                 onChange={(e) => setQrPassword(e.target.value)}
               />
@@ -338,39 +338,39 @@ export default function AdminMenuPage() {
                 disabled={!restaurantSlug || !qrImageUrl || !qrPassword.trim() || uploadingQr || savingQr}
                 onClick={() => void saveQr()}
               >
-                {uploadingQr ? "Р—Р°РіСЂСѓР¶Р°РµРј QR..." : savingQr ? "РЎРѕС…СЂР°РЅСЏРµРј..." : "РЎРѕС…СЂР°РЅРёС‚СЊ QR"}
+                {uploadingQr ? "Загружаем QR..." : savingQr ? "Сохраняем..." : "Сохранить QR"}
               </Button>
             </Card>
 
             <Card className="p-4">
-              <div className="text-sm font-semibold">РљР°С‚РµРіРѕСЂРёРё</div>
+              <div className="text-sm font-semibold">Категории</div>
               <div className="mt-2 space-y-2">
                 {categories.map((category) => (
                   <div key={category.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
                     <span>{category.title}</span>
                     <button className="text-red-600 underline" onClick={() => void deleteCategory(category.id)}>
-                      РЈРґР°Р»РёС‚СЊ
+                      Удалить
                     </button>
                   </div>
                 ))}
               </div>
               <input
                 className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="РќРѕРІР°СЏ РєР°С‚РµРіРѕСЂРёСЏ"
+                placeholder="Новая категория"
                 value={catTitle}
                 onChange={(e) => setCatTitle(e.target.value)}
               />
               <Button className="mt-2 w-full" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
-                РЎРѕР·РґР°С‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
+                Создать категорию
               </Button>
             </Card>
 
             <Card className="p-4">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">{itemId ? "Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ Р±Р»СЋРґР°" : "РќРѕРІРѕРµ Р±Р»СЋРґРѕ"}</div>
+                <div className="text-sm font-semibold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
                 {itemId && (
                   <button className="text-sm underline text-black/60" onClick={resetItemForm}>
-                    РЎР±СЂРѕСЃ
+                    Сброс
                   </button>
                 )}
               </div>
@@ -389,13 +389,13 @@ export default function AdminMenuPage() {
                 </select>
                 <input
                   className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  placeholder="РќР°Р·РІР°РЅРёРµ Р±Р»СЋРґР°"
+                  placeholder="Название блюда"
                   value={itemTitle}
                   onChange={(e) => setItemTitle(e.target.value)}
                 />
                 <input
                   className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  placeholder="РћРїРёСЃР°РЅРёРµ"
+                  placeholder="Описание"
                   value={itemDesc}
                   onChange={(e) => setItemDesc(e.target.value)}
                 />
@@ -408,7 +408,7 @@ export default function AdminMenuPage() {
                   onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
                 />
                 <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Р¤РѕС‚Рѕ</span>
+                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -428,7 +428,7 @@ export default function AdminMenuPage() {
 
                 <label className="mt-2 inline-flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={itemAvail} onChange={(e) => setItemAvail(e.target.checked)} />
-                  Р’ РЅР°Р»РёС‡РёРё
+                  В наличии
                 </label>
 
                 <Button
@@ -436,14 +436,14 @@ export default function AdminMenuPage() {
                   disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
                   onClick={() => void upsertItem()}
                 >
-                  {uploadingPhoto ? "Р—Р°РіСЂСѓР¶Р°РµРј С„РѕС‚Рѕ..." : itemId ? "РЎРѕС…СЂР°РЅРёС‚СЊ Р±Р»СЋРґРѕ" : "РЎРѕР·РґР°С‚СЊ Р±Р»СЋРґРѕ"}
+                  {uploadingPhoto ? "Загружаем фото..." : itemId ? "Сохранить блюдо" : "Создать блюдо"}
                 </Button>
               </div>
             </Card>
           </div>
 
           <Card className="p-4">
-            <div className="text-sm text-black/50">РџСЂРµРІСЊСЋ РєР»РёРµРЅС‚СЃРєРѕРіРѕ РјРµРЅСЋ</div>
+            <div className="text-sm text-black/50">Превью клиентского меню</div>
             <div className="mt-3 space-y-6">
               {groupedItems.map(({ category, items: categoryItems }) => (
                 <section key={category.id}>
@@ -464,7 +464,7 @@ export default function AdminMenuPage() {
 
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                               <label className="inline-flex items-center gap-2 text-sm">
-                                <span className="text-black/60">РќР°Р»РёС‡РёРµ</span>
+                                <span className="text-black/60">Наличие</span>
                                 <button
                                   type="button"
                                   role="switch"
@@ -479,16 +479,16 @@ export default function AdminMenuPage() {
                                   />
                                 </button>
                                 <span className={item.isAvailable ? "text-emerald-700" : "text-rose-700"}>
-                                  {item.isAvailable ? "Р’ РЅР°Р»РёС‡РёРё" : "РќРµС‚ РІ РЅР°Р»РёС‡РёРё"}
+                                  {item.isAvailable ? "В наличии" : "Нет в наличии"}
                                 </span>
                               </label>
 
                               <div className="flex gap-3 text-sm">
                                 <button className="underline text-black/70" onClick={() => editItem(item)}>
-                                  Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
+                                  Редактировать
                                 </button>
                                 <button className="underline text-red-600" onClick={() => void deleteItem(item.id)}>
-                                  РЈРґР°Р»РёС‚СЊ
+                                  Удалить
                                 </button>
                               </div>
                             </div>
@@ -496,7 +496,7 @@ export default function AdminMenuPage() {
                         </div>
                       </div>
                     ))}
-                    {categoryItems.length === 0 && <div className="text-sm text-black/50">Р’ СЌС‚РѕР№ РєР°С‚РµРіРѕСЂРёРё РїРѕРєР° РЅРµС‚ Р±Р»СЋРґ.</div>}
+                    {categoryItems.length === 0 && <div className="text-sm text-black/50">В этой категории пока нет блюд.</div>}
                   </div>
                 </section>
               ))}
@@ -507,4 +507,5 @@ export default function AdminMenuPage() {
     </main>
   );
 }
+
 
