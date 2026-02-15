@@ -426,11 +426,6 @@ export default function AdminMenuPage() {
                   </div>
                 )}
 
-                <label className="mt-2 inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={itemAvail} onChange={(e) => setItemAvail(e.target.checked)} />
-                  В наличии
-                </label>
-
                 <Button
                   className="w-full"
                   disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
