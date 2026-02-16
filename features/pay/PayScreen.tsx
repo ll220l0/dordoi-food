@@ -75,7 +75,8 @@ async function decodeQrLinkFromImage(imageUrl: string) {
 }
 
 function withAutoAmount(rawUrl: string, totalKgs: number) {
-  const amountSom = Number.isFinite(totalKgs) ? Math.max(0, Math.round(totalKgs)) : 0;
+  const numericTotal = typeof totalKgs === "number" ? totalKgs : Number(totalKgs);
+  const amountSom = Number.isFinite(numericTotal) ? Math.max(0, Math.round(numericTotal)) : 0;
   if (!rawUrl || amountSom <= 0) return rawUrl;
 
   try {
@@ -191,18 +192,25 @@ function withMbankAmount(rawUrl: string, amountSom: number) {
     const fields = parseEmvPayload(payload);
     if (!fields) return null;
 
-    const amountTyiynText = String(Math.max(0, Math.round(amountSom * 100)));
     const withoutCrc = fields.filter((field) => field.tag !== "63");
     const amountIndex = withoutCrc.findIndex((field) => field.tag === "54");
+    const existingAmountValue = amountIndex >= 0 ? withoutCrc[amountIndex].value : "";
+
+    let amountValue = String(Math.max(0, Math.round(amountSom * 100)));
+    if (/^\d+$/.test(existingAmountValue)) {
+      amountValue = existingAmountValue.length >= 4 ? String(Math.max(0, Math.round(amountSom * 100))) : String(Math.max(0, Math.round(amountSom)));
+    } else if (/^\d+\.\d{1,2}$/.test(existingAmountValue)) {
+      amountValue = amountSom.toFixed(2);
+    }
 
     if (amountIndex >= 0) {
-      withoutCrc[amountIndex] = { ...withoutCrc[amountIndex], value: amountTyiynText };
+      withoutCrc[amountIndex] = { ...withoutCrc[amountIndex], value: amountValue };
     } else {
       const merchantNameIndex = withoutCrc.findIndex((field) => field.tag === "59");
       if (merchantNameIndex >= 0) {
-        withoutCrc.splice(merchantNameIndex, 0, { tag: "54", value: amountTyiynText });
+        withoutCrc.splice(merchantNameIndex, 0, { tag: "54", value: amountValue });
       } else {
-        withoutCrc.push({ tag: "54", value: amountTyiynText });
+        withoutCrc.push({ tag: "54", value: amountValue });
       }
     }
 
@@ -336,7 +344,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     setLoading(true);
     try {
       const res = await fetch(`/api/orders/${orderId}/mark-paid`, { method: "POST" });
-      const j = (await res.json()) as { error?: string };
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
       toast.success("Ожидаем подтверждения ресторана");
       clearPendingPayOrderId(orderId);
