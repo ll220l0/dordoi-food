@@ -54,6 +54,22 @@ type HistoryOrder = {
   items: OrderItem[];
 };
 
+function isPushSupported() {
+  if (typeof window === "undefined") return false;
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+function base64UrlToUint8Array(value: string) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  const raw = window.atob(padded);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) {
+    output[i] = raw.charCodeAt(i);
+  }
+  return output;
+}
+
 function notifyUser(title: string, body: string) {
   if (typeof window === "undefined" || !("Notification" in window)) return false;
   if (Notification.permission !== "granted") return false;
@@ -108,6 +124,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [pushSupported, setPushSupported] = useState(false);
 
   const loadOrder = useCallback(async (silent = false) => {
     if (!silent) setOrderLoading(true);
@@ -161,6 +178,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
+    setPushSupported(isPushSupported());
     setNotificationPermission(Notification.permission);
   }, []);
 
@@ -218,22 +236,87 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
   const canEnableNotifications = notificationPermission !== "granted";
 
-  async function enableNotifications() {
+  async function subscribePush(orderIdToSubscribe: string, silent = false) {
+    if (!isPushSupported()) {
+      if (!silent) toast.error("Push is not supported on this device.");
+      return false;
+    }
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+    if (!vapidPublicKey) {
+      if (!silent) toast.error("Push is not configured.");
+      return false;
+    }
+
+    try {
+      const registration = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(vapidPublicKey)
+        });
+      }
+
+      const res = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: orderIdToSubscribe,
+          subscription: subscription.toJSON()
+        })
+      });
+
+      if (!res.ok) {
+        if (!silent) toast.error("Failed to save push subscription.");
+        return false;
+      }
+
+      window.localStorage.setItem(`dordoi_push_subscribed_${orderIdToSubscribe}`, "1");
+      return true;
+    } catch {
+      if (!silent) toast.error("Failed to enable push notifications.");
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    if (!data?.id) return;
+    if (notificationPermission !== "granted") return;
+    if (!pushSupported) return;
+    if (window.localStorage.getItem(`dordoi_push_subscribed_${data.id}`) === "1") return;
+
+    void subscribePush(data.id, true);
+  }, [data?.id, notificationPermission, pushSupported]);
+
+  async function enablePushNotifications() {
     if (typeof window === "undefined" || !("Notification" in window)) {
-      toast.error("Уведомления не поддерживаются на этом устройстве");
+      toast.error("Notifications are not supported on this device.");
       return;
     }
 
     try {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
-      if (permission === "granted") {
-        toast.success("Уведомления включены");
+      if (permission !== "granted") {
+        toast.error("Allow notifications in browser settings.");
+        return;
+      }
+
+      const targetOrderId = data?.id ?? orderId;
+      if (!targetOrderId) {
+        toast.success("Notifications enabled");
+        return;
+      }
+
+      const subscribed = await subscribePush(targetOrderId, false);
+      if (subscribed) {
+        toast.success("Push notifications enabled");
       } else {
-        toast.error("Разрешите уведомления в настройках браузера");
+        toast.success("Notifications enabled");
       }
     } catch {
-      toast.error("Не удалось включить уведомления");
+      toast.error("Failed to enable notifications.");
     }
   }
 
@@ -293,7 +376,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                   Обновить
                 </Button>
                 {canEnableNotifications && (
-                  <Button variant="secondary" onClick={() => void enableNotifications()} className="w-full">
+                  <Button variant="secondary" onClick={() => void enablePushNotifications()} className="w-full">
                     Включить уведомления
                   </Button>
                 )}

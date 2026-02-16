@@ -82,6 +82,7 @@ model Order {
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
   items      OrderItem[]
+  pushSubs   PushSubscription[]
 }
 
 model OrderItem {
@@ -97,4 +98,21 @@ model OrderItem {
   menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
+}
+
+model PushSubscription {
+  id             String    @id @default(cuid())
+  orderId         String
+  endpoint        String
+  p256dh          String
+  auth            String
+  expirationTime  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, endpoint])
+  @@index([orderId])
+  @@index([endpoint])
 }

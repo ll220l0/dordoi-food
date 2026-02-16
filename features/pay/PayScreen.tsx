@@ -3,7 +3,7 @@
 import jsQR from "jsqr";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
@@ -72,6 +72,139 @@ async function decodeQrLinkFromImage(imageUrl: string) {
   }
 
   return null;
+}
+
+function withAutoAmount(rawUrl: string, totalKgs: number) {
+  const amountSom = Number.isFinite(totalKgs) ? Math.max(0, Math.round(totalKgs)) : 0;
+  if (!rawUrl || amountSom <= 0) return rawUrl;
+
+  try {
+    const mbankUrl = withMbankAmount(rawUrl, amountSom);
+    if (mbankUrl) return mbankUrl;
+
+    const parsed = new URL(rawUrl);
+    const amountText = String(amountSom);
+    const knownAmountKeys = ["amount", "sum", "total", "totalAmount", "invoiceAmount"];
+    let replacedKnownKey = false;
+
+    for (const key of knownAmountKeys) {
+      if (parsed.searchParams.has(key)) {
+        parsed.searchParams.set(key, amountText);
+        replacedKnownKey = true;
+      }
+    }
+
+    if (!replacedKnownKey) {
+      // Different bank links expect different keys, so we send both common variants.
+      parsed.searchParams.set("amount", amountText);
+      parsed.searchParams.set("sum", amountText);
+    }
+
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+type EmvField = { tag: string; value: string };
+
+function parseEmvPayload(payload: string): EmvField[] | null {
+  const fields: EmvField[] = [];
+  let cursor = 0;
+
+  while (cursor < payload.length) {
+    if (cursor + 4 > payload.length) return null;
+    const tag = payload.slice(cursor, cursor + 2);
+    const lenText = payload.slice(cursor + 2, cursor + 4);
+    if (!/^\d{2}$/.test(lenText)) return null;
+
+    const len = Number(lenText);
+    const valueStart = cursor + 4;
+    const valueEnd = valueStart + len;
+    if (valueEnd > payload.length) return null;
+
+    fields.push({ tag, value: payload.slice(valueStart, valueEnd) });
+    cursor = valueEnd;
+  }
+
+  return fields;
+}
+
+function serializeEmvPayload(fields: EmvField[]) {
+  let output = "";
+  for (const { tag, value } of fields) {
+    if (!/^\d{2}$/.test(tag) || value.length > 99) return null;
+    output += `${tag}${String(value.length).padStart(2, "0")}${value}`;
+  }
+  return output;
+}
+
+function crc16ccitt(input: string) {
+  let crc = 0xffff;
+  for (let i = 0; i < input.length; i += 1) {
+    crc ^= input.charCodeAt(i) << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xffff;
+      } else {
+        crc = (crc << 1) & 0xffff;
+      }
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+
+function withMbankAmount(rawUrl: string, amountSom: number) {
+  try {
+    const parsedUrl = new URL(rawUrl);
+    if (parsedUrl.hostname !== "app.mbank.kg" || !parsedUrl.pathname.startsWith("/qr")) {
+      return null;
+    }
+
+    const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
+    if (!rawHash) return null;
+
+    const payload = decodeURIComponent(rawHash);
+    const fields = parseEmvPayload(payload);
+    if (!fields) return null;
+
+    const amountTyiynText = String(Math.max(0, Math.round(amountSom * 100)));
+    const withoutCrc = fields.filter((field) => field.tag !== "63");
+    const amountIndex = withoutCrc.findIndex((field) => field.tag === "54");
+
+    if (amountIndex >= 0) {
+      withoutCrc[amountIndex] = { ...withoutCrc[amountIndex], value: amountTyiynText };
+    } else {
+      const merchantNameIndex = withoutCrc.findIndex((field) => field.tag === "59");
+      if (merchantNameIndex >= 0) {
+        withoutCrc.splice(merchantNameIndex, 0, { tag: "54", value: amountTyiynText });
+      } else {
+        withoutCrc.push({ tag: "54", value: amountTyiynText });
+      }
+    }
+
+    const serializedWithoutCrc = serializeEmvPayload(withoutCrc);
+    if (!serializedWithoutCrc) return null;
+
+    const payloadWithCrcSeed = `${serializedWithoutCrc}6304`;
+    const crc = crc16ccitt(payloadWithCrcSeed);
+    const updatedPayload = `${payloadWithCrcSeed}${crc}`;
+
+    parsedUrl.hash = `#${encodeURIComponent(updatedPayload)}`;
+    return parsedUrl.toString();
+  } catch {
+    return null;
+  }
+}
+
+function BankButtonIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <rect x="1.25" y="1.25" width="21.5" height="21.5" rx="6.75" fill="white" fillOpacity="0.16" stroke="white" strokeOpacity="0.42" strokeWidth="1.5" />
+      <path d="M6.5 16.8V7.2L10.4 12.1L14.3 7.2V16.8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="17.4" cy="15.4" r="2.1" fill="#F9C74F" />
+    </svg>
+  );
 }
 
 export default function PayScreen({ orderId }: { orderId: string }) {
@@ -168,7 +301,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       return;
     }
 
-    window.location.assign(bankPayUrl);
+    const urlWithAmount = withAutoAmount(bankPayUrl, data?.totalKgs ?? 0);
+    window.location.assign(urlWithAmount);
   }
 
   async function markPaid() {
@@ -256,11 +390,13 @@ export default function PayScreen({ orderId }: { orderId: string }) {
               disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || cancelling}
               className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
-              <div className="flex items-center justify-center">
-                <div className="relative h-8 w-40 overflow-hidden">
-                  <Image src="/mbank-logo-white.svg" alt="Bank payment" fill className="object-contain" sizes="160px" priority />
-                </div>
-                <span className="sr-only">{resolvingBankUrl ? "Считываем ссылку из QR..." : "Оплатить через банк"}</span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
+                  <BankButtonIcon className="h-5 w-5" />
+                </span>
+                <span className="text-sm font-semibold tracking-[0.02em] text-white">
+                  {resolvingBankUrl ? "Готовим оплату..." : "Оплатить через MBANK"}
+                </span>
               </div>
             </Button>
             <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || navigatingToOrder || cancelling} className="w-full text-rose-700">

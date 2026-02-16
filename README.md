@@ -65,6 +65,9 @@ git push -u origin main
    - `ADMIN_PASS`
    - `ADMIN_QR_PASS`
    - `NEXT_PUBLIC_APP_NAME`
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
+   - `VAPID_PRIVATE_KEY` (for Web Push)
+   - `VAPID_SUBJECT` (for Web Push, e.g. `mailto:admin@example.com`)
 3. Deploy.
 4. This repo includes `vercel.json`; Vercel build runs `npm run vercel-build` (without DB migrations).
 
@@ -84,6 +87,9 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `ADMIN_PASS`
 - `ADMIN_QR_PASS`
 - `NEXT_PUBLIC_APP_NAME`
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
+- `VAPID_PRIVATE_KEY` (for Web Push)
+- `VAPID_SUBJECT` (for Web Push)
 
 ### `DATABASE_URL` format examples
 - Neon:
