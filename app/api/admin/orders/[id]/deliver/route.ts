@@ -19,6 +19,10 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     data: { status: "delivered" }
   });
 
-  await sendOrderStatusPush(id, "delivered");
+  try {
+    await sendOrderStatusPush(id, "delivered");
+  } catch (error) {
+    console.error("Failed to send push for delivered", { id, error });
+  }
   return NextResponse.json({ ok: true, status: updated.status });
 }

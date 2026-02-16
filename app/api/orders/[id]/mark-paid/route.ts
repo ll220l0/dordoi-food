@@ -9,6 +9,10 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (order.paymentMethod !== "qr_image") return NextResponse.json({ error: "Not QR order" }, { status: 400 });
 
   const updated = await prisma.order.update({ where: { id }, data: { status: "pending_confirmation" } });
-  await sendOrderStatusPush(id, "pending_confirmation");
+  try {
+    await sendOrderStatusPush(id, "pending_confirmation");
+  } catch (error) {
+    console.error("Failed to send push for pending_confirmation", { id, error });
+  }
   return NextResponse.json({ ok: true, status: updated.status });
 }

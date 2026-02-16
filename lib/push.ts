@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type PushOrderStatus = "pending_confirmation" | "confirmed" | "delivered" | "canceled";
@@ -36,9 +37,13 @@ function ensureVapidConfigured() {
     return false;
   }
 
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-  vapidConfigured = true;
-  return true;
+  try {
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+    vapidConfigured = true;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getStatusPayload(orderId: string, status: PushOrderStatus): PushPayload {
@@ -83,6 +88,13 @@ export function isPushConfigured() {
   return Boolean(getVapidPublicKey() && getVapidPrivateKey() && getVapidSubject());
 }
 
+function isPushStorageMissing(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2021" || error.code === "P2022")
+  );
+}
+
 export async function savePushSubscription(input: {
   orderId: string;
   endpoint: string;
@@ -95,42 +107,52 @@ export async function savePushSubscription(input: {
       ? new Date(input.expirationTime)
       : null;
 
-  await prisma.pushSubscription.upsert({
-    where: {
-      orderId_endpoint: {
+  try {
+    await prisma.pushSubscription.upsert({
+      where: {
+        orderId_endpoint: {
+          orderId: input.orderId,
+          endpoint: input.endpoint
+        }
+      },
+      create: {
         orderId: input.orderId,
-        endpoint: input.endpoint
+        endpoint: input.endpoint,
+        p256dh: input.p256dh,
+        auth: input.auth,
+        expirationTime
+      },
+      update: {
+        p256dh: input.p256dh,
+        auth: input.auth,
+        expirationTime
       }
-    },
-    create: {
-      orderId: input.orderId,
-      endpoint: input.endpoint,
-      p256dh: input.p256dh,
-      auth: input.auth,
-      expirationTime
-    },
-    update: {
-      p256dh: input.p256dh,
-      auth: input.auth,
-      expirationTime
-    }
-  });
+    });
+  } catch (error: unknown) {
+    if (isPushStorageMissing(error)) return;
+    throw error;
+  }
 }
 
 export async function removePushSubscription(input: { orderId?: string; endpoint: string }) {
-  if (input.orderId) {
-    await prisma.pushSubscription.deleteMany({
-      where: {
-        orderId: input.orderId,
-        endpoint: input.endpoint
-      }
-    });
-    return;
-  }
+  try {
+    if (input.orderId) {
+      await prisma.pushSubscription.deleteMany({
+        where: {
+          orderId: input.orderId,
+          endpoint: input.endpoint
+        }
+      });
+      return;
+    }
 
-  await prisma.pushSubscription.deleteMany({
-    where: { endpoint: input.endpoint }
-  });
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: input.endpoint }
+    });
+  } catch (error: unknown) {
+    if (isPushStorageMissing(error)) return;
+    throw error;
+  }
 }
 
 export async function sendOrderStatusPush(orderId: string, status: PushOrderStatus) {
@@ -138,10 +160,18 @@ export async function sendOrderStatusPush(orderId: string, status: PushOrderStat
     return { sent: 0, removed: 0, skipped: true as const };
   }
 
-  const subs = await prisma.pushSubscription.findMany({
-    where: { orderId },
-    select: { endpoint: true, p256dh: true, auth: true }
-  });
+  let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];
+  try {
+    subs = await prisma.pushSubscription.findMany({
+      where: { orderId },
+      select: { endpoint: true, p256dh: true, auth: true }
+    });
+  } catch (error: unknown) {
+    if (isPushStorageMissing(error)) {
+      return { sent: 0, removed: 0, skipped: true as const };
+    }
+    throw error;
+  }
 
   if (subs.length === 0) {
     return { sent: 0, removed: 0, skipped: false as const };
@@ -174,12 +204,18 @@ export async function sendOrderStatusPush(orderId: string, status: PushOrderStat
   }
 
   if (staleEndpoints.size > 0) {
-    await prisma.pushSubscription.deleteMany({
-      where: {
-        orderId,
-        endpoint: { in: [...staleEndpoints] }
+    try {
+      await prisma.pushSubscription.deleteMany({
+        where: {
+          orderId,
+          endpoint: { in: [...staleEndpoints] }
+        }
+      });
+    } catch (error: unknown) {
+      if (!isPushStorageMissing(error)) {
+        throw error;
       }
-    });
+    }
   }
 
   return { sent, removed: staleEndpoints.size, skipped: false as const };

@@ -109,21 +109,24 @@ function withAutoAmount(rawUrl: string, totalKgs: number) {
 type EmvField = { tag: string; value: string };
 
 function parseEmvPayload(payload: string): EmvField[] | null {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const bytes = encoder.encode(payload.trim());
   const fields: EmvField[] = [];
   let cursor = 0;
 
-  while (cursor < payload.length) {
-    if (cursor + 4 > payload.length) return null;
-    const tag = payload.slice(cursor, cursor + 2);
-    const lenText = payload.slice(cursor + 2, cursor + 4);
+  while (cursor < bytes.length) {
+    if (cursor + 4 > bytes.length) return null;
+    const tag = decoder.decode(bytes.slice(cursor, cursor + 2));
+    const lenText = decoder.decode(bytes.slice(cursor + 2, cursor + 4));
     if (!/^\d{2}$/.test(lenText)) return null;
 
     const len = Number(lenText);
     const valueStart = cursor + 4;
     const valueEnd = valueStart + len;
-    if (valueEnd > payload.length) return null;
+    if (valueEnd > bytes.length) return null;
 
-    fields.push({ tag, value: payload.slice(valueStart, valueEnd) });
+    fields.push({ tag, value: decoder.decode(bytes.slice(valueStart, valueEnd)) });
     cursor = valueEnd;
   }
 
@@ -131,18 +134,38 @@ function parseEmvPayload(payload: string): EmvField[] | null {
 }
 
 function serializeEmvPayload(fields: EmvField[]) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const chunks: Uint8Array[] = [];
+  let totalLen = 0;
+
   let output = "";
   for (const { tag, value } of fields) {
-    if (!/^\d{2}$/.test(tag) || value.length > 99) return null;
-    output += `${tag}${String(value.length).padStart(2, "0")}${value}`;
+    if (!/^\d{2}$/.test(tag)) return null;
+
+    const valueBytes = encoder.encode(value);
+    if (valueBytes.length > 99) return null;
+
+    const head = encoder.encode(`${tag}${String(valueBytes.length).padStart(2, "0")}`);
+    chunks.push(head, valueBytes);
+    totalLen += head.length + valueBytes.length;
   }
+
+  const merged = new Uint8Array(totalLen);
+  let cursor = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, cursor);
+    cursor += chunk.length;
+  }
+  output = decoder.decode(merged);
   return output;
 }
 
 function crc16ccitt(input: string) {
+  const bytes = new TextEncoder().encode(input);
   let crc = 0xffff;
-  for (let i = 0; i < input.length; i += 1) {
-    crc ^= input.charCodeAt(i) << 8;
+  for (let i = 0; i < bytes.length; i += 1) {
+    crc ^= bytes[i] << 8;
     for (let bit = 0; bit < 8; bit += 1) {
       if ((crc & 0x8000) !== 0) {
         crc = ((crc << 1) ^ 0x1021) & 0xffff;
@@ -164,7 +187,7 @@ function withMbankAmount(rawUrl: string, amountSom: number) {
     const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
     if (!rawHash) return null;
 
-    const payload = decodeURIComponent(rawHash);
+    const payload = decodeURIComponent(rawHash).trim();
     const fields = parseEmvPayload(payload);
     if (!fields) return null;
 
@@ -300,8 +323,12 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       toast.error("Не удалось извлечь ссылку оплаты из QR");
       return;
     }
+    if (!data || data.totalKgs <= 0) {
+      toast.error("Сумма заказа еще загружается");
+      return;
+    }
 
-    const urlWithAmount = withAutoAmount(bankPayUrl, data?.totalKgs ?? 0);
+    const urlWithAmount = withAutoAmount(bankPayUrl, data.totalKgs);
     window.location.assign(urlWithAmount);
   }
 
@@ -387,7 +414,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <Button
               variant="ghost"
               onClick={goToBankPayment}
-              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || cancelling}
+              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || !data || data.totalKgs <= 0 || cancelling}
               className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
               <div className="flex items-center justify-center gap-2">

@@ -12,7 +12,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     return NextResponse.json({ error: "Delivered order cannot be canceled" }, { status: 400 });
   }
 
-  await sendOrderStatusPush(id, "canceled");
+  try {
+    await sendOrderStatusPush(id, "canceled");
+  } catch (error) {
+    console.error("Failed to send push for canceled", { id, error });
+  }
   await prisma.order.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
