@@ -17,10 +17,30 @@ type OrderResp = {
   totalKgs: number;
   paymentCode: string;
   restaurant: { name: string; slug: string; qrImageUrl: string };
+  items?: Array<{ qty: number; priceKgs: number }>;
 };
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
+}
+
+function getEffectiveTotalKgs(order: OrderResp | null) {
+  if (!order) return 0;
+
+  const apiTotal = Number(order.totalKgs);
+  if (Number.isFinite(apiTotal) && apiTotal > 0) {
+    return Math.round(apiTotal);
+  }
+
+  const lines = order.items ?? [];
+  const linesTotal = lines.reduce((sum, line) => {
+    const qty = Number(line.qty);
+    const priceKgs = Number(line.priceKgs);
+    if (!Number.isFinite(qty) || !Number.isFinite(priceKgs)) return sum;
+    return sum + Math.max(0, Math.round(qty)) * Math.max(0, Math.round(priceKgs));
+  }, 0);
+
+  return Math.max(0, linesTotal);
 }
 
 function isLikelyUrl(value: string) {
@@ -248,6 +268,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const search = useSearchParams();
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
+  const effectiveTotalKgs = getEffectiveTotalKgs(data);
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
@@ -331,12 +352,12 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       toast.error("Не удалось извлечь ссылку оплаты из QR");
       return;
     }
-    if (!data || data.totalKgs <= 0) {
+    if (!data || effectiveTotalKgs <= 0) {
       toast.error("Сумма заказа еще загружается");
       return;
     }
 
-    const urlWithAmount = withAutoAmount(bankPayUrl, data.totalKgs);
+    const urlWithAmount = withAutoAmount(bankPayUrl, effectiveTotalKgs);
     window.location.assign(urlWithAmount);
   }
 
@@ -394,7 +415,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         <Card className="mt-4 p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-black/60">Итого</div>
-            <div className="text-xl font-extrabold">{formatKgs(data?.totalKgs ?? 0)}</div>
+            <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-2 text-sm text-black/70">
@@ -422,7 +443,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <Button
               variant="ghost"
               onClick={goToBankPayment}
-              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || !data || data.totalKgs <= 0 || cancelling}
+              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || !data || effectiveTotalKgs <= 0 || cancelling}
               className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
               <div className="flex items-center justify-center gap-2">
