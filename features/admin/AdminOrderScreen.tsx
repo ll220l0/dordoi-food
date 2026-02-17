@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -42,20 +42,28 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { cache: "no-store" });
-    const j = (await res.json()) as AdminOrderData;
-    setData(j);
+    if (!res.ok) {
+      const errorPayload = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(errorPayload?.error ?? "Failed to load order");
+    }
+
+    const payload = (await res.json().catch(() => null)) as AdminOrderData | null;
+    if (!payload) throw new Error("Failed to load order");
+    setData(payload);
   }, [orderId]);
 
   useEffect(() => {
-    void load();
+    void load().catch((error: unknown) => {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    });
   }, [load]);
 
   async function confirm() {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/confirm`, { method: "POST" });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Failed");
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(j?.error ?? "Failed");
       toast.success("Оплата подтверждена");
       void load();
     } catch (error: unknown) {
@@ -69,8 +77,8 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/deliver`, { method: "POST" });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Failed");
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(j?.error ?? "Failed");
       toast.success("Заказ отмечен как доставленный");
       void load();
     } catch (error: unknown) {
