@@ -74,6 +74,7 @@ model Order {
   paymentMethod PaymentMethod @default(qr_image)
   totalKgs      Int
   customerPhone String?
+  payerName     String?
   paymentCode   String
   location      Json
   comment       String?

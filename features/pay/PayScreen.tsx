@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import jsQR from "jsqr";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, type SVGProps } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
@@ -15,16 +15,87 @@ type OrderResp = {
   id: string;
   status: string;
   totalKgs: number;
-  paymentCode: string;
+  payerName?: string;
   restaurant: { name: string; slug: string; qrImageUrl: string };
   items?: Array<{ qty: number; priceKgs: number }>;
 };
+
+type EmvField = { tag: string; value: string };
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
 }
 
-function getEffectiveTotalKgs(order: OrderResp | null) {
+function parseEmvPayload(payload: string): EmvField[] | null {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const bytes = encoder.encode(payload.trim());
+  const fields: EmvField[] = [];
+  let cursor = 0;
+
+  while (cursor < bytes.length) {
+    if (cursor + 4 > bytes.length) return null;
+    const tag = decoder.decode(bytes.slice(cursor, cursor + 2));
+    const lenText = decoder.decode(bytes.slice(cursor + 2, cursor + 4));
+    if (!/^\d{2}$/.test(lenText)) return null;
+
+    const len = Number(lenText);
+    const valueStart = cursor + 4;
+    const valueEnd = valueStart + len;
+    if (valueEnd > bytes.length) return null;
+
+    fields.push({ tag, value: decoder.decode(bytes.slice(valueStart, valueEnd)) });
+    cursor = valueEnd;
+  }
+
+  return fields;
+}
+
+function parseAmountFromBankUrl(rawUrl: string | null) {
+  if (!rawUrl) return null;
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+
+    if (parsedUrl.hostname === "app.mbank.kg" && parsedUrl.pathname.startsWith("/qr")) {
+      const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
+      if (!rawHash) return null;
+
+      const payload = decodeURIComponent(rawHash).trim();
+      const fields = parseEmvPayload(payload);
+      const amountRaw = fields?.find((field) => field.tag === "54")?.value?.trim();
+      if (!amountRaw) return null;
+
+      if (/^\d+\.\d{1,2}$/.test(amountRaw)) {
+        const asDecimal = Number(amountRaw);
+        return Number.isFinite(asDecimal) ? Math.max(0, Math.round(asDecimal)) : null;
+      }
+
+      if (/^\d+$/.test(amountRaw)) {
+        const asInt = Number(amountRaw);
+        if (!Number.isFinite(asInt)) return null;
+        return amountRaw.length >= 4 ? Math.max(0, Math.round(asInt / 100)) : Math.max(0, Math.round(asInt));
+      }
+    }
+
+    const amountKeys = ["amount", "sum", "total", "totalAmount", "invoiceAmount"];
+    for (const key of amountKeys) {
+      const value = parsedUrl.searchParams.get(key)?.trim();
+      if (!value) continue;
+
+      const parsed = Number(value.replace(",", "."));
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return Math.round(parsed);
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function getEffectiveTotalKgs(order: OrderResp | null, bankAmountKgs: number | null) {
   if (!order) return 0;
 
   const apiTotal = Number(order.totalKgs);
@@ -40,7 +111,12 @@ function getEffectiveTotalKgs(order: OrderResp | null) {
     return sum + Math.max(0, Math.round(qty)) * Math.max(0, Math.round(priceKgs));
   }, 0);
 
-  return Math.max(0, linesTotal);
+  if (linesTotal > 0) return Math.max(0, linesTotal);
+  if (typeof bankAmountKgs === "number" && Number.isFinite(bankAmountKgs) && bankAmountKgs > 0) {
+    return Math.round(bankAmountKgs);
+  }
+
+  return 0;
 }
 
 function isLikelyUrl(value: string) {
@@ -72,7 +148,6 @@ async function decodeQrLinkFromImage(imageUrl: string) {
   if (!ctx) return null;
 
   const scales = [1, 0.8, 0.6, 1.4];
-
   for (const scale of scales) {
     const width = Math.max(120, Math.round(img.width * scale));
     const height = Math.max(120, Math.round(img.height * scale));
@@ -86,72 +161,10 @@ async function decodeQrLinkFromImage(imageUrl: string) {
       inversionAttempts: "attemptBoth"
     });
 
-    if (result?.data?.trim()) {
-      return result.data.trim();
-    }
+    if (result?.data?.trim()) return result.data.trim();
   }
 
   return null;
-}
-
-function withAutoAmount(rawUrl: string, totalKgs: number) {
-  const numericTotal = typeof totalKgs === "number" ? totalKgs : Number(totalKgs);
-  const amountSom = Number.isFinite(numericTotal) ? Math.max(0, Math.round(numericTotal)) : 0;
-  if (!rawUrl || amountSom <= 0) return rawUrl;
-
-  try {
-    const mbankUrl = withMbankAmount(rawUrl, amountSom);
-    if (mbankUrl) return mbankUrl;
-
-    const parsed = new URL(rawUrl);
-    const amountText = String(amountSom);
-    const knownAmountKeys = ["amount", "sum", "total", "totalAmount", "invoiceAmount"];
-    let replacedKnownKey = false;
-
-    for (const key of knownAmountKeys) {
-      if (parsed.searchParams.has(key)) {
-        parsed.searchParams.set(key, amountText);
-        replacedKnownKey = true;
-      }
-    }
-
-    if (!replacedKnownKey) {
-      // Different bank links expect different keys, so we send both common variants.
-      parsed.searchParams.set("amount", amountText);
-      parsed.searchParams.set("sum", amountText);
-    }
-
-    return parsed.toString();
-  } catch {
-    return rawUrl;
-  }
-}
-
-type EmvField = { tag: string; value: string };
-
-function parseEmvPayload(payload: string): EmvField[] | null {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const bytes = encoder.encode(payload.trim());
-  const fields: EmvField[] = [];
-  let cursor = 0;
-
-  while (cursor < bytes.length) {
-    if (cursor + 4 > bytes.length) return null;
-    const tag = decoder.decode(bytes.slice(cursor, cursor + 2));
-    const lenText = decoder.decode(bytes.slice(cursor + 2, cursor + 4));
-    if (!/^\d{2}$/.test(lenText)) return null;
-
-    const len = Number(lenText);
-    const valueStart = cursor + 4;
-    const valueEnd = valueStart + len;
-    if (valueEnd > bytes.length) return null;
-
-    fields.push({ tag, value: decoder.decode(bytes.slice(valueStart, valueEnd)) });
-    cursor = valueEnd;
-  }
-
-  return fields;
 }
 
 function serializeEmvPayload(fields: EmvField[]) {
@@ -160,7 +173,6 @@ function serializeEmvPayload(fields: EmvField[]) {
   const chunks: Uint8Array[] = [];
   let totalLen = 0;
 
-  let output = "";
   for (const { tag, value } of fields) {
     if (!/^\d{2}$/.test(tag)) return null;
 
@@ -178,8 +190,7 @@ function serializeEmvPayload(fields: EmvField[]) {
     merged.set(chunk, cursor);
     cursor += chunk.length;
   }
-  output = decoder.decode(merged);
-  return output;
+  return decoder.decode(merged);
 }
 
 function crc16ccitt(input: string) {
@@ -248,6 +259,38 @@ function withMbankAmount(rawUrl: string, amountSom: number) {
   }
 }
 
+function withAutoAmount(rawUrl: string, totalKgs: number) {
+  const numericTotal = typeof totalKgs === "number" ? totalKgs : Number(totalKgs);
+  const amountSom = Number.isFinite(numericTotal) ? Math.max(0, Math.round(numericTotal)) : 0;
+  if (!rawUrl || amountSom <= 0) return rawUrl;
+
+  try {
+    const mbankUrl = withMbankAmount(rawUrl, amountSom);
+    if (mbankUrl) return mbankUrl;
+
+    const parsed = new URL(rawUrl);
+    const amountText = String(amountSom);
+    const knownAmountKeys = ["amount", "sum", "total", "totalAmount", "invoiceAmount"];
+    let replacedKnownKey = false;
+
+    for (const key of knownAmountKeys) {
+      if (parsed.searchParams.has(key)) {
+        parsed.searchParams.set(key, amountText);
+        replacedKnownKey = true;
+      }
+    }
+
+    if (!replacedKnownKey) {
+      parsed.searchParams.set("amount", amountText);
+      parsed.searchParams.set("sum", amountText);
+    }
+
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function BankButtonIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -264,11 +307,12 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
   const [bankPayUrl, setBankPayUrl] = useState<string | null>(null);
+  const [payerName, setPayerName] = useState("");
   const [resolvingBankUrl, setResolvingBankUrl] = useState(false);
-  const search = useSearchParams();
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
-  const effectiveTotalKgs = getEffectiveTotalKgs(data);
+  const amountFromBankUrl = useMemo(() => parseAmountFromBankUrl(bankPayUrl), [bankPayUrl]);
+  const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data, amountFromBankUrl), [amountFromBankUrl, data]);
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
@@ -284,7 +328,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         const response = (await res.json()) as OrderResp;
         if (!stopped) setData(response);
       } catch {
-        // Ignore transient network failures in polling.
+        // Ignore transient polling failures.
       }
     };
 
@@ -296,6 +340,12 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       window.clearInterval(timer);
     };
   }, [orderId]);
+
+  useEffect(() => {
+    if (data?.payerName && !payerName.trim()) {
+      setPayerName(data.payerName);
+    }
+  }, [data?.payerName, payerName]);
 
   useEffect(() => {
     const qrImageUrl = data?.restaurant?.qrImageUrl;
@@ -313,31 +363,20 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       try {
         const value = await decodeQrLinkFromImage(qrImageUrl);
         if (cancelled) return;
-
-        if (value && isLikelyUrl(value)) {
-          setBankPayUrl(value);
-        } else {
-          setBankPayUrl(null);
-        }
+        setBankPayUrl(value && isLikelyUrl(value) ? value : null);
       } catch {
-        if (!cancelled) {
-          setBankPayUrl(null);
-        }
+        if (!cancelled) setBankPayUrl(null);
       } finally {
-        if (!cancelled) {
-          setResolvingBankUrl(false);
-        }
+        if (!cancelled) setResolvingBankUrl(false);
       }
     };
 
     void resolveQr();
-
     return () => {
       cancelled = true;
     };
   }, [data?.restaurant?.qrImageUrl]);
 
-  const code = search.get("code") || data?.paymentCode || "";
   const menuHref = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
 
   function goToOrder() {
@@ -362,11 +401,22 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }
 
   async function markPaid() {
+    const payer = payerName.trim();
+    if (payer.length < 2) {
+      toast.error("Укажи имя отправителя перевода");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}/mark-paid`, { method: "POST" });
+      const res = await fetch(`/api/orders/${orderId}/mark-paid`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ payerName: payer })
+      });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
+
       toast.success("Ожидаем подтверждения ресторана");
       clearPendingPayOrderId(orderId);
       clearCart();
@@ -396,19 +446,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }
 
-  async function copyCode() {
-    if (!code) return;
-    try {
-      await navigator.clipboard.writeText(code);
-      toast.success("Код скопирован");
-    } catch {
-      toast.error("Не удалось скопировать");
-    }
-  }
-
   return (
     <main className="min-h-screen p-5 pb-36">
-      <div className="max-w-md mx-auto">
+      <div className="mx-auto max-w-md">
         <div className="text-3xl font-extrabold">Оплата по QR</div>
         <div className="mt-1 text-sm text-black/60">{data?.restaurant?.name ?? ""}</div>
 
@@ -418,15 +458,13 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 text-sm text-black/70">
-            <div>
-              Код оплаты: <span className="font-extrabold">{code}</span>
-            </div>
-            <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyCode()}>
-              Копировать
-            </Button>
-          </div>
-          <div className="mt-1 text-[12px] text-black/45">Укажи этот код в комментарии к переводу.</div>
+          <input
+            className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+            placeholder="Имя отправителя перевода"
+            value={payerName}
+            onChange={(e) => setPayerName(e.target.value)}
+          />
+          <div className="mt-1 text-[12px] text-black/45">Администратор увидит это имя при подтверждении оплаты.</div>
 
           <div className="relative mt-4 aspect-square w-full overflow-hidden rounded-2xl border border-black/10 bg-white">
             {data?.restaurant?.qrImageUrl ? (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { getOrderStatusMeta } from "@/lib/orderStatus";
@@ -20,8 +21,8 @@ type AdminOrderData = {
   id: string;
   status: string;
   totalKgs: number;
-  paymentCode: string;
   paymentMethod: string;
+  payerName: string;
   customerPhone: string;
   comment: string;
   location: { line?: string; container?: string; landmark?: string };
@@ -95,9 +96,12 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             <div className="text-xs text-black/50">Admin</div>
             <div className="text-3xl font-extrabold">Заказ #{orderId.slice(-6)}</div>
           </div>
-          <Link className="text-sm text-black/60 underline" href="/admin/orders">
-            Назад к заказам
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link className="text-sm text-black/60 underline" href="/admin/orders">
+              Назад к заказам
+            </Link>
+            <AdminLogoutButton className="px-3 py-2 text-sm" />
+          </div>
         </div>
 
         <Card className="mt-4 p-4">
@@ -109,10 +113,10 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="text-black/60">Сумма</div>
             <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
-            <div className="text-black/60">Код оплаты</div>
-            <div className="text-right font-semibold">{data?.paymentCode ?? "-"}</div>
             <div className="text-black/60">Метод оплаты</div>
             <div className="text-right">{data?.paymentMethod ?? "-"}</div>
+            <div className="text-black/60">Плательщик</div>
+            <div className="text-right">{data?.payerName || "-"}</div>
             <div className="text-black/60">Телефон</div>
             <div className="text-right">{data?.customerPhone || "-"}</div>
             <div className="text-black/60">Создан</div>

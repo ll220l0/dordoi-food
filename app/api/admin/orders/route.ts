@@ -16,6 +16,7 @@ export async function GET() {
       status: o.status,
       totalKgs: o.totalKgs,
       paymentMethod: o.paymentMethod,
+      payerName: o.payerName ?? "",
       paymentCode: o.paymentCode,
       customerPhone: o.customerPhone ?? "",
       comment: o.comment ?? "",

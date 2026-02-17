@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { getOrderStatusMeta, isHistoryStatus } from "@/lib/orderStatus";
@@ -19,7 +20,7 @@ type AdminOrder = {
   status: string;
   totalKgs: number;
   paymentMethod: string;
-  paymentCode: string;
+  payerName: string;
   customerPhone: string;
   comment: string;
   itemCount: number;
@@ -109,11 +110,12 @@ export default function AdminOrdersPage() {
       <Card key={order.id} className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-bold">Код оплаты: {order.paymentCode}</div>
+            <div className="font-bold">Заказ #{order.id.slice(-6)}</div>
             <div className="mt-1 text-sm text-black/60">
               Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
               {order.location?.landmark ? <> ({order.location.landmark})</> : null}
             </div>
+            <div className="mt-1 text-xs text-black/50">Плательщик: {order.payerName || "-"}</div>
             <div className="mt-1 text-xs text-black/50">Телефон: {order.customerPhone || "-"}</div>
             <div className="mt-1 text-xs text-black/50">Создан: {new Date(order.createdAt).toLocaleString()}</div>
             <div className="mt-1 text-xs text-black/50">Обновлен: {new Date(order.updatedAt).toLocaleString()}</div>
@@ -154,7 +156,7 @@ export default function AdminOrdersPage() {
               Подтвердить доставку
             </Button>
           )}
-          <Link className="text-sm underline text-black/60" href={`/admin/orders/${order.id}`} prefetch={false}>
+          <Link className="text-sm text-black/60 underline" href={`/admin/orders/${order.id}`} prefetch={false}>
             Подробнее
           </Link>
         </div>
@@ -165,14 +167,17 @@ export default function AdminOrdersPage() {
   return (
     <main className="min-h-screen p-5">
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs text-black/50">Admin</div>
             <div className="text-3xl font-extrabold">Заказы</div>
           </div>
-          <Link className="text-sm text-black/60 underline" href="/admin">
-            Назад
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link className="text-sm text-black/60 underline" href="/admin">
+              Назад
+            </Link>
+            <AdminLogoutButton className="px-3 py-2 text-sm" />
+          </div>
         </div>
 
         <div className="mt-6">

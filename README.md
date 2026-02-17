@@ -3,9 +3,9 @@
 PWA web-app for market restaurants (container delivery):
 - guest menu
 - cart + checkout (line / container)
-- QR payment as **image** + payment code
+- QR payment as **image** + payer name
 - manual confirmation by restaurant
-- **Admin hidden from clients** (no client links) + **Basic Auth** protection
+- **Admin hidden from clients** (no client links) + login page/session protection
 - Admin menu editor (categories + items CRUD)
 - Admin orders: confirm QR payments
 
@@ -27,7 +27,7 @@ To enable PWA locally in development:
 Open:
 - http://localhost:3000
 - root URL opens the first active restaurant automatically
-- /admin (Basic Auth from .env)
+- /admin/login (login from .env)
 
 ## QR images
 Replace:
@@ -63,6 +63,7 @@ git push -u origin main
    - `BLOB_READ_WRITE_TOKEN` (required on Vercel for image uploads)
    - `ADMIN_USER`
    - `ADMIN_PASS`
+   - `ADMIN_SESSION_SECRET` (strong random secret for signed admin session cookies)
    - `ADMIN_QR_PASS`
    - `NEXT_PUBLIC_APP_NAME`
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
@@ -85,6 +86,7 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `DATABASE_URL`
 - `ADMIN_USER`
 - `ADMIN_PASS`
+- `ADMIN_SESSION_SECRET`
 - `ADMIN_QR_PASS`
 - `NEXT_PUBLIC_APP_NAME`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)

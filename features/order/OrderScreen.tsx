@@ -29,7 +29,7 @@ type OrderData = {
   status: string;
   paymentMethod: string;
   totalKgs: number;
-  paymentCode: string;
+  payerName?: string;
   comment?: string;
   customerPhone?: string;
   location?: { line?: string; container?: string; landmark?: string };
@@ -44,7 +44,7 @@ type HistoryOrder = {
   status: string;
   paymentMethod: string;
   totalKgs: number;
-  paymentCode: string;
+  payerName?: string;
   comment?: string;
   customerPhone?: string;
   location?: { line?: string; container?: string; landmark?: string };
@@ -352,8 +352,8 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                 <div className="text-black/60">Итого</div>
                 <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
-                <div className="text-black/60">Код оплаты</div>
-                <div className="text-right font-bold">{data?.paymentCode ?? ""}</div>
+                <div className="text-black/60">Плательщик</div>
+                <div className="text-right font-bold">{data?.payerName ?? "-"}</div>
                 <div className="text-black/60">Способ оплаты</div>
                 <div className="text-right">{data?.paymentMethod ?? "-"}</div>
                 <div className="text-black/60">Телефон</div>
@@ -383,7 +383,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                 {data?.paymentMethod === "qr_image" &&
                   (data?.status === "created" || data?.status === "pending_confirmation") && (
                     <Link
-                      href={`/pay/${data.id}?code=${encodeURIComponent(data.paymentCode ?? "")}`}
+                      href={`/pay/${data.id}`}
                       className="block rounded-xl border border-black/15 bg-white py-3 text-center font-semibold text-black"
                     >
                       К оплате
@@ -449,7 +449,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    Метод: {order.paymentMethod} - Код: {order.paymentCode} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
+                    Метод: {order.paymentMethod} - Плательщик: {order.payerName ?? "-"} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-black/60">
                     {order.items.map((item) => (

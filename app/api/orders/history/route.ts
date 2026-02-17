@@ -38,6 +38,7 @@ export async function GET(req: Request) {
       status: order.status,
       paymentMethod: order.paymentMethod,
       totalKgs: order.totalKgs,
+      payerName: order.payerName ?? "",
       paymentCode: order.paymentCode,
       customerPhone: order.customerPhone ?? "",
       comment: order.comment ?? "",

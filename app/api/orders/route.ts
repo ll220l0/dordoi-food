@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const parsed = CreateOrderSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
 
-  const { restaurantSlug, items, location, paymentMethod, customerPhone, comment } = parsed.data;
+  const { restaurantSlug, items, location, paymentMethod, customerPhone, payerName, comment } = parsed.data;
 
   const restaurant = await prisma.restaurant.findUnique({ where: { slug: restaurantSlug } });
   if (!restaurant) return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       paymentMethod,
       totalKgs,
       customerPhone: customerPhone || null,
+      payerName: payerName?.trim() || null,
       comment: comment || null,
       paymentCode,
       location,
@@ -51,5 +52,5 @@ export async function POST(req: Request) {
     }
   });
 
-  return NextResponse.json({ orderId: order.id, paymentCode });
+  return NextResponse.json({ orderId: order.id });
 }

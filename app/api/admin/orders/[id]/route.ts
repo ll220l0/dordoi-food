@@ -16,6 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     id: order.id,
     status: order.status,
     totalKgs: order.totalKgs,
+    payerName: order.payerName ?? "",
     paymentCode: order.paymentCode,
     paymentMethod: order.paymentMethod,
     customerPhone: order.customerPhone ?? "",

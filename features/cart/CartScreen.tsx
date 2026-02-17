@@ -10,8 +10,8 @@ import {
   addOrderToHistory,
   clearPendingPayOrderId,
   getLastOrderId,
-  setPendingPayOrderId,
   getSavedPhone,
+  setPendingPayOrderId,
   setSavedPhone
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
@@ -20,7 +20,6 @@ type PaymentMethod = "qr_image" | "cash";
 
 type CreateOrderResponse = {
   orderId: string;
-  paymentCode: string;
 };
 
 function getErrorMessage(error: unknown) {
@@ -44,6 +43,7 @@ export default function CartScreen() {
   const [container, setContainer] = useState("");
   const [landmark, setLandmark] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [payerName, setPayerName] = useState("");
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qr_image");
   const [loading, setLoading] = useState(false);
@@ -60,21 +60,22 @@ export default function CartScreen() {
   const canSubmit = useMemo(() => {
     return Boolean(
       isHydrated &&
-      restaurantSlug &&
+        restaurantSlug &&
         lines.length > 0 &&
         line.trim().length > 0 &&
         container.trim().length > 0 &&
         normalizePhone(customerPhone).length >= 7 &&
+        (paymentMethod !== "qr_image" || payerName.trim().length >= 2) &&
         !loading
     );
-  }, [isHydrated, restaurantSlug, container, customerPhone, line, lines.length, loading]);
+  }, [container, customerPhone, isHydrated, line, lines.length, loading, payerName, paymentMethod, restaurantSlug]);
 
   if (!isHydrated) {
     return (
       <main className="min-h-screen p-5 pb-36">
-        <div className="max-w-md mx-auto">
+        <div className="mx-auto max-w-md">
           <div className="text-2xl font-extrabold">Корзина</div>
-          <Card className="p-4 mt-4">
+          <Card className="mt-4 p-4">
             <div className="text-sm text-black/60">Загружаем корзину...</div>
           </Card>
         </div>
@@ -97,6 +98,10 @@ export default function CartScreen() {
       toast.error("Укажи номер телефона");
       return;
     }
+    if (paymentMethod === "qr_image" && payerName.trim().length < 2) {
+      toast.error("Укажи имя отправителя перевода");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -104,6 +109,7 @@ export default function CartScreen() {
         restaurantSlug,
         paymentMethod,
         customerPhone: phone,
+        payerName: payerName.trim(),
         comment: comment.trim(),
         location: {
           line: line.trim(),
@@ -131,15 +137,14 @@ export default function CartScreen() {
       });
       setSavedPhone(phone);
       clear();
+
       if (paymentMethod === "qr_image") {
         setPendingPayOrderId(j.orderId);
       } else {
         clearPendingPayOrderId();
       }
-      const nextUrl =
-        paymentMethod === "qr_image"
-          ? `/pay/${j.orderId}?code=${encodeURIComponent(j.paymentCode ?? "")}`
-          : `/order/${j.orderId}`;
+
+      const nextUrl = paymentMethod === "qr_image" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
       setRedirectingTo(paymentMethod === "qr_image" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
@@ -154,11 +159,11 @@ export default function CartScreen() {
   if (lines.length === 0) {
     return (
       <main className="min-h-screen p-5 pb-36">
-        <div className="max-w-md mx-auto">
+        <div className="mx-auto max-w-md">
           <div className="text-2xl font-extrabold">Корзина</div>
-          <Card className="p-4 mt-4">
+          <Card className="mt-4 p-4">
             <div className="text-sm text-black/60">В корзине пока ничего нет.</div>
-            <Link href={restaurantSlug ? `/r/${restaurantSlug}` : "/"} className="block mt-3">
+            <Link href={restaurantSlug ? `/r/${restaurantSlug}` : "/"} className="mt-3 block">
               <Button className="w-full">Вернуться в меню</Button>
             </Link>
           </Card>
@@ -170,13 +175,13 @@ export default function CartScreen() {
 
   return (
     <main className="min-h-screen p-5 pb-40">
-      <div className="max-w-md mx-auto">
+      <div className="mx-auto max-w-md">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs text-black/50">Оформление</div>
             <div className="text-3xl font-extrabold">Корзина</div>
           </div>
-          <Link className="text-sm underline text-black/60 mt-2" href={restaurantSlug ? `/r/${restaurantSlug}` : "/"}>
+          <Link className="mt-2 text-sm text-black/60 underline" href={restaurantSlug ? `/r/${restaurantSlug}` : "/"}>
             В меню
           </Link>
         </div>
@@ -191,7 +196,7 @@ export default function CartScreen() {
                     <div className="font-semibold">{lineItem.title}</div>
                     <div className="font-bold">{formatKgs(lineItem.priceKgs * lineItem.qty)}</div>
                   </div>
-                  <div className="text-sm text-black/55 mt-1">
+                  <div className="mt-1 text-sm text-black/55">
                     {formatKgs(lineItem.priceKgs)} x {lineItem.qty}
                   </div>
                   <div className="mt-2 flex gap-2">
@@ -208,9 +213,9 @@ export default function CartScreen() {
           ))}
         </div>
 
-        <Card className="p-4 mt-4">
+        <Card className="mt-4 p-4">
           <div className="text-sm font-semibold">Куда доставить</div>
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <input
               className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
               placeholder="Проход"
@@ -245,33 +250,36 @@ export default function CartScreen() {
           />
         </Card>
 
-        <Card className="p-4 mt-4">
+        <Card className="mt-4 p-4">
           <div className="text-sm font-semibold">Оплата</div>
           <label className="mt-2 flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="paymentMethod"
-              checked={paymentMethod === "qr_image"}
-              onChange={() => setPaymentMethod("qr_image")}
-            />
+            <input type="radio" name="paymentMethod" checked={paymentMethod === "qr_image"} onChange={() => setPaymentMethod("qr_image")} />
             QR перевод
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input type="radio" name="paymentMethod" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
             Наличными курьеру
           </label>
+          {paymentMethod === "qr_image" && (
+            <input
+              className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+              placeholder="Имя отправителя перевода"
+              value={payerName}
+              onChange={(e) => setPayerName(e.target.value)}
+            />
+          )}
         </Card>
 
-        <Card className="p-4 mt-4">
+        <Card className="mt-4 p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-black/60">Позиций</div>
             <div className="font-semibold">{count}</div>
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="mt-2 flex items-center justify-between">
             <div className="text-sm text-black/60">Итого</div>
             <div className="text-xl font-extrabold">{formatKgs(total)}</div>
           </div>
-          <Button className="w-full mt-4" disabled={!canSubmit} onClick={submitOrder}>
+          <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submitOrder}>
             {loading ? "Создаем заказ..." : "Оформить заказ"}
           </Button>
         </Card>
