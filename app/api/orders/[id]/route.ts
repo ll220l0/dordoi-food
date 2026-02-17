@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json({
       id: order.id,
       status: order.status,
-      paymentMethod: order.paymentMethod,
+      paymentMethod: toClientPaymentMethod(order.paymentMethod),
       totalKgs: order.totalKgs,
       payerName: order.payerName ?? "",
       paymentCode: order.paymentCode,

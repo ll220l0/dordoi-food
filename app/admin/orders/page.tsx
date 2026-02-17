@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
+import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isHistoryStatus } from "@/lib/orderStatus";
 
 type AdminOrderItem = {
@@ -124,7 +125,7 @@ export default function AdminOrdersPage() {
           <div className="text-right">
             <div className="font-extrabold">{formatKgs(order.totalKgs)}</div>
             <div className="mt-1 text-xs text-black/50">{order.itemCount} шт</div>
-            <div className="mt-1 text-xs text-black/50">{order.paymentMethod}</div>
+            <div className="mt-1 text-xs text-black/50">{paymentMethodLabel(order.paymentMethod)}</div>
             <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusMeta.badgeClassName}`}>
               {statusMeta.label}
             </span>

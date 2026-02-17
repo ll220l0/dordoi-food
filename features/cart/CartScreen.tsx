@@ -16,7 +16,7 @@ import {
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 
-type PaymentMethod = "qr_image" | "cash";
+type PaymentMethod = "bank" | "cash";
 
 type CreateOrderResponse = {
   orderId: string;
@@ -45,7 +45,7 @@ export default function CartScreen() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [payerName, setPayerName] = useState("");
   const [comment, setComment] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qr_image");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
   const [loading, setLoading] = useState(false);
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -65,7 +65,7 @@ export default function CartScreen() {
         line.trim().length > 0 &&
         container.trim().length > 0 &&
         normalizePhone(customerPhone).length >= 7 &&
-        (paymentMethod !== "qr_image" || payerName.trim().length >= 2) &&
+        (paymentMethod !== "bank" || payerName.trim().length >= 2) &&
         !loading
     );
   }, [container, customerPhone, isHydrated, line, lines.length, loading, payerName, paymentMethod, restaurantSlug]);
@@ -98,7 +98,7 @@ export default function CartScreen() {
       toast.error("Укажи номер телефона");
       return;
     }
-    if (paymentMethod === "qr_image" && payerName.trim().length < 2) {
+    if (paymentMethod === "bank" && payerName.trim().length < 2) {
       toast.error("Укажи имя отправителя перевода");
       return;
     }
@@ -124,8 +124,8 @@ export default function CartScreen() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const j = (await res.json()) as Partial<CreateOrderResponse> & { error?: string };
-      if (!res.ok || !j.orderId) throw new Error(j.error ?? "Не удалось создать заказ");
+      const j = (await res.json().catch(() => null)) as Partial<CreateOrderResponse> & { error?: string } | null;
+      if (!res.ok || !j?.orderId) throw new Error(j?.error ?? "Не удалось создать заказ");
 
       addOrderToHistory({
         orderId: j.orderId,
@@ -138,14 +138,14 @@ export default function CartScreen() {
       setSavedPhone(phone);
       clear();
 
-      if (paymentMethod === "qr_image") {
+      if (paymentMethod === "bank") {
         setPendingPayOrderId(j.orderId);
       } else {
         clearPendingPayOrderId();
       }
 
-      const nextUrl = paymentMethod === "qr_image" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
-      setRedirectingTo(paymentMethod === "qr_image" ? "pay" : "order");
+      const nextUrl = paymentMethod === "bank" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
+      setRedirectingTo(paymentMethod === "bank" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
       }, 180);
@@ -253,14 +253,14 @@ export default function CartScreen() {
         <Card className="mt-4 p-4">
           <div className="text-sm font-semibold">Оплата</div>
           <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="radio" name="paymentMethod" checked={paymentMethod === "qr_image"} onChange={() => setPaymentMethod("qr_image")} />
-            QR перевод
+            <input type="radio" name="paymentMethod" checked={paymentMethod === "bank"} onChange={() => setPaymentMethod("bank")} />
+            Банком
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input type="radio" name="paymentMethod" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
             Наличными курьеру
           </label>
-          {paymentMethod === "qr_image" && (
+          {paymentMethod === "bank" && (
             <input
               className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
               placeholder="Имя отправителя перевода"

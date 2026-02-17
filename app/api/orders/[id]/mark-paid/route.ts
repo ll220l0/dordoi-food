@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { prisma } from "@/lib/prisma";
 import { sendOrderStatusPush } from "@/lib/push";
@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (order.paymentMethod !== "qr_image") return NextResponse.json({ error: "Not QR order" }, { status: 400 });
+    if (order.paymentMethod === "cash") return NextResponse.json({ error: "Not bank order" }, { status: 400 });
 
     const updated = await prisma.order.update({
       where: { id },

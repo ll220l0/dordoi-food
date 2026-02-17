@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
+import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta } from "@/lib/orderStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
@@ -122,7 +123,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             <div className="text-black/60">Сумма</div>
             <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
             <div className="text-black/60">Метод оплаты</div>
-            <div className="text-right">{data?.paymentMethod ?? "-"}</div>
+            <div className="text-right">{paymentMethodLabel(data?.paymentMethod ?? "")}</div>
             <div className="text-black/60">Плательщик</div>
             <div className="text-right">{data?.payerName || "-"}</div>
             <div className="text-black/60">Телефон</div>

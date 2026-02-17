@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function GET() {
         id: o.id,
         status: o.status,
         totalKgs: o.totalKgs,
-        paymentMethod: o.paymentMethod,
+        paymentMethod: toClientPaymentMethod(o.paymentMethod),
         payerName: o.payerName ?? "",
         paymentCode: o.paymentCode,
         customerPhone: o.customerPhone ?? "",

@@ -14,6 +14,7 @@ import {
   setPendingPayOrderId
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
+import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
 
 type OrderItem = {
@@ -193,7 +194,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (!data?.id) return;
 
-    const isQrPayment = data.paymentMethod === "qr_image";
+    const isQrPayment = data.paymentMethod === "bank";
     const isPendingPayStatus = data.status === "created" || data.status === "pending_confirmation";
 
     if (isQrPayment && isPendingPayStatus) {
@@ -355,7 +356,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                 <div className="text-black/60">Плательщик</div>
                 <div className="text-right font-bold">{data?.payerName ?? "-"}</div>
                 <div className="text-black/60">Способ оплаты</div>
-                <div className="text-right">{data?.paymentMethod ?? "-"}</div>
+                <div className="text-right">{paymentMethodLabel(data?.paymentMethod ?? "")}</div>
                 <div className="text-black/60">Телефон</div>
                 <div className="text-right">{data?.customerPhone ?? "-"}</div>
                 <div className="text-black/60">Время заказа</div>
@@ -380,7 +381,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     Включить уведомления
                   </Button>
                 )}
-                {data?.paymentMethod === "qr_image" &&
+                {data?.paymentMethod === "bank" &&
                   (data?.status === "created" || data?.status === "pending_confirmation") && (
                     <Link
                       href={`/pay/${data.id}`}
@@ -449,7 +450,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
                   </div>
                   <div className="mt-1 text-xs text-black/55">
-                    Метод: {order.paymentMethod} - Плательщик: {order.payerName ?? "-"} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
+                    Метод: {paymentMethodLabel(order.paymentMethod)} - Плательщик: {order.payerName ?? "-"} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-black/60">
                     {order.items.map((item) => (

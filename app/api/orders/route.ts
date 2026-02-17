@@ -1,6 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { makePaymentCode } from "@/lib/paymentCode";
+import { toDbPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 import { CreateOrderSchema } from "@/lib/validators";
 
@@ -30,12 +31,13 @@ export async function POST(req: Request) {
 
     const totalKgs = orderLines.reduce((s, x) => s + x.m.priceKgs * x.qty, 0);
     const paymentCode = makePaymentCode("BX");
+    const dbPaymentMethod = toDbPaymentMethod(paymentMethod);
 
     const order = await prisma.order.create({
       data: {
         restaurantId: restaurant.id,
-        status: paymentMethod === "cash" ? "confirmed" : "created",
-        paymentMethod,
+        status: dbPaymentMethod === "cash" ? "confirmed" : "created",
+        paymentMethod: dbPaymentMethod,
         totalKgs,
         customerPhone: customerPhone || null,
         payerName: payerName?.trim() || null,

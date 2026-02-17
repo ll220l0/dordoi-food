@@ -1,7 +1,6 @@
 "use client";
 
 import jsQR from "jsqr";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
@@ -388,7 +387,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   function goToBankPayment() {
     if (!bankPayUrl) {
-      toast.error("Не удалось извлечь ссылку оплаты из QR");
+      toast.error("Ссылка оплаты банком не настроена");
       return;
     }
     if (!data || effectiveTotalKgs <= 0) {
@@ -449,7 +448,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   return (
     <main className="min-h-screen p-5 pb-36">
       <div className="mx-auto max-w-md">
-        <div className="text-3xl font-extrabold">Оплата по QR</div>
+        <div className="text-3xl font-extrabold">Оплата банком</div>
         <div className="mt-1 text-sm text-black/60">{data?.restaurant?.name ?? ""}</div>
 
         <Card className="mt-4 p-4">
@@ -465,14 +464,6 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             onChange={(e) => setPayerName(e.target.value)}
           />
           <div className="mt-1 text-[12px] text-black/45">Администратор увидит это имя при подтверждении оплаты.</div>
-
-          <div className="relative mt-4 aspect-square w-full overflow-hidden rounded-2xl border border-black/10 bg-white">
-            {data?.restaurant?.qrImageUrl ? (
-              <Image src={data.restaurant.qrImageUrl} alt="QR" fill className="object-contain p-6" sizes="420px" />
-            ) : (
-              <div className="p-6 text-black/50">QR не настроен</div>
-            )}
-          </div>
 
           <div className="mt-4 space-y-2">
             <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder || cancelling} className="w-full">

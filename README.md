@@ -3,11 +3,11 @@
 PWA web-app for market restaurants (container delivery):
 - guest menu
 - cart + checkout (line / container)
-- QR payment as **image** + payer name
+- payment by **bank** or **cash**
 - manual confirmation by restaurant
 - **Admin hidden from clients** (no client links) + login page/session protection
 - Admin menu editor (categories + items CRUD)
-- Admin orders: confirm QR payments
+- Admin orders: confirm bank payments
 
 ## Run
 
@@ -29,7 +29,7 @@ Open:
 - root URL opens the first active restaurant automatically
 - /admin/login (login from .env)
 
-## QR images
+## Bank link source image
 Replace:
 - public/qr/demo-restaurant.png
 
@@ -64,7 +64,6 @@ git push -u origin main
    - `ADMIN_USER`
    - `ADMIN_PASS`
    - `ADMIN_SESSION_SECRET` (strong random secret for signed admin session cookies)
-   - `ADMIN_QR_PASS`
    - `NEXT_PUBLIC_APP_NAME`
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
    - `VAPID_PRIVATE_KEY` (for Web Push)
@@ -87,7 +86,6 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `ADMIN_USER`
 - `ADMIN_PASS`
 - `ADMIN_SESSION_SECRET`
-- `ADMIN_QR_PASS`
 - `NEXT_PUBLIC_APP_NAME`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
 - `VAPID_PRIVATE_KEY` (for Web Push)

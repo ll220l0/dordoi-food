@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +21,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       totalKgs: order.totalKgs,
       payerName: order.payerName ?? "",
       paymentCode: order.paymentCode,
-      paymentMethod: order.paymentMethod,
+      paymentMethod: toClientPaymentMethod(order.paymentMethod),
       customerPhone: order.customerPhone ?? "",
       comment: order.comment ?? "",
       location: order.location,
