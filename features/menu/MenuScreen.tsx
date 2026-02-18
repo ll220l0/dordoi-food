@@ -28,6 +28,46 @@ async function fetchMenu(slug: string): Promise<MenuResp> {
   return res.json();
 }
 
+function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onDec: () => void }) {
+  const [isPopping, setIsPopping] = useState(false);
+
+  useEffect(() => {
+    setIsPopping(true);
+    const timer = window.setTimeout(() => setIsPopping(false), 170);
+    return () => window.clearTimeout(timer);
+  }, [qty]);
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-gradient-to-br from-white to-slate-50 p-1.5 shadow-[0_12px_28px_rgba(15,23,42,0.12)]">
+      <button
+        type="button"
+        onClick={onDec}
+        className="h-9 w-9 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(190,24,93,0.2)] active:translate-y-0 active:scale-95"
+        aria-label="Уменьшить"
+      >
+        −
+      </button>
+
+      <div
+        className={`min-w-[3.1rem] rounded-xl border border-black/10 bg-white px-2 py-1 text-center text-sm font-extrabold text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] transition-transform duration-200 ${
+          isPopping ? "scale-110" : "scale-100"
+        }`}
+      >
+        {qty}
+      </div>
+
+      <button
+        type="button"
+        onClick={onInc}
+        className="h-9 w-9 rounded-xl border border-black/10 bg-black text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.3)] active:translate-y-0 active:scale-95"
+        aria-label="Увеличить"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 export default function MenuScreen({ slug }: { slug: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["menu", slug],
@@ -115,17 +155,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
                             Нет в наличии
                           </Button>
                         ) : qty > 0 ? (
-                          <div className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-2 py-1">
-                            <Button variant="secondary" className="px-3 py-1" onClick={() => dec(m.id)}>
-                              -1
-                            </Button>
-                            <span className="min-w-8 text-center text-sm font-semibold">{qty}</span>
-                            <Button className="px-3 py-1" onClick={() => inc(m.id)}>
-                              +1
-                            </Button>
-                          </div>
+                          <QtyStepper qty={qty} onDec={() => dec(m.id)} onInc={() => inc(m.id)} />
                         ) : (
-                          <Button onClick={() => addToCart(m)} className="px-4 py-2" variant="primary">
+                          <Button onClick={() => addToCart(m)} className="px-4 py-2 transition-transform duration-200 hover:-translate-y-0.5" variant="primary">
                             + Добавить
                           </Button>
                         )}

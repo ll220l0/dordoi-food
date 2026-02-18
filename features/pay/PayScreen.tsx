@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type SVGProps } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
@@ -54,16 +55,6 @@ function getEffectiveTotalKgs(order: OrderResp | null, fallbackTotalKgs = 0) {
   }, 0);
   if (computedFromItems > 0) return computedFromItems;
   return fallbackTotalKgs;
-}
-
-function BankButtonIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <rect x="1.25" y="1.25" width="21.5" height="21.5" rx="6.75" fill="white" fillOpacity="0.16" stroke="white" strokeOpacity="0.42" strokeWidth="1.5" />
-      <path d="M6.5 16.8V7.2L10.4 12.1L14.3 7.2V16.8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="17.4" cy="15.4" r="2.1" fill="#F9C74F" />
-    </svg>
-  );
 }
 
 export default function PayScreen({ orderId }: { orderId: string }) {
@@ -266,8 +257,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
-                    <BankButtonIcon className="h-5 w-5" />
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35 backdrop-blur-[1px]">
+                    <Image src="/mbank-logo-white.svg" alt="Mbank" width={20} height={20} className="h-5 w-5 object-contain" priority />
                   </span>
                   <span className="text-sm font-semibold tracking-[0.02em] text-white">Перейти к Mbank</span>
                 </div>
