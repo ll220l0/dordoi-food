@@ -254,7 +254,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 variant="ghost"
                 onClick={goToBankPayment}
                 disabled={!resolvedBankUrl || !data || effectiveTotalKgs <= 0 || cancelling}
-                className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
+                className="h-12 w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] py-0 text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
                 aria-label="Перейти к Mbank"
               >
                 <div className="flex items-center justify-center">
@@ -263,15 +263,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                     alt="Mbank"
                     width={132}
                     height={32}
-                    className="h-8 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]"
+                    className="h-7 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]"
                     priority
                   />
                 </div>
               </Button>
-              <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="w-full">
+              <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="h-12 w-full py-0">
                 {loading ? "Отправляем..." : "Я оплатил(а)"}
               </Button>
-              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || cancelling} className="w-full text-rose-700">
+              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || cancelling} className="h-12 w-full py-0 text-rose-700">
                 {cancelling ? "Отменяем..." : "Отменить заказ"}
               </Button>
             </div>
