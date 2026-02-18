@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type SVGProps } from "react";
@@ -18,26 +18,18 @@ type OrderResp = {
     name: string;
     slug: string;
     mbankNumber?: string;
-    obankNumber?: string;
-    bakaiNumber?: string;
   };
   items?: Array<{ qty: number; priceKgs: number }>;
 };
 
 type EmvField = { tag: string; value: string };
-type BankOption = "mbank" | "obank" | "bakai";
 
 const DEFAULT_MBANK_LINK =
   "https://app.mbank.kg/qr/#00020101021132500012c2c.mbank.kg01020210129969900900911202111302115204999953034175405100005910AKTILEK%20K.63046588";
-const DEFAULT_O_BANK_LINK =
-  "https://api.dengi.o.kg/#00020101021132680012p2p.dengi.kg01048580111258480211000910129965090009911202121302123410%D0%90%D0%9A%D0%A2%D0%98%D0%9B%D0%95%D0%9A%20%D0%9A.5204739953034175405100005906O%21Bank6304C840";
-const DEFAULT_BAKAI_LINK =
-  "https://bakai.app#00020101021132460011qr.bakai.kg010131016124207011463603813021233120008BAKAIAPP5204653853034175910Aktilek%20K.5405100006304B554";
-
 const PHONE_RE = /^996\d{9}$/;
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Ошибка";
+  return error instanceof Error ? error.message : "Error";
 }
 
 function normalizeBankNumber(value: string | null | undefined) {
@@ -79,7 +71,6 @@ function serializeEmvPayload(fields: EmvField[]) {
 
   for (const { tag, value } of fields) {
     if (!/^\d{2}$/.test(tag)) return null;
-
     const valueBytes = encoder.encode(value);
     if (valueBytes.length > 99) return null;
 
@@ -94,12 +85,14 @@ function serializeEmvPayload(fields: EmvField[]) {
     merged.set(chunk, cursor);
     cursor += chunk.length;
   }
+
   return decoder.decode(merged);
 }
 
 function crc16ccitt(input: string) {
   const bytes = new TextEncoder().encode(input);
   let crc = 0xffff;
+
   for (let i = 0; i < bytes.length; i += 1) {
     crc ^= bytes[i] << 8;
     for (let bit = 0; bit < 8; bit += 1) {
@@ -110,68 +103,32 @@ function crc16ccitt(input: string) {
       }
     }
   }
+
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: string | null) {
-  const numericTotal = typeof totalKgs === "number" ? totalKgs : Number(totalKgs);
-  const amountSom = Number.isFinite(numericTotal) ? Math.max(0, Math.round(numericTotal)) : 0;
+function withMbankAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: string | null) {
+  const amountSom = Math.max(0, Math.round(totalKgs));
   if (!rawUrl || amountSom <= 0) return rawUrl;
 
   try {
-    if (rawUrl.startsWith("https://bakai.app#") || rawUrl.startsWith("https://bakai.app/#")) {
-      const hashIndex = rawUrl.indexOf("#");
-      if (hashIndex < 0) return rawUrl;
-
-      const prefix = rawUrl.slice(0, hashIndex).replace(/\/$/, "");
-      const payload = decodeURIComponent(rawUrl.slice(hashIndex + 1)).trim();
-      const amountMinor = Math.max(0, Math.min(99999, Math.round(amountSom * 100)));
-      const nextPayload = payload.replace(/(54)05\d{5}/, `$105${String(amountMinor).padStart(5, "0")}`);
-      if (nextPayload === payload) return rawUrl;
-
-      return `${prefix}#${encodeURIComponent(nextPayload)}`;
-    }
-
     const parsedUrl = new URL(rawUrl);
     const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
-
-    if (!rawHash) {
-      parsedUrl.searchParams.set("amount", String(amountSom));
-      parsedUrl.searchParams.set("sum", String(amountSom));
-      return parsedUrl.toString();
-    }
+    if (!rawHash) return rawUrl;
 
     let payload = decodeURIComponent(rawHash).trim();
-    if (bankPhone) {
-      payload = payload.replace(/996\d{9}/g, bankPhone);
-    }
+    if (bankPhone) payload = payload.replace(/996\d{9}/g, bankPhone);
 
     const fields = parseEmvPayload(payload);
-    if (!fields) {
-      parsedUrl.searchParams.set("amount", String(amountSom));
-      parsedUrl.searchParams.set("sum", String(amountSom));
-      return parsedUrl.toString();
-    }
+    if (!fields) return rawUrl;
 
     const withoutCrc = fields.filter((field) => field.tag !== "63");
-    if (bankPhone) {
-      for (let i = 0; i < withoutCrc.length; i += 1) {
-        const field = withoutCrc[i]!;
-        if (field.tag === "54") continue;
-        withoutCrc[i] = { ...field, value: field.value.replace(/996\d{9}/g, bankPhone) };
-      }
-    }
-
     const amountIndex = withoutCrc.findIndex((field) => field.tag === "54");
     const existingAmountValue = amountIndex >= 0 ? withoutCrc[amountIndex].value : "";
 
-    let amountValue = String(Math.max(0, Math.round(amountSom * 100)));
+    let amountValue = String(amountSom * 100);
     if (/^\d+$/.test(existingAmountValue)) {
-      if (existingAmountValue.length >= 4) {
-        amountValue = String(Math.max(0, Math.round(amountSom * 100))).padStart(existingAmountValue.length, "0");
-      } else {
-        amountValue = String(Math.max(0, Math.round(amountSom)));
-      }
+      amountValue = existingAmountValue.length >= 4 ? String(amountSom * 100).padStart(existingAmountValue.length, "0") : String(amountSom);
     } else if (/^\d+\.\d{1,2}$/.test(existingAmountValue)) {
       amountValue = amountSom.toFixed(2);
     }
@@ -179,12 +136,7 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
     if (amountIndex >= 0) {
       withoutCrc[amountIndex] = { ...withoutCrc[amountIndex], value: amountValue };
     } else {
-      const merchantNameIndex = withoutCrc.findIndex((field) => field.tag === "59");
-      if (merchantNameIndex >= 0) {
-        withoutCrc.splice(merchantNameIndex, 0, { tag: "54", value: amountValue });
-      } else {
-        withoutCrc.push({ tag: "54", value: amountValue });
-      }
+      withoutCrc.push({ tag: "54", value: amountValue });
     }
 
     const serializedWithoutCrc = serializeEmvPayload(withoutCrc);
@@ -192,9 +144,7 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
 
     const payloadWithCrcSeed = `${serializedWithoutCrc}6304`;
     const crc = crc16ccitt(payloadWithCrcSeed);
-    const updatedPayload = `${payloadWithCrcSeed}${crc}`;
-
-    parsedUrl.hash = `#${encodeURIComponent(updatedPayload)}`;
+    parsedUrl.hash = `#${encodeURIComponent(`${payloadWithCrcSeed}${crc}`)}`;
     return parsedUrl.toString();
   } catch {
     return rawUrl;
@@ -205,9 +155,7 @@ function getEffectiveTotalKgs(order: OrderResp | null) {
   if (!order) return 0;
 
   const apiTotal = Number(order.totalKgs);
-  if (Number.isFinite(apiTotal) && apiTotal > 0) {
-    return Math.round(apiTotal);
-  }
+  if (Number.isFinite(apiTotal) && apiTotal > 0) return Math.round(apiTotal);
 
   const lines = order.items ?? [];
   return lines.reduce((sum, line) => {
@@ -233,53 +181,22 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
-  const [selectedBank, setSelectedBank] = useState<BankOption>("mbank");
   const [payerName, setPayerName] = useState("");
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
 
   const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data), [data]);
-
   const mbankTemplate = (process.env.NEXT_PUBLIC_MBANK_PAY_URL ?? DEFAULT_MBANK_LINK).trim();
-  const obankTemplate = (process.env.NEXT_PUBLIC_OBANK_PAY_URL ?? DEFAULT_O_BANK_LINK).trim();
-  const bakaiTemplate = (process.env.NEXT_PUBLIC_BAKAI_PAY_URL ?? DEFAULT_BAKAI_LINK).trim();
-
-  const selectedBankLabel = useMemo(() => {
-    if (selectedBank === "mbank") return "Mbank";
-    if (selectedBank === "obank") return "O bank";
-    return "Bakai Bank";
-  }, [selectedBank]);
-
-  const selectedBankNumber = useMemo(() => {
-    if (selectedBank === "mbank") return normalizeBankNumber(data?.restaurant?.mbankNumber);
-    if (selectedBank === "obank") return normalizeBankNumber(data?.restaurant?.obankNumber);
-    return normalizeBankNumber(data?.restaurant?.bakaiNumber);
-  }, [data?.restaurant?.bakaiNumber, data?.restaurant?.mbankNumber, data?.restaurant?.obankNumber, selectedBank]);
-
-  const selectedBankTemplate = useMemo(() => {
-    if (selectedBank === "mbank") return mbankTemplate || null;
-    if (selectedBank === "obank") return obankTemplate || null;
-    return bakaiTemplate || null;
-  }, [bakaiTemplate, mbankTemplate, obankTemplate, selectedBank]);
+  const mbankNumber = useMemo(() => normalizeBankNumber(data?.restaurant?.mbankNumber), [data?.restaurant?.mbankNumber]);
 
   const resolvedBankUrl = useMemo(() => {
-    if (!selectedBankTemplate) return null;
-    if (effectiveTotalKgs <= 0) return selectedBankTemplate;
-    const phoneForPayload = selectedBank === "mbank" ? selectedBankNumber : null;
-    return withAutoAmountAndPhone(selectedBankTemplate, effectiveTotalKgs, phoneForPayload);
-  }, [effectiveTotalKgs, selectedBank, selectedBankNumber, selectedBankTemplate]);
+    if (!mbankTemplate || effectiveTotalKgs <= 0) return mbankTemplate || null;
+    return withMbankAmountAndPhone(mbankTemplate, effectiveTotalKgs, mbankNumber);
+  }, [effectiveTotalKgs, mbankNumber, mbankTemplate]);
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
   }, [orderId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = new URLSearchParams(window.location.search).get("bank");
-    if (raw === "mbank" || raw === "obank" || raw === "bakai") {
-      setSelectedBank(raw);
-    }
-  }, []);
 
   useEffect(() => {
     let stopped = false;
@@ -321,15 +238,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   function goToBankPayment() {
     if (!resolvedBankUrl) {
-      toast.error("Ссылка оплаты банком не настроена");
+      toast.error("Bank payment link is not configured");
       return;
     }
     if (!data || effectiveTotalKgs <= 0) {
-      toast.error("Сумма заказа еще загружается");
+      toast.error("Order total is not ready yet");
       return;
     }
-    if (!selectedBankNumber) {
-      toast.error("Номер банка не настроен в админке");
+    if (!mbankNumber) {
+      toast.error("Mbank number is not configured in admin");
       return;
     }
 
@@ -337,19 +254,19 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }
 
   async function copyBankNumber() {
-    if (!selectedBankNumber || typeof navigator === "undefined" || !navigator.clipboard) return;
+    if (!mbankNumber || typeof navigator === "undefined" || !navigator.clipboard) return;
     try {
-      await navigator.clipboard.writeText(selectedBankNumber);
-      toast.success("Номер скопирован");
+      await navigator.clipboard.writeText(mbankNumber);
+      toast.success("Number copied");
     } catch {
-      toast.error("Не удалось скопировать номер");
+      toast.error("Failed to copy number");
     }
   }
 
   async function markPaid() {
     const payer = payerName.trim();
     if (payer.length < 2) {
-      toast.error("Укажи имя отправителя перевода");
+      toast.error("Enter sender name");
       return;
     }
 
@@ -361,9 +278,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         body: JSON.stringify({ payerName: payer })
       });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Ошибка");
+      if (!res.ok) throw new Error(j?.error ?? "Error");
 
-      toast.success("Ожидаем подтверждения ресторана");
+      toast.success("Waiting for restaurant confirmation");
       clearPendingPayOrderId(orderId);
       clearCart();
       goToOrder();
@@ -379,11 +296,11 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
+      if (!res.ok) throw new Error(j?.error ?? "Failed to cancel order");
 
       clearPendingPayOrderId(orderId);
       removeOrderFromHistory(orderId);
-      toast.success("Заказ отменен");
+      toast.success("Order cancelled");
       router.replace("/order");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
@@ -395,67 +312,55 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   return (
     <main className="min-h-screen p-5 pb-36">
       <div className="mx-auto max-w-md">
-        <div className="text-3xl font-extrabold">Оплата банком</div>
+        <div className="text-3xl font-extrabold">Bank Payment</div>
         <div className="mt-1 text-sm text-black/60">{data?.restaurant?.name ?? ""}</div>
 
         <Card className="mt-4 p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-black/60">Итого</div>
+            <div className="text-sm text-black/60">Total</div>
             <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
           </div>
 
           <input
             className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Имя отправителя перевода"
+            placeholder="Sender name"
             value={payerName}
             onChange={(e) => setPayerName(e.target.value)}
           />
 
-          <div className="mt-3 text-xs text-black/55">Выбери банк:</div>
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="radio" name="payBank" checked={selectedBank === "mbank"} onChange={() => setSelectedBank("mbank")} />
-            Mbank
-          </label>
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="radio" name="payBank" checked={selectedBank === "obank"} onChange={() => setSelectedBank("obank")} />
-            O bank
-          </label>
-          <label className="mt-2 flex items-center gap-2 text-sm">
-            <input type="radio" name="payBank" checked={selectedBank === "bakai"} onChange={() => setSelectedBank("bakai")} />
-            Bakai Bank
-          </label>
+          <div className="mt-3 text-xs text-black/55">Bank: Mbank</div>
 
           <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2">
-            <div className="text-xs text-black/55">Номер получателя:</div>
+            <div className="text-xs text-black/55">Recipient number:</div>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold">{selectedBankNumber ?? "Не настроен"}</div>
-              <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!selectedBankNumber}>
-                Копировать
+              <div className="text-sm font-semibold">{mbankNumber ?? "Not configured"}</div>
+              <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!mbankNumber}>
+                Copy
               </Button>
             </div>
           </div>
 
-          <div className="mt-1 text-[12px] text-black/45">Администратор увидит имя отправителя при подтверждении оплаты.</div>
+          <div className="mt-1 text-[12px] text-black/45">Admin will see sender name when confirming payment.</div>
 
           <div className="mt-4 space-y-2">
             <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder || cancelling} className="w-full">
-              Я оплатил(а)
+              I paid
             </Button>
             <Button
               variant="ghost"
               onClick={goToBankPayment}
-              disabled={navigatingToOrder || !resolvedBankUrl || !selectedBankNumber || !data || effectiveTotalKgs <= 0 || cancelling}
+              disabled={navigatingToOrder || !resolvedBankUrl || !mbankNumber || !data || effectiveTotalKgs <= 0 || cancelling}
               className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
               <div className="flex items-center justify-center gap-2">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
                   <BankButtonIcon className="h-5 w-5" />
                 </span>
-                <span className="text-sm font-semibold tracking-[0.02em] text-white">{`Оплатить через ${selectedBankLabel}`}</span>
+                <span className="text-sm font-semibold tracking-[0.02em] text-white">Pay via Mbank</span>
               </div>
             </Button>
             <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || navigatingToOrder || cancelling} className="w-full text-rose-700">
-              {cancelling ? "Отменяем..." : "Отменить заказ"}
+              {cancelling ? "Cancelling..." : "Cancel order"}
             </Button>
           </div>
         </Card>
@@ -466,11 +371,10 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 backdrop-blur-md">
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-black/60 border-t-transparent" />
-            <div className="mt-3 text-sm font-semibold text-black/70">Переходим к заказу...</div>
+            <div className="mt-3 text-sm font-semibold text-black/70">Opening order...</div>
           </div>
         </div>
       )}
     </main>
   );
 }
-

@@ -17,14 +17,13 @@ import {
 import { formatKgs } from "@/lib/money";
 
 type PaymentMethod = "bank" | "cash";
-type BankOption = "mbank" | "obank" | "bakai";
 
 type CreateOrderResponse = {
   orderId: string;
 };
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Ошибка";
+  return error instanceof Error ? error.message : "РћС€РёР±РєР°";
 }
 
 function normalizePhone(phone: string) {
@@ -47,7 +46,6 @@ export default function CartScreen() {
   const [payerName, setPayerName] = useState("");
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
-  const [selectedBank, setSelectedBank] = useState<BankOption>("mbank");
   const [loading, setLoading] = useState(false);
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -76,9 +74,9 @@ export default function CartScreen() {
     return (
       <main className="min-h-screen p-5 pb-36">
         <div className="mx-auto max-w-md">
-          <div className="text-2xl font-extrabold">Корзина</div>
+          <div className="text-2xl font-extrabold">РљРѕСЂР·РёРЅР°</div>
           <Card className="mt-4 p-4">
-            <div className="text-sm text-black/60">Загружаем корзину...</div>
+            <div className="text-sm text-black/60">Р—Р°РіСЂСѓР¶Р°РµРј РєРѕСЂР·РёРЅСѓ...</div>
           </Card>
         </div>
       </main>
@@ -87,21 +85,21 @@ export default function CartScreen() {
 
   async function submitOrder() {
     if (!restaurantSlug || lines.length === 0) {
-      toast.error("Корзина пуста");
+      toast.error("РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°");
       return;
     }
 
     const phone = normalizePhone(customerPhone.trim());
     if (!line.trim() || !container.trim()) {
-      toast.error("Заполни проход и контейнер");
+      toast.error("Р—Р°РїРѕР»РЅРё РїСЂРѕС…РѕРґ Рё РєРѕРЅС‚РµР№РЅРµСЂ");
       return;
     }
     if (phone.length < 7) {
-      toast.error("Укажи номер телефона");
+      toast.error("РЈРєР°Р¶Рё РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°");
       return;
     }
     if (paymentMethod === "bank" && payerName.trim().length < 2) {
-      toast.error("Укажи имя отправителя перевода");
+      toast.error("РЈРєР°Р¶Рё РёРјСЏ РѕС‚РїСЂР°РІРёС‚РµР»СЏ РїРµСЂРµРІРѕРґР°");
       return;
     }
 
@@ -127,7 +125,7 @@ export default function CartScreen() {
         body: JSON.stringify(payload)
       });
       const j = (await res.json().catch(() => null)) as Partial<CreateOrderResponse> & { error?: string } | null;
-      if (!res.ok || !j?.orderId) throw new Error(j?.error ?? "Не удалось создать заказ");
+      if (!res.ok || !j?.orderId) throw new Error(j?.error ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р·Р°РєР°Р·");
 
       addOrderToHistory({
         orderId: j.orderId,
@@ -147,7 +145,7 @@ export default function CartScreen() {
       }
 
       const nextUrl =
-        paymentMethod === "bank" ? `/pay/${j.orderId}?bank=${encodeURIComponent(selectedBank)}` : `/order/${j.orderId}`;
+        paymentMethod === "bank" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
       setRedirectingTo(paymentMethod === "bank" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
@@ -163,11 +161,11 @@ export default function CartScreen() {
     return (
       <main className="min-h-screen p-5 pb-36">
         <div className="mx-auto max-w-md">
-          <div className="text-2xl font-extrabold">Корзина</div>
+          <div className="text-2xl font-extrabold">РљРѕСЂР·РёРЅР°</div>
           <Card className="mt-4 p-4">
-            <div className="text-sm text-black/60">В корзине пока ничего нет.</div>
+            <div className="text-sm text-black/60">Р’ РєРѕСЂР·РёРЅРµ РїРѕРєР° РЅРёС‡РµРіРѕ РЅРµС‚.</div>
             <Link href={restaurantSlug ? `/r/${restaurantSlug}` : "/"} className="mt-3 block">
-              <Button className="w-full">Вернуться в меню</Button>
+              <Button className="w-full">Р’РµСЂРЅСѓС‚СЊСЃСЏ РІ РјРµРЅСЋ</Button>
             </Link>
           </Card>
         </div>
@@ -181,11 +179,11 @@ export default function CartScreen() {
       <div className="mx-auto max-w-md">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs text-black/50">Оформление</div>
-            <div className="text-3xl font-extrabold">Корзина</div>
+            <div className="text-xs text-black/50">РћС„РѕСЂРјР»РµРЅРёРµ</div>
+            <div className="text-3xl font-extrabold">РљРѕСЂР·РёРЅР°</div>
           </div>
           <Link className="mt-2 text-sm text-black/60 underline" href={restaurantSlug ? `/r/${restaurantSlug}` : "/"}>
-            В меню
+            Р’ РјРµРЅСЋ
           </Link>
         </div>
 
@@ -217,70 +215,58 @@ export default function CartScreen() {
         </div>
 
         <Card className="mt-4 p-4">
-          <div className="text-sm font-semibold">Куда доставить</div>
+          <div className="text-sm font-semibold">РљСѓРґР° РґРѕСЃС‚Р°РІРёС‚СЊ</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <input
               className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-              placeholder="Проход"
+              placeholder="РџСЂРѕС…РѕРґ"
               value={line}
               onChange={(e) => setLine(e.target.value)}
             />
             <input
               className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-              placeholder="Контейнер"
+              placeholder="РљРѕРЅС‚РµР№РЅРµСЂ"
               value={container}
               onChange={(e) => setContainer(e.target.value)}
             />
           </div>
           <input
             className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Ориентир (необязательно)"
+            placeholder="РћСЂРёРµРЅС‚РёСЂ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)"
             value={landmark}
             onChange={(e) => setLandmark(e.target.value)}
           />
           <input
             className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Телефон WhatsApp"
+            placeholder="РўРµР»РµС„РѕРЅ WhatsApp"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
             required
           />
           <input
             className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Комментарий (необязательно)"
+            placeholder="РљРѕРјРјРµРЅС‚Р°СЂРёР№ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
           />
         </Card>
 
         <Card className="mt-4 p-4">
-          <div className="text-sm font-semibold">Оплата</div>
+          <div className="text-sm font-semibold">РћРїР»Р°С‚Р°</div>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input type="radio" name="paymentMethod" checked={paymentMethod === "bank"} onChange={() => setPaymentMethod("bank")} />
-            Банком
+            Р‘Р°РЅРєРѕРј
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <input type="radio" name="paymentMethod" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
-            Наличными курьеру
+            РќР°Р»РёС‡РЅС‹РјРё РєСѓСЂСЊРµСЂСѓ
           </label>
           {paymentMethod === "bank" && (
             <>
-              <div className="mt-3 text-xs text-black/55">Выбери банк:</div>
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="bankOption" checked={selectedBank === "mbank"} onChange={() => setSelectedBank("mbank")} />
-                Mbank
-              </label>
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="bankOption" checked={selectedBank === "obank"} onChange={() => setSelectedBank("obank")} />
-                O bank
-              </label>
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="bankOption" checked={selectedBank === "bakai"} onChange={() => setSelectedBank("bakai")} />
-                Bakai Bank
-              </label>
+              <div className="mt-3 text-xs text-black/55">Оплата через Mbank</div>
               <input
                 className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="Имя отправителя перевода"
+                placeholder="РРјСЏ РѕС‚РїСЂР°РІРёС‚РµР»СЏ РїРµСЂРµРІРѕРґР°"
                 value={payerName}
                 onChange={(e) => setPayerName(e.target.value)}
               />
@@ -290,15 +276,15 @@ export default function CartScreen() {
 
         <Card className="mt-4 p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-black/60">Позиций</div>
+            <div className="text-sm text-black/60">РџРѕР·РёС†РёР№</div>
             <div className="font-semibold">{count}</div>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <div className="text-sm text-black/60">Итого</div>
+            <div className="text-sm text-black/60">РС‚РѕРіРѕ</div>
             <div className="text-xl font-extrabold">{formatKgs(total)}</div>
           </div>
           <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submitOrder}>
-            {loading ? "Создаем заказ..." : "Оформить заказ"}
+            {loading ? "РЎРѕР·РґР°РµРј Р·Р°РєР°Р·..." : "РћС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·"}
           </Button>
         </Card>
       </div>
@@ -310,7 +296,7 @@ export default function CartScreen() {
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-black/60 border-t-transparent" />
             <div className="mt-3 text-sm font-semibold text-black/70">
-              {redirectingTo === "pay" ? "Переходим к оплате..." : "Переходим к заказу..."}
+              {redirectingTo === "pay" ? "РџРµСЂРµС…РѕРґРёРј Рє РѕРїР»Р°С‚Рµ..." : "РџРµСЂРµС…РѕРґРёРј Рє Р·Р°РєР°Р·Сѓ..."}
             </div>
           </div>
         </div>
@@ -318,3 +304,5 @@ export default function CartScreen() {
     </main>
   );
 }
+
+

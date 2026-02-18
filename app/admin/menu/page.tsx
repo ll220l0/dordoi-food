@@ -12,8 +12,6 @@ type Restaurant = {
   name: string;
   slug: string;
   mbankNumber: string;
-  obankNumber: string;
-  bakaiNumber: string;
 };
 type Category = { id: string; title: string; sortOrder: number };
 type Item = {
@@ -78,8 +76,6 @@ export default function AdminMenuPage() {
   const [itemAvail, setItemAvail] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [mbankNumber, setMbankNumber] = useState("");
-  const [obankNumber, setObankNumber] = useState("");
-  const [bakaiNumber, setBakaiNumber] = useState("");
   const [bankPassword, setBankPassword] = useState("");
   const [savingBankNumbers, setSavingBankNumbers] = useState(false);
 
@@ -90,8 +86,6 @@ export default function AdminMenuPage() {
     if (first) {
       setRestaurantSlug((current) => current || first.slug);
       setMbankNumber(first.mbankNumber ?? "");
-      setObankNumber(first.obankNumber ?? "");
-      setBakaiNumber(first.bakaiNumber ?? "");
     }
   }, []);
 
@@ -158,11 +152,9 @@ export default function AdminMenuPage() {
       return;
     }
     const mbank = mbankNumber.replace(/[^\d]/g, "");
-    const obank = obankNumber.replace(/[^\d]/g, "");
-    const bakai = bakaiNumber.replace(/[^\d]/g, "");
     const numberRe = /^996\d{9}$/;
 
-    if ((mbank && !numberRe.test(mbank)) || (obank && !numberRe.test(obank)) || (bakai && !numberRe.test(bakai))) {
+    if (mbank && !numberRe.test(mbank)) {
       toast.error("Формат номера: 996XXXXXXXXX");
       return;
     }
@@ -175,8 +167,6 @@ export default function AdminMenuPage() {
         body: JSON.stringify({
           slug: restaurantSlug,
           mbankNumber: mbank,
-          obankNumber: obank,
-          bakaiNumber: bakai,
           bankPassword: bankPassword.trim()
         })
       });
@@ -312,8 +302,8 @@ export default function AdminMenuPage() {
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-4">
             <Card className="p-4">
-              <div className="text-sm font-semibold">Номера банков</div>
-              <div className="mt-2 text-xs text-black/55">Укажи номера в формате 996XXXXXXXXX. Сохранение защищено паролем.</div>
+              <div className="text-sm font-semibold">Номер Mbank</div>
+              <div className="mt-2 text-xs text-black/55">Укажи номер в формате 996XXXXXXXXX. Сохранение защищено паролем.</div>
 
               <input
                 className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
@@ -322,22 +312,6 @@ export default function AdminMenuPage() {
                 placeholder="Mbank номер (996XXXXXXXXX)"
                 value={mbankNumber}
                 onChange={(e) => setMbankNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
-              />
-              <input
-                className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="text"
-                inputMode="numeric"
-                placeholder="O bank номер (996XXXXXXXXX)"
-                value={obankNumber}
-                onChange={(e) => setObankNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
-              />
-              <input
-                className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="text"
-                inputMode="numeric"
-                placeholder="Bakai Bank номер (996XXXXXXXXX)"
-                value={bakaiNumber}
-                onChange={(e) => setBakaiNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
               />
 
               <input
