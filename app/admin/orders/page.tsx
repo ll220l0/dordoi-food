@@ -1,19 +1,21 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isHistoryStatus } from "@/lib/orderStatus";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 type AdminOrderItem = {
   id: string;
   title: string;
   qty: number;
   priceKgs: number;
+  photoUrl: string;
 };
 
 type AdminOrder = {
@@ -25,7 +27,7 @@ type AdminOrder = {
   customerPhone: string;
   comment: string;
   itemCount: number;
-  restaurant: { name: string };
+  restaurant: { name: string; slug?: string };
   location: { line?: string; container?: string; landmark?: string };
   createdAt: string;
   updatedAt: string;
@@ -36,6 +38,10 @@ type AdminOrdersResponse = { orders: AdminOrder[] };
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Failed to fetch orders";
+}
+
+function normalizePhone(phone: string) {
+  return phone.replace(/\s+/g, "");
 }
 
 export default function AdminOrdersPage() {
@@ -106,60 +112,82 @@ export default function AdminOrdersPage() {
 
   function renderOrderCard(order: AdminOrder) {
     const statusMeta = getOrderStatusMeta(order.status);
+    const whatsappHref = order.customerPhone
+      ? buildWhatsAppLink(
+          normalizePhone(order.customerPhone),
+          `Здравствуйте! По заказу ${order.id}: статус "${statusMeta.label}". Спасибо за выбор Dordoi Food!`
+        )
+      : null;
 
     return (
       <Card key={order.id} className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="font-bold">Заказ #{order.id.slice(-6)}</div>
-            <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Плательщик</span>
-              <span className="text-sm font-extrabold text-emerald-900">{order.payerName || "НЕ УКАЗАН"}</span>
-            </div>
-            <div className="mt-1 text-sm text-black/60">
-              Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
-              {order.location?.landmark ? <> ({order.location.landmark})</> : null}
-            </div>
-            <div className="mt-1 text-xs text-black/50">Телефон: {order.customerPhone || "-"}</div>
-            <div className="mt-1 text-xs text-black/50">Создан: {new Date(order.createdAt).toLocaleString()}</div>
-            <div className="mt-1 text-xs text-black/50">Обновлен: {new Date(order.updatedAt).toLocaleString()}</div>
-            {order.comment ? <div className="mt-1 text-xs text-black/50">Комментарий: {order.comment}</div> : null}
-          </div>
-          <div className="text-right">
-            <div className="font-extrabold">{formatKgs(order.totalKgs)}</div>
-            <div className="mt-1 text-xs text-black/50">{order.itemCount} шт</div>
-            <div className="mt-1 text-xs text-black/50">{paymentMethodLabel(order.paymentMethod)}</div>
-            <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusMeta.badgeClassName}`}>
-              {statusMeta.label}
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="font-semibold">{order.restaurant?.name ?? "-"}</div>
+          <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
         </div>
 
-        <div className="mt-3 rounded-xl border border-black/10 bg-white/70 p-3">
-          <div className="text-xs font-semibold text-black/60">Состав заказа</div>
-          <div className="mt-1 space-y-1 text-sm">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-2">
-                <span>{item.title}</span>
-                <span className="text-black/60">
-                  {item.qty} x {formatKgs(item.priceKgs)}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Плательщик</div>
+          <div className="mt-1 text-lg font-extrabold text-emerald-900">{order.payerName || "НЕ УКАЗАН"}</div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="text-black/60">Сумма</div>
+          <div className="text-right font-bold">{formatKgs(order.totalKgs)}</div>
+          <div className="text-black/60">Метод оплаты</div>
+          <div className="text-right">{paymentMethodLabel(order.paymentMethod)}</div>
+          <div className="text-black/60">Телефон</div>
+          <div className="text-right">{order.customerPhone || "-"}</div>
+          <div className="text-black/60">Создан</div>
+          <div className="text-right">{new Date(order.createdAt).toLocaleString()}</div>
+          <div className="text-black/60">Обновлен</div>
+          <div className="text-right">{new Date(order.updatedAt).toLocaleString()}</div>
+        </div>
+
+        <div className="mt-3 text-sm text-black/70">
+          Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
+          {order.location?.landmark ? <> ({order.location.landmark})</> : null}
+        </div>
+        {order.comment ? <div className="mt-1 text-sm text-black/70">Комментарий: {order.comment}</div> : null}
+
+        <div className="mt-4 flex flex-wrap gap-2">
           {(order.status === "created" || order.status === "pending_confirmation") && (
-            <Button onClick={() => void confirm(order.id)} className="px-4 py-2">
-              Подтвердить оплату
-            </Button>
+            <Button onClick={() => void confirm(order.id)}>Подтвердить оплату</Button>
           )}
           {order.status !== "delivered" && order.status !== "canceled" && (
-            <Button onClick={() => void deliver(order.id)} className="px-4 py-2" variant="secondary">
+            <Button onClick={() => void deliver(order.id)} variant="secondary">
               Подтвердить доставку
             </Button>
           )}
+          {whatsappHref && (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"
+            >
+              Написать в WhatsApp
+            </a>
+          )}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {order.items.map((item) => (
+            <Card key={item.id} className="p-3">
+              <div className="flex gap-3">
+                <Photo src={item.photoUrl} alt={item.title} />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-semibold">{item.title}</div>
+                    <div className="font-bold">{formatKgs(item.priceKgs * item.qty)}</div>
+                  </div>
+                  <div className="mt-1 text-sm text-black/55">
+                    {item.qty} x {formatKgs(item.priceKgs)}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </Card>
     );

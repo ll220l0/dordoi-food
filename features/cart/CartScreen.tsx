@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Card, Photo } from "@/components/ui";
@@ -226,9 +227,26 @@ export default function CartScreen() {
           {lastOrderSuggestion && (
             <Card className="mt-3 p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-black/45">Последний заказ</div>
-              <div className="mt-2 text-sm font-semibold">{formatKgs(lastOrderSuggestion.totalKgs)}</div>
-              <div className="mt-1 text-xs text-black/55">
-                {lastOrderSuggestion.lines.length} поз. · {new Date(lastOrderSuggestion.createdAt).toLocaleString()}
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold">{new Date(lastOrderSuggestion.createdAt).toLocaleString()}</div>
+                <div className="text-sm font-extrabold">{formatKgs(lastOrderSuggestion.totalKgs)}</div>
+              </div>
+              <div className="mt-1 text-xs text-black/55">{lastOrderSuggestion.lines.length} позиций</div>
+              <div className="mt-3 space-y-2">
+                {lastOrderSuggestion.lines.map((item) => (
+                  <div key={`${item.menuItemId}-${item.title}`} className="flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 p-2">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5 ring-1 ring-black/5">
+                      <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="40px" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{item.title}</div>
+                      <div className="text-xs text-black/55">
+                        {item.qty} x {formatKgs(item.priceKgs)}
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold">{formatKgs(item.priceKgs * item.qty)}</div>
+                  </div>
+                ))}
               </div>
               <Button className="mt-3 w-full" variant="secondary" onClick={repeatLastOrder}>
                 Повторить последний заказ
