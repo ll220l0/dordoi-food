@@ -20,6 +20,7 @@ export async function GET() {
         totalKgs: o.totalKgs,
         paymentMethod: toClientPaymentMethod(o.paymentMethod),
         payerName: o.payerName ?? "",
+        canceledReason: o.canceledReason ?? "",
         paymentCode: o.paymentCode,
         customerPhone: o.customerPhone ?? "",
         comment: o.comment ?? "",

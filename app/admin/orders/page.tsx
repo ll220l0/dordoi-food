@@ -24,6 +24,7 @@ type AdminOrder = {
   totalKgs: number;
   paymentMethod: string;
   payerName: string;
+  canceledReason: string;
   customerPhone: string;
   comment: string;
   itemCount: number;
@@ -106,8 +107,31 @@ export default function AdminOrdersPage() {
     void load(true);
   }
 
+  async function cancelOrder(id: string) {
+    const reasonInput = window.prompt("Укажите причину отмены заказа");
+    if (reasonInput === null) return;
+    const reason = reasonInput.trim();
+    if (!reason) {
+      toast.error("Причина отмены обязательна");
+      return;
+    }
+
+    const res = await fetch(`/api/admin/orders/${id}/cancel`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reason })
+    });
+    const j = (await res.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) toast.error(j?.error ?? "Ошибка");
+    else toast.success("Заказ отменен");
+    void load(true);
+  }
+
   const orders = useMemo(() => data?.orders ?? [], [data?.orders]);
-  const activeOrders = useMemo(() => orders.filter((o) => !isHistoryStatus(o.status)), [orders]);
+  const activeOrders = useMemo(
+    () => orders.filter((o) => !isHistoryStatus(o.status) && o.payerName.trim().length > 0),
+    [orders]
+  );
   const historyOrders = useMemo(() => orders.filter((o) => isHistoryStatus(o.status)), [orders]);
 
   function renderOrderCard(order: AdminOrder) {
@@ -150,6 +174,11 @@ export default function AdminOrdersPage() {
           {order.location?.landmark ? <> ({order.location.landmark})</> : null}
         </div>
         {order.comment ? <div className="mt-1 text-sm text-black/70">Комментарий: {order.comment}</div> : null}
+        {order.status === "canceled" && order.canceledReason ? (
+          <div className="mt-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            Причина отмены: {order.canceledReason}
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {(order.status === "created" || order.status === "pending_confirmation") && (
@@ -158,6 +187,11 @@ export default function AdminOrdersPage() {
           {isApprovedStatus(order.status) && order.status !== "delivered" && (
             <Button onClick={() => void deliver(order.id)} variant="secondary">
               Подтвердить доставку
+            </Button>
+          )}
+          {isApprovedStatus(order.status) && order.status !== "delivered" && (
+            <Button onClick={() => void cancelOrder(order.id)} variant="secondary" className="border-rose-300 bg-rose-50 text-rose-700">
+              Отменить заказ
             </Button>
           )}
           {whatsappHref && (

@@ -78,6 +78,7 @@ model Order {
   totalKgs      Int
   customerPhone String?
   payerName     String?
+  canceledReason String?
   paymentCode   String
   location      Json
   comment       String?

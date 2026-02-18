@@ -20,6 +20,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       status: order.status,
       totalKgs: order.totalKgs,
       payerName: order.payerName ?? "",
+      canceledReason: order.canceledReason ?? "",
       paymentCode: order.paymentCode,
       paymentMethod: toClientPaymentMethod(order.paymentMethod),
       customerPhone: order.customerPhone ?? "",

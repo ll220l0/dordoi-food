@@ -24,6 +24,7 @@ type AdminOrderData = {
   totalKgs: number;
   paymentMethod: string;
   payerName: string;
+  canceledReason: string;
   customerPhone: string;
   comment: string;
   location: { line?: string; container?: string; landmark?: string };
@@ -89,6 +90,33 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     }
   }
 
+  async function cancelOrder() {
+    const reasonInput = window.prompt("Укажите причину отмены заказа");
+    if (reasonInput === null) return;
+    const reason = reasonInput.trim();
+    if (!reason) {
+      toast.error("Причина отмены обязательна");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason })
+      });
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      toast.success("Заказ отменен");
+      void load();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const statusMeta = useMemo(() => {
     const statusForDisplay = data?.status === "created" ? "pending_confirmation" : data?.status ?? "";
     return getOrderStatusMeta(statusForDisplay);
@@ -145,6 +173,11 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
           </div>
           {data?.comment ? <div className="mt-1 text-sm text-black/70">Комментарий: {data.comment}</div> : null}
+          {data?.status === "canceled" && data?.canceledReason ? (
+            <div className="mt-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              Причина отмены: {data.canceledReason}
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
             {(data?.status === "created" || data?.status === "pending_confirmation") && (
@@ -155,6 +188,16 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
               <Button disabled={loading} onClick={() => void deliver()} variant="secondary">
                 Подтвердить доставку
+              </Button>
+            )}
+            {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
+              <Button
+                disabled={loading}
+                onClick={() => void cancelOrder()}
+                variant="secondary"
+                className="border-rose-300 bg-rose-50 text-rose-700"
+              >
+                Отменить заказ
               </Button>
             )}
             {whatsappHref && (
