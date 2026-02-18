@@ -154,7 +154,11 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
 
     let amountValue = String(Math.max(0, Math.round(amountSom * 100)));
     if (/^\d+$/.test(existingAmountValue)) {
-      amountValue = existingAmountValue.length >= 4 ? String(Math.max(0, Math.round(amountSom * 100))) : String(Math.max(0, Math.round(amountSom)));
+      if (existingAmountValue.length >= 4) {
+        amountValue = String(Math.max(0, Math.round(amountSom * 100))).padStart(existingAmountValue.length, "0");
+      } else {
+        amountValue = String(Math.max(0, Math.round(amountSom)));
+      }
     } else if (/^\d+\.\d{1,2}$/.test(existingAmountValue)) {
       amountValue = amountSom.toFixed(2);
     }
@@ -248,8 +252,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const resolvedBankUrl = useMemo(() => {
     if (!selectedBankTemplate) return null;
     if (effectiveTotalKgs <= 0) return selectedBankTemplate;
-    return withAutoAmountAndPhone(selectedBankTemplate, effectiveTotalKgs, selectedBankNumber);
-  }, [effectiveTotalKgs, selectedBankNumber, selectedBankTemplate]);
+    const phoneForPayload = selectedBank === "mbank" ? selectedBankNumber : null;
+    return withAutoAmountAndPhone(selectedBankTemplate, effectiveTotalKgs, phoneForPayload);
+  }, [effectiveTotalKgs, selectedBank, selectedBankNumber, selectedBankTemplate]);
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
