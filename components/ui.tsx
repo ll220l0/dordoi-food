@@ -21,7 +21,7 @@ export function Pill({ children, active }: { children: ReactNode; active?: boole
       className={clsx(
         "rounded-full px-4 py-2 text-sm font-semibold transition",
         active
-          ? "bg-black text-white shadow-[0_8px_20px_rgba(15,23,42,0.25)]"
+          ? "bg-black text-white ring-1 ring-white/10 shadow-[0_6px_14px_rgba(15,23,42,0.16),0_2px_6px_rgba(15,23,42,0.12)]"
           : "border border-white/70 bg-white/80 text-black/65"
       )}
     >

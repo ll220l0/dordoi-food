@@ -112,11 +112,14 @@ export default function AdminOrdersPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-bold">Заказ #{order.id.slice(-6)}</div>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Плательщик</span>
+              <span className="text-sm font-extrabold text-emerald-900">{order.payerName || "НЕ УКАЗАН"}</span>
+            </div>
             <div className="mt-1 text-sm text-black/60">
               Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
               {order.location?.landmark ? <> ({order.location.landmark})</> : null}
             </div>
-            <div className="mt-1 text-xs text-black/50">Плательщик: {order.payerName || "-"}</div>
             <div className="mt-1 text-xs text-black/50">Телефон: {order.customerPhone || "-"}</div>
             <div className="mt-1 text-xs text-black/50">Создан: {new Date(order.createdAt).toLocaleString()}</div>
             <div className="mt-1 text-xs text-black/50">Обновлен: {new Date(order.updatedAt).toLocaleString()}</div>

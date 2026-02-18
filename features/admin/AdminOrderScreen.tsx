@@ -119,13 +119,16 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
           </div>
 
+          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Плательщик</div>
+            <div className="mt-1 text-lg font-extrabold text-emerald-900">{data?.payerName || "НЕ УКАЗАН"}</div>
+          </div>
+
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="text-black/60">Сумма</div>
             <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
             <div className="text-black/60">Метод оплаты</div>
             <div className="text-right">{paymentMethodLabel(data?.paymentMethod ?? "")}</div>
-            <div className="text-black/60">Плательщик</div>
-            <div className="text-right">{data?.payerName || "-"}</div>
             <div className="text-black/60">Телефон</div>
             <div className="text-right">{data?.customerPhone || "-"}</div>
             <div className="text-black/60">Создан</div>

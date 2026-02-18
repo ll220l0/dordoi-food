@@ -21,6 +21,7 @@ export type SavedLocation = {
 };
 
 const PHONE_COOKIE = "dordoi_phone";
+const PAYER_NAME_COOKIE = "dordoi_payer_name";
 const HISTORY_COOKIE = "dordoi_order_history";
 const HISTORY_STORAGE_KEY = "dordoi_order_history";
 const PENDING_PAY_ORDER_KEY = "dordoi_pending_pay_order_id";
@@ -69,6 +70,16 @@ export function getSavedPhone() {
 
 export function setSavedPhone(phone: string) {
   setCookie(PHONE_COOKIE, phone);
+}
+
+export function getSavedPayerName() {
+  return getCookie(PAYER_NAME_COOKIE);
+}
+
+export function setSavedPayerName(name: string) {
+  const normalized = name.trim().slice(0, 60);
+  if (!normalized) return;
+  setCookie(PAYER_NAME_COOKIE, normalized);
 }
 
 export function getOrderHistory() {

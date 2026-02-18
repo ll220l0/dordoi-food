@@ -5,7 +5,16 @@ import { useEffect, useMemo, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { clearActiveOrderId, clearPendingPayOrderId, getOrderHistoryEntry, removeOrderFromHistory, setActiveOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
+import {
+  clearActiveOrderId,
+  clearPendingPayOrderId,
+  getOrderHistoryEntry,
+  getSavedPayerName,
+  removeOrderFromHistory,
+  setActiveOrderId,
+  setPendingPayOrderId,
+  setSavedPayerName
+} from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { buildMbankPayUrl, normalizeMbankNumber } from "@/lib/mbankLink";
 import { formatKgs } from "@/lib/money";
@@ -113,6 +122,11 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [orderId]);
 
   useEffect(() => {
+    const savedName = getSavedPayerName().trim();
+    if (savedName) setPayerName(savedName);
+  }, []);
+
+  useEffect(() => {
     if (data?.payerName && !payerName.trim()) {
       setPayerName(data.payerName);
     }
@@ -189,6 +203,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
 
+      setSavedPayerName(payer);
       clearCart();
       setWaitingForAdmin(true);
       toast.success("Ожидаем подтверждения администратора");
