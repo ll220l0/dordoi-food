@@ -7,7 +7,15 @@ import toast from "react-hot-toast";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 
-type Restaurant = { id: string; name: string; slug: string; qrImageUrl: string };
+type Restaurant = {
+  id: string;
+  name: string;
+  slug: string;
+  qrImageUrl: string;
+  mbankNumber: string;
+  obankNumber: string;
+  bakaiNumber: string;
+};
 type Category = { id: string; title: string; sortOrder: number };
 type Item = {
   id: string;
@@ -74,6 +82,11 @@ export default function AdminMenuPage() {
   const [qrPassword, setQrPassword] = useState("");
   const [uploadingQr, setUploadingQr] = useState(false);
   const [savingQr, setSavingQr] = useState(false);
+  const [mbankNumber, setMbankNumber] = useState("");
+  const [obankNumber, setObankNumber] = useState("");
+  const [bakaiNumber, setBakaiNumber] = useState("");
+  const [bankPassword, setBankPassword] = useState("");
+  const [savingBankNumbers, setSavingBankNumbers] = useState(false);
 
   const loadRestaurants = useCallback(async () => {
     const res = await fetch("/api/admin/restaurants", { cache: "no-store" });
@@ -82,6 +95,9 @@ export default function AdminMenuPage() {
     if (first) {
       setRestaurantSlug((current) => current || first.slug);
       setQrImageUrl(first.qrImageUrl ?? "");
+      setMbankNumber(first.mbankNumber ?? "");
+      setObankNumber(first.obankNumber ?? "");
+      setBakaiNumber(first.bakaiNumber ?? "");
     }
   }, []);
 
@@ -181,6 +197,37 @@ export default function AdminMenuPage() {
       toast.error(getErrorMessage(error));
     } finally {
       setSavingQr(false);
+    }
+  }
+
+  async function saveBankNumbers() {
+    if (!restaurantSlug || !bankPassword.trim()) {
+      toast.error("Введите пароль для смены номеров банков");
+      return;
+    }
+
+    setSavingBankNumbers(true);
+    try {
+      const res = await fetch("/api/admin/restaurants", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: restaurantSlug,
+          mbankNumber,
+          obankNumber,
+          bakaiNumber,
+          bankPassword: bankPassword.trim()
+        })
+      });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(j.error ?? "Не удалось сохранить номера банков");
+
+      toast.success("Номера банков обновлены");
+      setBankPassword("");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSavingBankNumbers(false);
     }
   }
 
@@ -339,6 +386,45 @@ export default function AdminMenuPage() {
                 onClick={() => void saveQr()}
               >
                 {uploadingQr ? "Загружаем QR..." : savingQr ? "Сохраняем..." : "Сохранить QR"}
+              </Button>
+            </Card>
+
+            <Card className="p-4">
+              <div className="text-sm font-semibold">Номера банков</div>
+              <div className="mt-2 text-xs text-black/55">Укажи номера для Mbank, O bank и Bakai Bank. Сохранение защищено паролем.</div>
+
+              <input
+                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                type="text"
+                placeholder="Mbank номер"
+                value={mbankNumber}
+                onChange={(e) => setMbankNumber(e.target.value)}
+              />
+              <input
+                className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                type="text"
+                placeholder="O bank номер"
+                value={obankNumber}
+                onChange={(e) => setObankNumber(e.target.value)}
+              />
+              <input
+                className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                type="text"
+                placeholder="Bakai Bank номер"
+                value={bakaiNumber}
+                onChange={(e) => setBakaiNumber(e.target.value)}
+              />
+
+              <input
+                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                type="password"
+                placeholder="Пароль для смены номеров"
+                value={bankPassword}
+                onChange={(e) => setBankPassword(e.target.value)}
+              />
+
+              <Button className="mt-3 w-full" disabled={!restaurantSlug || !bankPassword.trim() || savingBankNumbers} onClick={() => void saveBankNumbers()}>
+                {savingBankNumbers ? "Сохраняем..." : "Сохранить номера банков"}
               </Button>
             </Card>
 

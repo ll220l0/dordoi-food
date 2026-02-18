@@ -20,6 +20,7 @@ type OrderResp = {
 };
 
 type EmvField = { tag: string; value: string };
+type BankOption = "mbank" | "obank" | "bakai";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
@@ -306,16 +307,40 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
   const [bankPayUrl, setBankPayUrl] = useState<string | null>(null);
+  const [selectedBank, setSelectedBank] = useState<BankOption>("mbank");
   const [payerName, setPayerName] = useState("");
   const [resolvingBankUrl, setResolvingBankUrl] = useState(false);
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
   const amountFromBankUrl = useMemo(() => parseAmountFromBankUrl(bankPayUrl), [bankPayUrl]);
   const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data, amountFromBankUrl), [amountFromBankUrl, data]);
+  const obankPayUrl = (process.env.NEXT_PUBLIC_OBANK_PAY_URL ?? "").trim();
+  const bakaiPayUrl = (process.env.NEXT_PUBLIC_BAKAI_PAY_URL ?? "").trim();
+  const mbankFallbackUrl = (process.env.NEXT_PUBLIC_MBANK_PAY_URL ?? "").trim();
+
+  const resolvedBankUrl = useMemo(() => {
+    if (selectedBank === "mbank") return bankPayUrl || mbankFallbackUrl || null;
+    if (selectedBank === "obank") return obankPayUrl || null;
+    return bakaiPayUrl || null;
+  }, [bakaiPayUrl, bankPayUrl, mbankFallbackUrl, obankPayUrl, selectedBank]);
+
+  const selectedBankLabel = useMemo(() => {
+    if (selectedBank === "mbank") return "Mbank";
+    if (selectedBank === "obank") return "O bank";
+    return "Bakai Bank";
+  }, [selectedBank]);
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
   }, [orderId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = new URLSearchParams(window.location.search).get("bank");
+    if (raw === "mbank" || raw === "obank" || raw === "bakai") {
+      setSelectedBank(raw);
+    }
+  }, []);
 
   useEffect(() => {
     let stopped = false;
@@ -386,7 +411,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }
 
   function goToBankPayment() {
-    if (!bankPayUrl) {
+    if (!resolvedBankUrl) {
       toast.error("Ссылка оплаты банком не настроена");
       return;
     }
@@ -395,7 +420,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       return;
     }
 
-    const urlWithAmount = withAutoAmount(bankPayUrl, effectiveTotalKgs);
+    const urlWithAmount = withAutoAmount(resolvedBankUrl, effectiveTotalKgs);
     window.location.assign(urlWithAmount);
   }
 
@@ -463,6 +488,19 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             value={payerName}
             onChange={(e) => setPayerName(e.target.value)}
           />
+          <div className="mt-3 text-xs text-black/55">Choose bank:</div>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="radio" name="payBank" checked={selectedBank === "mbank"} onChange={() => setSelectedBank("mbank")} />
+            Mbank
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="radio" name="payBank" checked={selectedBank === "obank"} onChange={() => setSelectedBank("obank")} />
+            O bank
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="radio" name="payBank" checked={selectedBank === "bakai"} onChange={() => setSelectedBank("bakai")} />
+            Bakai Bank
+          </label>
           <div className="mt-1 text-[12px] text-black/45">Администратор увидит это имя при подтверждении оплаты.</div>
 
           <div className="mt-4 space-y-2">
@@ -472,7 +510,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <Button
               variant="ghost"
               onClick={goToBankPayment}
-              disabled={navigatingToOrder || resolvingBankUrl || !bankPayUrl || !data || effectiveTotalKgs <= 0 || cancelling}
+              disabled={navigatingToOrder || resolvingBankUrl || !resolvedBankUrl || !data || effectiveTotalKgs <= 0 || cancelling}
               className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
             >
               <div className="flex items-center justify-center gap-2">
@@ -480,7 +518,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                   <BankButtonIcon className="h-5 w-5" />
                 </span>
                 <span className="text-sm font-semibold tracking-[0.02em] text-white">
-                  {resolvingBankUrl ? "Готовим оплату..." : "Оплатить через MBANK"}
+                  {resolvingBankUrl ? "Готовим оплату..." : `Pay via ${selectedBankLabel}`}
                 </span>
               </div>
             </Button>

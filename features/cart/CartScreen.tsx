@@ -17,6 +17,7 @@ import {
 import { formatKgs } from "@/lib/money";
 
 type PaymentMethod = "bank" | "cash";
+type BankOption = "mbank" | "obank" | "bakai";
 
 type CreateOrderResponse = {
   orderId: string;
@@ -46,6 +47,7 @@ export default function CartScreen() {
   const [payerName, setPayerName] = useState("");
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+  const [selectedBank, setSelectedBank] = useState<BankOption>("mbank");
   const [loading, setLoading] = useState(false);
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -144,7 +146,8 @@ export default function CartScreen() {
         clearPendingPayOrderId();
       }
 
-      const nextUrl = paymentMethod === "bank" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
+      const nextUrl =
+        paymentMethod === "bank" ? `/pay/${j.orderId}?bank=${encodeURIComponent(selectedBank)}` : `/order/${j.orderId}`;
       setRedirectingTo(paymentMethod === "bank" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
@@ -261,12 +264,27 @@ export default function CartScreen() {
             Наличными курьеру
           </label>
           {paymentMethod === "bank" && (
-            <input
-              className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-              placeholder="Имя отправителя перевода"
-              value={payerName}
-              onChange={(e) => setPayerName(e.target.value)}
-            />
+            <>
+              <div className="mt-3 text-xs text-black/55">Выбери банк:</div>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="radio" name="bankOption" checked={selectedBank === "mbank"} onChange={() => setSelectedBank("mbank")} />
+                Mbank
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="radio" name="bankOption" checked={selectedBank === "obank"} onChange={() => setSelectedBank("obank")} />
+                O bank
+              </label>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="radio" name="bankOption" checked={selectedBank === "bakai"} onChange={() => setSelectedBank("bakai")} />
+                Bakai Bank
+              </label>
+              <input
+                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                placeholder="Имя отправителя перевода"
+                value={payerName}
+                onChange={(e) => setPayerName(e.target.value)}
+              />
+            </>
           )}
         </Card>
 

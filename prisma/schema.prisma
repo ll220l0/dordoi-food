@@ -12,6 +12,9 @@ model Restaurant {
   name       String
   slug       String   @unique
   qrImageUrl String
+  mbankNumber String?
+  obankNumber String?
+  bakaiNumber String?
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

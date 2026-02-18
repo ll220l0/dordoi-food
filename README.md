@@ -64,7 +64,12 @@ git push -u origin main
    - `ADMIN_USER`
    - `ADMIN_PASS`
    - `ADMIN_SESSION_SECRET` (strong random secret for signed admin session cookies)
+   - `ADMIN_QR_PASS` (optional, separate password for QR changes in admin menu)
+   - `ADMIN_BANK_PASS` (optional, separate password for bank numbers changes in admin menu)
    - `NEXT_PUBLIC_APP_NAME`
+   - `NEXT_PUBLIC_MBANK_PAY_URL` (optional fallback if QR link is unavailable)
+   - `NEXT_PUBLIC_OBANK_PAY_URL` (bank payment link)
+   - `NEXT_PUBLIC_BAKAI_PAY_URL` (bank payment link)
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
    - `VAPID_PRIVATE_KEY` (for Web Push)
    - `VAPID_SUBJECT` (for Web Push, e.g. `mailto:admin@example.com`)
@@ -86,7 +91,12 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `ADMIN_USER`
 - `ADMIN_PASS`
 - `ADMIN_SESSION_SECRET`
+- `ADMIN_QR_PASS` (optional)
+- `ADMIN_BANK_PASS` (optional)
 - `NEXT_PUBLIC_APP_NAME`
+- `NEXT_PUBLIC_MBANK_PAY_URL` (optional fallback)
+- `NEXT_PUBLIC_OBANK_PAY_URL`
+- `NEXT_PUBLIC_BAKAI_PAY_URL`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
 - `VAPID_PRIVATE_KEY` (for Web Push)
 - `VAPID_SUBJECT` (for Web Push)
