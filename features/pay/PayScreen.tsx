@@ -116,6 +116,13 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [data?.status]);
 
   useEffect(() => {
+    if (!data) return;
+    if (CONFIRMED_STATUSES.has(data.status) || data.status === "canceled") {
+      clearPendingPayOrderId(orderId);
+    }
+  }, [data, orderId]);
+
+  useEffect(() => {
     if (!isApproved) {
       setShowApprovedCheck(false);
       return;
@@ -143,22 +150,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       toast.error("Сумма заказа еще загружается");
       return;
     }
-    if (!mbankNumber) {
-      toast.error("Номер Mbank не настроен в админке");
-      return;
-    }
 
     window.location.assign(resolvedBankUrl);
-  }
-
-  async function copyBankNumber() {
-    if (!mbankNumber || typeof navigator === "undefined" || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(mbankNumber);
-      toast.success("Номер скопирован");
-    } catch {
-      toast.error("Не удалось скопировать номер");
-    }
   }
 
   async function markPaid() {
@@ -178,7 +171,6 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
 
-      clearPendingPayOrderId(orderId);
       clearCart();
       setWaitingForAdmin(true);
       toast.success("Ожидаем подтверждения администратора");
@@ -232,21 +224,11 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
             <div className="mt-3 text-xs text-black/55">Банк: Mbank</div>
 
-            <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2">
-              <div className="text-xs text-black/55">Номер получателя:</div>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <div className="text-sm font-semibold">{mbankNumber ?? "Не настроен"}</div>
-                <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!mbankNumber}>
-                  Копировать
-                </Button>
-              </div>
-            </div>
-
             <div className="mt-4 space-y-2">
               <Button
                 variant="ghost"
                 onClick={goToBankPayment}
-                disabled={!resolvedBankUrl || !mbankNumber || !data || effectiveTotalKgs <= 0 || cancelling}
+                disabled={!resolvedBankUrl || !data || effectiveTotalKgs <= 0 || cancelling}
                 className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
               >
                 <div className="flex items-center justify-center gap-2">

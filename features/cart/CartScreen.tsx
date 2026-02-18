@@ -44,7 +44,6 @@ export default function CartScreen() {
   const [container, setContainer] = useState("");
   const [landmark, setLandmark] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [payerName, setPayerName] = useState("");
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
   const [loading, setLoading] = useState(false);
@@ -66,10 +65,9 @@ export default function CartScreen() {
         line.trim().length > 0 &&
         container.trim().length > 0 &&
         normalizePhone(customerPhone).length >= 7 &&
-        (paymentMethod !== "bank" || payerName.trim().length >= 2) &&
         !loading
     );
-  }, [container, customerPhone, isHydrated, line, lines.length, loading, payerName, paymentMethod, restaurantSlug]);
+  }, [container, customerPhone, isHydrated, line, lines.length, loading, restaurantSlug]);
 
   if (!isHydrated) {
     return (
@@ -99,10 +97,6 @@ export default function CartScreen() {
       toast.error("Укажи номер телефона");
       return;
     }
-    if (paymentMethod === "bank" && payerName.trim().length < 2) {
-      toast.error("Укажи имя отправителя перевода");
-      return;
-    }
 
     setLoading(true);
     try {
@@ -110,7 +104,6 @@ export default function CartScreen() {
         restaurantSlug,
         paymentMethod,
         customerPhone: phone,
-        payerName: payerName.trim(),
         comment: comment.trim(),
         location: {
           line: line.trim(),
@@ -261,17 +254,7 @@ export default function CartScreen() {
             <input type="radio" name="paymentMethod" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
             Наличными курьеру
           </label>
-          {paymentMethod === "bank" && (
-            <>
-              <div className="mt-3 text-xs text-black/55">Оплата через Mbank</div>
-              <input
-                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="Имя отправителя перевода"
-                value={payerName}
-                onChange={(e) => setPayerName(e.target.value)}
-              />
-            </>
-          )}
+          {paymentMethod === "bank" && <div className="mt-3 text-xs text-black/55">Имя отправителя укажете на экране оплаты Mbank</div>}
         </Card>
 
         <Card className="mt-4 p-4">

@@ -96,6 +96,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [orderHref, setOrderHref] = useState<string | null>(null);
 
   const loadOrder = useCallback(
     async (silent = false) => {
@@ -145,11 +146,15 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, []);
 
   useEffect(() => {
-    setLastOrderId(getLastOrderId());
     const pendingPayOrderId = getPendingPayOrderId();
     if (pendingPayOrderId) {
-      setLastOrderId((current) => current ?? pendingPayOrderId);
+      setLastOrderId(pendingPayOrderId);
+      setOrderHref(`/pay/${pendingPayOrderId}`);
+      return;
     }
+    const lastOrderIdValue = getLastOrderId();
+    setLastOrderId(lastOrderIdValue);
+    setOrderHref(lastOrderIdValue ? `/order/${lastOrderIdValue}` : null);
   }, []);
 
   useEffect(() => {
@@ -168,10 +173,14 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
     if (isBankPayment && isPendingPayStatus) {
       setPendingPayOrderId(data.id);
+      setLastOrderId(data.id);
+      setOrderHref(`/pay/${data.id}`);
       return;
     }
 
     clearPendingPayOrderId(data.id);
+    setLastOrderId(data.id);
+    setOrderHref(`/order/${data.id}`);
   }, [data?.id, data?.paymentMethod, data?.status]);
 
   useEffect(() => {
@@ -309,7 +318,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
         </Card>
       </div>
 
-      <ClientNav menuHref={`/r/${menuSlug}`} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
+      <ClientNav menuHref={`/r/${menuSlug}`} orderHref={orderHref ?? (lastOrderId ? `/order/${lastOrderId}` : null)} />
     </main>
   );
 }
