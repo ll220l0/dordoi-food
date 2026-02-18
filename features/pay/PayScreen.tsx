@@ -125,10 +125,6 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
     if (!rawHash) {
       parsedUrl.searchParams.set("amount", String(amountSom));
       parsedUrl.searchParams.set("sum", String(amountSom));
-      if (bankPhone) {
-        parsedUrl.searchParams.set("phone", bankPhone);
-        parsedUrl.searchParams.set("recipient", bankPhone);
-      }
       return parsedUrl.toString();
     }
 
@@ -141,10 +137,6 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
     if (!fields) {
       parsedUrl.searchParams.set("amount", String(amountSom));
       parsedUrl.searchParams.set("sum", String(amountSom));
-      if (bankPhone) {
-        parsedUrl.searchParams.set("phone", bankPhone);
-        parsedUrl.searchParams.set("recipient", bankPhone);
-      }
       return parsedUrl.toString();
     }
 
@@ -153,12 +145,7 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
       for (let i = 0; i < withoutCrc.length; i += 1) {
         const field = withoutCrc[i]!;
         if (field.tag === "54") continue;
-
-        let nextValue = field.value.replace(/996\d{9}/g, bankPhone);
-        if (nextValue === field.value && ["26", "29", "30", "31", "32", "33"].includes(field.tag)) {
-          nextValue = field.value.replace(/\d{12}/, bankPhone);
-        }
-        withoutCrc[i] = { ...field, value: nextValue };
+        withoutCrc[i] = { ...field, value: field.value.replace(/996\d{9}/g, bankPhone) };
       }
     }
 
@@ -191,10 +178,6 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
     const updatedPayload = `${payloadWithCrcSeed}${crc}`;
 
     parsedUrl.hash = `#${encodeURIComponent(updatedPayload)}`;
-    if (bankPhone) {
-      parsedUrl.searchParams.set("phone", bankPhone);
-      parsedUrl.searchParams.set("recipient", bankPhone);
-    }
     return parsedUrl.toString();
   } catch {
     return rawUrl;
