@@ -10,6 +10,7 @@ import {
   addOrderToHistory,
   setActiveOrderId,
   clearPendingPayOrderId,
+  getOrderHistory,
   getSavedLocation,
   getSavedPhone,
   setSavedLocation,
@@ -53,13 +54,13 @@ export default function CartScreen() {
   const lines = useCart((state) => state.lines);
   const total = useCart((state) => state.total());
   const count = useCart((state) => state.count());
+  const setLines = useCart((state) => state.setLines);
   const inc = useCart((state) => state.inc);
   const dec = useCart((state) => state.dec);
   const clear = useCart((state) => state.clear);
 
   const [line, setLine] = useState("");
   const [container, setContainer] = useState("");
-  const [landmark, setLandmark] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
@@ -86,6 +87,29 @@ export default function CartScreen() {
         !loading
     );
   }, [container, customerPhone, isHydrated, line, lines.length, loading, restaurantSlug]);
+
+  const lastOrderSuggestion = useMemo(() => {
+    if (!isHydrated) return null;
+    const latest = getOrderHistory()[0];
+    if (!latest?.restaurantSlug || !Array.isArray(latest.lines)) return null;
+
+    const normalizedLines = latest.lines
+      .map((item) => ({
+        menuItemId: item.menuItemId ?? "",
+        title: item.title,
+        photoUrl: item.photoUrl,
+        priceKgs: item.priceKgs,
+        qty: item.qty
+      }))
+      .filter((item) => item.menuItemId.length > 0 && item.qty > 0);
+
+    if (normalizedLines.length === 0) return null;
+
+    return {
+      ...latest,
+      lines: normalizedLines
+    };
+  }, [isHydrated]);
 
   if (!isHydrated) {
     return (
@@ -125,8 +149,7 @@ export default function CartScreen() {
         comment: comment.trim(),
         location: {
           line: line.trim(),
-          container: container.trim(),
-          landmark: landmark.trim()
+          container: container.trim()
         },
         items: lines.map((x) => ({ menuItemId: x.menuItemId, qty: x.qty }))
       };
@@ -170,19 +193,50 @@ export default function CartScreen() {
     }
   }
 
+  function cancelCart() {
+    if (loading) return;
+    clear();
+    toast.success("Корзина очищена");
+  }
+
   if (lines.length === 0) {
+    const menuHref = restaurantSlug ? `/r/${restaurantSlug}` : lastOrderSuggestion ? `/r/${lastOrderSuggestion.restaurantSlug}` : "/";
+
+    function repeatLastOrder() {
+      if (!lastOrderSuggestion) return;
+      setLines(lastOrderSuggestion.restaurantSlug, lastOrderSuggestion.lines);
+      if (lastOrderSuggestion.customerPhone) {
+        setSavedPhone(lastOrderSuggestion.customerPhone.replace(/\D/g, ""));
+        setCustomerPhone(formatKgPhone(lastOrderSuggestion.customerPhone));
+      }
+      toast.success("Последний заказ добавлен в корзину");
+    }
+
     return (
       <main className="min-h-screen p-5 pb-36">
         <div className="mx-auto max-w-md">
           <div className="text-2xl font-extrabold">Корзина</div>
           <Card className="mt-4 p-4">
             <div className="text-sm text-black/60">В корзине пока ничего нет.</div>
-            <Link href={restaurantSlug ? `/r/${restaurantSlug}` : "/"} className="mt-3 block">
+            <Link href={menuHref} className="mt-3 block">
               <Button className="w-full">Вернуться в меню</Button>
             </Link>
           </Card>
+
+          {lastOrderSuggestion && (
+            <Card className="mt-3 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-black/45">Последний заказ</div>
+              <div className="mt-2 text-sm font-semibold">{formatKgs(lastOrderSuggestion.totalKgs)}</div>
+              <div className="mt-1 text-xs text-black/55">
+                {lastOrderSuggestion.lines.length} поз. · {new Date(lastOrderSuggestion.createdAt).toLocaleString()}
+              </div>
+              <Button className="mt-3 w-full" variant="secondary" onClick={repeatLastOrder}>
+                Повторить последний заказ
+              </Button>
+            </Card>
+          )}
         </div>
-        <ClientNav menuHref={restaurantSlug ? `/r/${restaurantSlug}` : "/"} />
+        <ClientNav menuHref={menuHref} />
       </main>
     );
   }
@@ -245,12 +299,6 @@ export default function CartScreen() {
           </div>
           <input
             className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Ориентир (необязательно)"
-            value={landmark}
-            onChange={(e) => setLandmark(e.target.value)}
-          />
-          <input
-            className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
             placeholder="996 (___) ___ - ___"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(formatKgPhone(e.target.value))}
@@ -289,6 +337,9 @@ export default function CartScreen() {
           </div>
           <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submitOrder}>
             {loading ? "Создаем заказ..." : paymentMethod === "bank" ? "К оплате Mbank" : "Оформить заказ"}
+          </Button>
+          <Button className="mt-2 w-full" variant="secondary" disabled={loading} onClick={cancelCart}>
+            Отменить и очистить корзину
           </Button>
         </Card>
       </div>

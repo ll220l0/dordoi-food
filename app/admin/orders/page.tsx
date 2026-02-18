@@ -160,9 +160,6 @@ export default function AdminOrdersPage() {
               Подтвердить доставку
             </Button>
           )}
-          <Link className="text-sm text-black/60 underline" href={`/admin/orders/${order.id}`} prefetch={false}>
-            Подробнее
-          </Link>
         </div>
       </Card>
     );

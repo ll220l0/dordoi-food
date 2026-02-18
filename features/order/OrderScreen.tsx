@@ -1,10 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { Button, Card, Photo } from "@/components/ui";
+import { Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import {
   clearActiveOrderId,
@@ -15,11 +13,8 @@ import {
   getPendingPayOrderId,
   getSavedPhone,
   setActiveOrderId,
-  setPendingPayOrderId,
-  setSavedLocation,
-  setSavedPhone
+  setPendingPayOrderId
 } from "@/lib/clientPrefs";
-import { useCart } from "@/lib/cartStore";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
@@ -110,9 +105,6 @@ function historyStatusIcon(status: string) {
 }
 
 export default function OrderScreen({ orderId }: { orderId: string }) {
-  const router = useRouter();
-  const setLines = useCart((state) => state.setLines);
-
   const [data, setData] = useState<OrderData | null>(null);
   const [orderMissing, setOrderMissing] = useState(false);
   const [orderLoading, setOrderLoading] = useState(true);
@@ -230,39 +222,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
-
-  function repeatOrder(order: HistoryOrder) {
-    const restaurantSlug = order.restaurant?.slug?.trim() ?? "";
-    if (!restaurantSlug) {
-      toast.error("Не удалось повторить: ресторан не найден");
-      return;
-    }
-
-    const repeatedLines = order.items
-      .map((item) => ({
-        menuItemId: item.menuItemId ?? "",
-        title: item.title,
-        photoUrl: item.photoUrl,
-        priceKgs: item.priceKgs,
-        qty: item.qty
-      }))
-      .filter((item) => item.menuItemId.length > 0 && item.qty > 0);
-
-    if (repeatedLines.length === 0) {
-      toast.error("Не удалось повторить: товары не найдены");
-      return;
-    }
-
-    setLines(restaurantSlug, repeatedLines);
-    if (order.customerPhone) {
-      setSavedPhone(order.customerPhone.replace(/\D/g, ""));
-    }
-    if (order.location?.line || order.location?.container) {
-      setSavedLocation({ line: order.location?.line ?? "", container: order.location?.container ?? "" });
-    }
-
-    router.push("/cart");
-  }
 
   return (
     <main className="min-h-screen p-5 pb-40">
@@ -382,10 +341,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       <div className="mt-1 text-xs text-black/55">
                         Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
                       </div>
-
-                      <Button className="mt-3 w-full" variant="secondary" onClick={() => repeatOrder(order)}>
-                        Повторить заказ
-                      </Button>
                     </div>
                   );
                 })}
