@@ -12,6 +12,9 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (order.status === "delivered") {
     return NextResponse.json({ ok: true, status: order.status });
   }
+  if (order.status !== "confirmed" && order.status !== "cooking" && order.status !== "delivering") {
+    return NextResponse.json({ error: "Payment is not confirmed yet" }, { status: 400 });
+  }
 
   const updated = await prisma.order.update({
     where: { id },

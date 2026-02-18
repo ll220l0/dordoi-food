@@ -7,7 +7,7 @@ import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
-import { getOrderStatusMeta, isHistoryStatus } from "@/lib/orderStatus";
+import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus } from "@/lib/orderStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 type AdminOrderItem = {
@@ -154,7 +154,7 @@ export default function AdminOrdersPage() {
           {(order.status === "created" || order.status === "pending_confirmation") && (
             <Button onClick={() => void confirm(order.id)}>Подтвердить оплату</Button>
           )}
-          {order.status !== "delivered" && order.status !== "canceled" && (
+          {isApprovedStatus(order.status) && order.status !== "delivered" && (
             <Button onClick={() => void deliver(order.id)} variant="secondary">
               Подтвердить доставку
             </Button>

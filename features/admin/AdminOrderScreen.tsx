@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -7,7 +7,7 @@ import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
-import { getOrderStatusMeta } from "@/lib/orderStatus";
+import { getOrderStatusMeta, isApprovedStatus } from "@/lib/orderStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 type OrderItem = {
@@ -149,7 +149,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
                 Подтвердить оплату
               </Button>
             )}
-            {data?.status !== "delivered" && data?.status !== "canceled" && (
+            {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
               <Button disabled={loading} onClick={() => void deliver()} variant="secondary">
                 Подтвердить доставку
               </Button>
