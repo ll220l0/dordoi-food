@@ -119,6 +119,19 @@ function withAutoAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: str
   if (!rawUrl || amountSom <= 0) return rawUrl;
 
   try {
+    if (rawUrl.startsWith("https://bakai.app#") || rawUrl.startsWith("https://bakai.app/#")) {
+      const hashIndex = rawUrl.indexOf("#");
+      if (hashIndex < 0) return rawUrl;
+
+      const prefix = rawUrl.slice(0, hashIndex).replace(/\/$/, "");
+      const payload = decodeURIComponent(rawUrl.slice(hashIndex + 1)).trim();
+      const amountMinor = Math.max(0, Math.min(99999, Math.round(amountSom * 100)));
+      const nextPayload = payload.replace(/(54)05\d{5}/, `$105${String(amountMinor).padStart(5, "0")}`);
+      if (nextPayload === payload) return rawUrl;
+
+      return `${prefix}#${encodeURIComponent(nextPayload)}`;
+    }
+
     const parsedUrl = new URL(rawUrl);
     const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
 
