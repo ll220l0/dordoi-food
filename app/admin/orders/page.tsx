@@ -111,7 +111,8 @@ export default function AdminOrdersPage() {
   const historyOrders = useMemo(() => orders.filter((o) => isHistoryStatus(o.status)), [orders]);
 
   function renderOrderCard(order: AdminOrder) {
-    const statusMeta = getOrderStatusMeta(order.status);
+    const statusForDisplay = order.status === "created" ? "pending_confirmation" : order.status;
+    const statusMeta = getOrderStatusMeta(statusForDisplay);
     const whatsappHref = order.customerPhone
       ? buildWhatsAppLink(
           normalizePhone(order.customerPhone),

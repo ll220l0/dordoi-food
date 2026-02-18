@@ -89,7 +89,10 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     }
   }
 
-  const statusMeta = useMemo(() => getOrderStatusMeta(data?.status ?? ""), [data?.status]);
+  const statusMeta = useMemo(() => {
+    const statusForDisplay = data?.status === "created" ? "pending_confirmation" : data?.status ?? "";
+    return getOrderStatusMeta(statusForDisplay);
+  }, [data?.status]);
   const whatsappHref = data?.customerPhone
     ? buildWhatsAppLink(
         normalizePhone(data.customerPhone),
