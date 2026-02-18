@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { buildMbankPayUrl } from "@/lib/mbankLink";
 import { makePaymentCode } from "@/lib/paymentCode";
 import { toDbPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +57,8 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ orderId: order.id });
+    const bankPayUrl = dbPaymentMethod === "cash" ? null : buildMbankPayUrl({ totalKgs, bankPhone: restaurant.mbankNumber });
+    return NextResponse.json({ orderId: order.id, bankPayUrl });
   } catch (error: unknown) {
     const apiError = toApiError(error, "Failed to create order");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });

@@ -20,6 +20,7 @@ type PaymentMethod = "bank" | "cash";
 
 type CreateOrderResponse = {
   orderId: string;
+  bankPayUrl?: string | null;
 };
 
 function getErrorMessage(error: unknown) {
@@ -144,7 +145,7 @@ export default function CartScreen() {
         clearPendingPayOrderId();
       }
 
-      const nextUrl = paymentMethod === "bank" ? `/pay/${j.orderId}` : `/order/${j.orderId}`;
+      const nextUrl = paymentMethod === "bank" ? (j.bankPayUrl?.trim() || `/pay/${j.orderId}`) : `/order/${j.orderId}`;
       setRedirectingTo(paymentMethod === "bank" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
@@ -295,7 +296,7 @@ export default function CartScreen() {
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-black/60 border-t-transparent" />
             <div className="mt-3 text-sm font-semibold text-black/70">
-              {redirectingTo === "pay" ? "Переходим к оплате..." : "Переходим к заказу..."}
+              {redirectingTo === "pay" ? "Открываем Mbank..." : "Переходим к заказу..."}
             </div>
           </div>
         </div>

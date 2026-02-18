@@ -7,11 +7,12 @@ import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import { clearPendingPayOrderId, removeOrderFromHistory, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
+import { buildMbankPayUrl, normalizeMbankNumber } from "@/lib/mbankLink";
 import { formatKgs } from "@/lib/money";
 
 type OrderResp = {
   id: string;
-  status: string;
+  status: "created" | "pending_confirmation" | "confirmed" | "cooking" | "delivering" | "delivered" | "canceled";
   totalKgs: number;
   payerName?: string;
   restaurant: {
@@ -22,133 +23,10 @@ type OrderResp = {
   items?: Array<{ qty: number; priceKgs: number }>;
 };
 
-type EmvField = { tag: string; value: string };
-
-const DEFAULT_MBANK_LINK =
-  "https://app.mbank.kg/qr/#00020101021132500012c2c.mbank.kg01020210129969900900911202111302115204999953034175405100005910AKTILEK%20K.63046588";
-const PHONE_RE = /^996\d{9}$/;
+const CONFIRMED_STATUSES = new Set<OrderResp["status"]>(["confirmed", "cooking", "delivering", "delivered"]);
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
-}
-
-function normalizeBankNumber(value: string | null | undefined) {
-  const digits = (value ?? "").replace(/[^\d]/g, "");
-  if (!PHONE_RE.test(digits)) return null;
-  return digits;
-}
-
-function parseEmvPayload(payload: string): EmvField[] | null {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const bytes = encoder.encode(payload.trim());
-  const fields: EmvField[] = [];
-  let cursor = 0;
-
-  while (cursor < bytes.length) {
-    if (cursor + 4 > bytes.length) return null;
-    const tag = decoder.decode(bytes.slice(cursor, cursor + 2));
-    const lenText = decoder.decode(bytes.slice(cursor + 2, cursor + 4));
-    if (!/^\d{2}$/.test(lenText)) return null;
-
-    const len = Number(lenText);
-    const valueStart = cursor + 4;
-    const valueEnd = valueStart + len;
-    if (valueEnd > bytes.length) return null;
-
-    fields.push({ tag, value: decoder.decode(bytes.slice(valueStart, valueEnd)) });
-    cursor = valueEnd;
-  }
-
-  return fields;
-}
-
-function serializeEmvPayload(fields: EmvField[]) {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const chunks: Uint8Array[] = [];
-  let totalLen = 0;
-
-  for (const { tag, value } of fields) {
-    if (!/^\d{2}$/.test(tag)) return null;
-    const valueBytes = encoder.encode(value);
-    if (valueBytes.length > 99) return null;
-
-    const head = encoder.encode(`${tag}${String(valueBytes.length).padStart(2, "0")}`);
-    chunks.push(head, valueBytes);
-    totalLen += head.length + valueBytes.length;
-  }
-
-  const merged = new Uint8Array(totalLen);
-  let cursor = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, cursor);
-    cursor += chunk.length;
-  }
-
-  return decoder.decode(merged);
-}
-
-function crc16ccitt(input: string) {
-  const bytes = new TextEncoder().encode(input);
-  let crc = 0xffff;
-
-  for (let i = 0; i < bytes.length; i += 1) {
-    crc ^= bytes[i] << 8;
-    for (let bit = 0; bit < 8; bit += 1) {
-      if ((crc & 0x8000) !== 0) {
-        crc = ((crc << 1) ^ 0x1021) & 0xffff;
-      } else {
-        crc = (crc << 1) & 0xffff;
-      }
-    }
-  }
-
-  return crc.toString(16).toUpperCase().padStart(4, "0");
-}
-
-function withMbankAmountAndPhone(rawUrl: string, totalKgs: number, bankPhone: string | null) {
-  const amountSom = Math.max(0, Math.round(totalKgs));
-  if (!rawUrl || amountSom <= 0) return rawUrl;
-
-  try {
-    const parsedUrl = new URL(rawUrl);
-    const rawHash = parsedUrl.hash.startsWith("#") ? parsedUrl.hash.slice(1) : parsedUrl.hash;
-    if (!rawHash) return rawUrl;
-
-    let payload = decodeURIComponent(rawHash).trim();
-    if (bankPhone) payload = payload.replace(/996\d{9}/g, bankPhone);
-
-    const fields = parseEmvPayload(payload);
-    if (!fields) return rawUrl;
-
-    const withoutCrc = fields.filter((field) => field.tag !== "63");
-    const amountIndex = withoutCrc.findIndex((field) => field.tag === "54");
-    const existingAmountValue = amountIndex >= 0 ? withoutCrc[amountIndex].value : "";
-
-    let amountValue = String(amountSom * 100);
-    if (/^\d+$/.test(existingAmountValue)) {
-      amountValue = existingAmountValue.length >= 4 ? String(amountSom * 100).padStart(existingAmountValue.length, "0") : String(amountSom);
-    } else if (/^\d+\.\d{1,2}$/.test(existingAmountValue)) {
-      amountValue = amountSom.toFixed(2);
-    }
-
-    if (amountIndex >= 0) {
-      withoutCrc[amountIndex] = { ...withoutCrc[amountIndex], value: amountValue };
-    } else {
-      withoutCrc.push({ tag: "54", value: amountValue });
-    }
-
-    const serializedWithoutCrc = serializeEmvPayload(withoutCrc);
-    if (!serializedWithoutCrc) return rawUrl;
-
-    const payloadWithCrcSeed = `${serializedWithoutCrc}6304`;
-    const crc = crc16ccitt(payloadWithCrcSeed);
-    parsedUrl.hash = `#${encodeURIComponent(`${payloadWithCrcSeed}${crc}`)}`;
-    return parsedUrl.toString();
-  } catch {
-    return rawUrl;
-  }
 }
 
 function getEffectiveTotalKgs(order: OrderResp | null) {
@@ -182,17 +60,21 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
   const [payerName, setPayerName] = useState("");
+  const [waitingForAdmin, setWaitingForAdmin] = useState(false);
+  const [showApprovedCheck, setShowApprovedCheck] = useState(false);
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
 
   const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data), [data]);
-  const mbankTemplate = (process.env.NEXT_PUBLIC_MBANK_PAY_URL ?? DEFAULT_MBANK_LINK).trim();
-  const mbankNumber = useMemo(() => normalizeBankNumber(data?.restaurant?.mbankNumber), [data?.restaurant?.mbankNumber]);
+  const mbankNumber = useMemo(() => normalizeMbankNumber(data?.restaurant?.mbankNumber), [data?.restaurant?.mbankNumber]);
 
   const resolvedBankUrl = useMemo(() => {
-    if (!mbankTemplate || effectiveTotalKgs <= 0) return mbankTemplate || null;
-    return withMbankAmountAndPhone(mbankTemplate, effectiveTotalKgs, mbankNumber);
-  }, [effectiveTotalKgs, mbankNumber, mbankTemplate]);
+    if (effectiveTotalKgs <= 0) return null;
+    return buildMbankPayUrl({ totalKgs: effectiveTotalKgs, bankPhone: mbankNumber });
+  }, [effectiveTotalKgs, mbankNumber]);
+
+  const isApproved = data ? CONFIRMED_STATUSES.has(data.status) : false;
+  const isCanceled = data?.status === "canceled";
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
@@ -213,7 +95,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     };
 
     void loadOrder();
-    const timer = window.setInterval(() => void loadOrder(), 4000);
+    const timer = window.setInterval(() => void loadOrder(), 3500);
 
     return () => {
       stopped = true;
@@ -227,18 +109,34 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }, [data?.payerName, payerName]);
 
+  useEffect(() => {
+    if (data?.status === "pending_confirmation") {
+      setWaitingForAdmin(true);
+    }
+  }, [data?.status]);
+
+  useEffect(() => {
+    if (!isApproved) {
+      setShowApprovedCheck(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setShowApprovedCheck(true), 120);
+    return () => window.clearTimeout(timer);
+  }, [isApproved]);
+
   const menuHref = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
 
-  function goToOrder() {
+  function openOrder() {
     setNavigatingToOrder(true);
     window.setTimeout(() => {
       router.push(`/order/${orderId}`);
-    }, 160);
+    }, 120);
   }
 
   function goToBankPayment() {
     if (!resolvedBankUrl) {
-      toast.error("Ссылка оплаты банком не настроена");
+      toast.error("Ссылка оплаты Mbank не настроена");
       return;
     }
     if (!data || effectiveTotalKgs <= 0) {
@@ -280,10 +178,10 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Ошибка");
 
-      toast.success("Ожидаем подтверждения ресторана");
       clearPendingPayOrderId(orderId);
       clearCart();
-      goToOrder();
+      setWaitingForAdmin(true);
+      toast.success("Ожидаем подтверждения администратора");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -309,64 +207,108 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }
 
+  const showWaitingCard = waitingForAdmin && !isApproved && !isCanceled;
+  const showPayCard = !showWaitingCard && !isApproved && !isCanceled;
+
   return (
     <main className="min-h-screen p-5 pb-36">
       <div className="mx-auto max-w-md">
         <div className="text-3xl font-extrabold">Оплата банком</div>
         <div className="mt-1 text-sm text-black/60">{data?.restaurant?.name ?? ""}</div>
 
-        <Card className="mt-4 p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-black/60">Итого</div>
-            <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
-          </div>
+        {showPayCard && (
+          <Card className="mt-4 p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-black/60">Итого</div>
+              <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
+            </div>
 
-          <input
-            className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Имя отправителя перевода"
-            value={payerName}
-            onChange={(e) => setPayerName(e.target.value)}
-          />
+            <input
+              className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+              placeholder="Имя отправителя перевода"
+              value={payerName}
+              onChange={(e) => setPayerName(e.target.value)}
+            />
 
-          <div className="mt-3 text-xs text-black/55">Банк: Mbank</div>
+            <div className="mt-3 text-xs text-black/55">Банк: Mbank</div>
 
-          <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2">
-            <div className="text-xs text-black/55">Номер получателя:</div>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold">{mbankNumber ?? "Не настроен"}</div>
-              <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!mbankNumber}>
-                Копировать
+            <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2">
+              <div className="text-xs text-black/55">Номер получателя:</div>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold">{mbankNumber ?? "Не настроен"}</div>
+                <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!mbankNumber}>
+                  Копировать
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Button
+                variant="ghost"
+                onClick={goToBankPayment}
+                disabled={!resolvedBankUrl || !mbankNumber || !data || effectiveTotalKgs <= 0 || cancelling}
+                className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
+                    <BankButtonIcon className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm font-semibold tracking-[0.02em] text-white">Перейти к Mbank</span>
+                </div>
+              </Button>
+              <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="w-full">
+                {loading ? "Отправляем..." : "Я оплатил(а)"}
+              </Button>
+              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || cancelling} className="w-full text-rose-700">
+                {cancelling ? "Отменяем..." : "Отменить заказ"}
               </Button>
             </div>
-          </div>
+          </Card>
+        )}
 
-          <div className="mt-1 text-[12px] text-black/45">Администратор увидит имя отправителя при подтверждении оплаты.</div>
+        {showWaitingCard && (
+          <Card className="mt-4 p-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-black/50 border-t-transparent" />
+              <div className="mt-3 text-lg font-bold">Проверяем оплату</div>
+              <div className="mt-1 text-sm text-black/60">Ожидаем подтверждения администратора...</div>
+            </div>
+          </Card>
+        )}
 
-          <div className="mt-4 space-y-2">
-            <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder || cancelling} className="w-full">
-              Я оплатил(а)
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={goToBankPayment}
-              disabled={navigatingToOrder || !resolvedBankUrl || !mbankNumber || !data || effectiveTotalKgs <= 0 || cancelling}
-              className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
-                  <BankButtonIcon className="h-5 w-5" />
-                </span>
-                <span className="text-sm font-semibold tracking-[0.02em] text-white">Оплатить через Mbank</span>
+        {isApproved && (
+          <Card className="mt-4 p-6">
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-2xl text-white transition-all duration-500 ${
+                  showApprovedCheck ? "scale-100 opacity-100" : "scale-75 opacity-0"
+                }`}
+              >
+                ✓
               </div>
-            </Button>
-            <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || navigatingToOrder || cancelling} className="w-full text-rose-700">
-              {cancelling ? "Отменяем..." : "Отменить заказ"}
-            </Button>
-          </div>
-        </Card>
+              <div className="mt-3 text-lg font-bold text-emerald-700">Оплата подтверждена</div>
+              <div className="mt-1 text-sm text-black/60">Заказ принят в работу.</div>
+              <Button className="mt-4 w-full" onClick={openOrder}>
+                К заказу
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {isCanceled && (
+          <Card className="mt-4 p-6">
+            <div className="text-center">
+              <div className="text-lg font-bold text-rose-700">Заказ отменен</div>
+              <Button className="mt-4 w-full" onClick={() => router.replace(`/r/${data?.restaurant?.slug ?? ""}`)}>
+                В меню
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
 
       <ClientNav menuHref={menuHref} orderHref={`/pay/${orderId}`} />
+
       {navigatingToOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 backdrop-blur-md">
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
