@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { clearActiveOrderId, clearPendingPayOrderId, removeOrderFromHistory, setActiveOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
+import { clearActiveOrderId, clearPendingPayOrderId, getOrderHistoryEntry, removeOrderFromHistory, setActiveOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { buildMbankPayUrl, normalizeMbankNumber } from "@/lib/mbankLink";
 import { formatKgs } from "@/lib/money";
@@ -30,19 +30,21 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
 }
 
-function getEffectiveTotalKgs(order: OrderResp | null) {
-  if (!order) return 0;
+function getEffectiveTotalKgs(order: OrderResp | null, fallbackTotalKgs = 0) {
+  if (!order) return fallbackTotalKgs;
 
   const apiTotal = Number(order.totalKgs);
   if (Number.isFinite(apiTotal) && apiTotal > 0) return Math.round(apiTotal);
 
   const lines = order.items ?? [];
-  return lines.reduce((sum, line) => {
+  const computedFromItems = lines.reduce((sum, line) => {
     const qty = Number(line.qty);
     const priceKgs = Number(line.priceKgs);
     if (!Number.isFinite(qty) || !Number.isFinite(priceKgs)) return sum;
     return sum + Math.max(0, Math.round(qty)) * Math.max(0, Math.round(priceKgs));
   }, 0);
+  if (computedFromItems > 0) return computedFromItems;
+  return fallbackTotalKgs;
 }
 
 function BankButtonIcon(props: SVGProps<SVGSVGElement>) {
@@ -65,8 +67,13 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [showApprovedCheck, setShowApprovedCheck] = useState(false);
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
+  const historyTotalKgs = useMemo(() => {
+    const totalFromHistory = getOrderHistoryEntry(orderId)?.totalKgs ?? 0;
+    const parsed = Number(totalFromHistory);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+  }, [orderId]);
 
-  const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data), [data]);
+  const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data, historyTotalKgs), [data, historyTotalKgs]);
   const mbankNumber = useMemo(() => normalizeMbankNumber(data?.restaurant?.mbankNumber), [data?.restaurant?.mbankNumber]);
 
   const resolvedBankUrl = useMemo(() => {

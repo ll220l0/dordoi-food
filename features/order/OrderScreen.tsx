@@ -1,8 +1,10 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, Photo } from "@/components/ui";
+import toast from "react-hot-toast";
+import { Button, Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import {
   clearActiveOrderId,
@@ -13,14 +15,18 @@ import {
   getPendingPayOrderId,
   getSavedPhone,
   setActiveOrderId,
-  setPendingPayOrderId
+  setPendingPayOrderId,
+  setSavedLocation,
+  setSavedPhone
 } from "@/lib/clientPrefs";
+import { useCart } from "@/lib/cartStore";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus, isPendingConfirmation } from "@/lib/orderStatus";
 
 type OrderItem = {
   id: string;
+  menuItemId?: string;
   title: string;
   qty: number;
   priceKgs: number;
@@ -93,13 +99,27 @@ function StatusProgress({ status }: { status: string }) {
   );
 }
 
+function historyStatusIcon(status: string) {
+  if (status === "delivered") {
+    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">✓</span>;
+  }
+  if (status === "canceled") {
+    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">×</span>;
+  }
+  return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">•</span>;
+}
+
 export default function OrderScreen({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const setLines = useCart((state) => state.setLines);
+
   const [data, setData] = useState<OrderData | null>(null);
   const [orderMissing, setOrderMissing] = useState(false);
   const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [orderHref, setOrderHref] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const loadOrder = useCallback(
     async (silent = false) => {
@@ -127,7 +147,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     const ids = getOrderHistory()
       .map((entry) => entry.orderId)
       .filter(Boolean);
-    const phone = getSavedPhone().trim();
+    const phone = getSavedPhone().replace(/\D/g, "").trim();
 
     if (ids.length === 0 && phone.length < 7) {
       setHistory([]);
@@ -155,12 +175,14 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
       setOrderHref(`/pay/${pendingPayOrderId}`);
       return;
     }
+
     const activeOrderId = getActiveOrderId();
     if (activeOrderId) {
       setLastOrderId(activeOrderId);
       setOrderHref(`/order/${activeOrderId}`);
       return;
     }
+
     const lastOrderIdValue = getLastOrderId();
     setLastOrderId(lastOrderIdValue);
     setOrderHref(lastOrderIdValue ? `/order/${lastOrderIdValue}` : null);
@@ -208,6 +230,39 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
+
+  function repeatOrder(order: HistoryOrder) {
+    const restaurantSlug = order.restaurant?.slug?.trim() ?? "";
+    if (!restaurantSlug) {
+      toast.error("Не удалось повторить: ресторан не найден");
+      return;
+    }
+
+    const repeatedLines = order.items
+      .map((item) => ({
+        menuItemId: item.menuItemId ?? "",
+        title: item.title,
+        photoUrl: item.photoUrl,
+        priceKgs: item.priceKgs,
+        qty: item.qty
+      }))
+      .filter((item) => item.menuItemId.length > 0 && item.qty > 0);
+
+    if (repeatedLines.length === 0) {
+      toast.error("Не удалось повторить: товары не найдены");
+      return;
+    }
+
+    setLines(restaurantSlug, repeatedLines);
+    if (order.customerPhone) {
+      setSavedPhone(order.customerPhone.replace(/\D/g, ""));
+    }
+    if (order.location?.line || order.location?.container) {
+      setSavedLocation({ line: order.location?.line ?? "", container: order.location?.container ?? "" });
+    }
+
+    router.push("/cart");
+  }
 
   return (
     <main className="min-h-screen p-5 pb-40">
@@ -291,45 +346,53 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
           </Card>
         )}
 
-        <Card className="p-4">
-          <div className="text-sm font-semibold">История заказов</div>
-          <div className="mt-3 space-y-2">
-            {history.map((order) => {
-              const meta = getOrderStatusMeta(order.status);
-              return (
-                <div key={order.id} className="rounded-2xl border border-black/10 bg-white/70 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold">#{order.id.slice(-6)}</div>
-                      <div className="text-xs text-black/50">{new Date(order.createdAt).toLocaleString()}</div>
-                    </div>
-                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.badgeClassName}`}>{meta.label}</span>
-                  </div>
-                  <div className="mt-2 text-sm text-black/70">
-                    {order.restaurant?.name ?? "-"} - {formatKgs(order.totalKgs)} - {order.items.length} поз.
-                  </div>
-                  <div className="mt-1 text-xs text-black/55">
-                    Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
-                  </div>
-                  <div className="mt-1 text-xs text-black/55">
-                    Метод: {paymentMethodLabel(order.paymentMethod)} - Плательщик: {order.payerName ?? "-"} - Обновлен: {new Date(order.updatedAt).toLocaleString()}
-                  </div>
-                  <div className="mt-2 space-y-1 text-xs text-black/60">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between gap-2">
-                        <span>{item.title}</span>
-                        <span>
-                          {item.qty} x {formatKgs(item.priceKgs)}
-                        </span>
+        <Card className="overflow-hidden p-0">
+          <button className="flex w-full items-center justify-between px-4 py-4 text-left" onClick={() => setHistoryOpen((value) => !value)}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700">↺</span>
+              <span className="text-sm font-semibold">История заказов</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-black/45">{history.length}</span>
+              <span className={`text-xs transition-transform ${historyOpen ? "rotate-180" : ""}`}>▼</span>
+            </div>
+          </button>
+
+          {historyOpen && (
+            <div className="border-t border-black/10 px-4 pb-4 pt-3">
+              <div className="space-y-2">
+                {history.map((order) => {
+                  const meta = getOrderStatusMeta(order.status);
+                  return (
+                    <div key={order.id} className="rounded-2xl border border-black/10 bg-white/70 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2">
+                          {historyStatusIcon(order.status)}
+                          <div>
+                            <div className="font-semibold">#{order.id.slice(-6)}</div>
+                            <div className="text-xs text-black/50">{new Date(order.createdAt).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.badgeClassName}`}>{meta.label}</span>
                       </div>
-                    ))}
-                  </div>
-                  {order.comment ? <div className="mt-1 text-xs text-black/55">Комментарий: {order.comment}</div> : null}
-                </div>
-              );
-            })}
-            {history.length === 0 && <div className="text-sm text-black/50">История заказов пока пуста.</div>}
-          </div>
+
+                      <div className="mt-2 text-sm text-black/70">
+                        {order.restaurant?.name ?? "-"} - {formatKgs(order.totalKgs)} - {order.items.length} поз.
+                      </div>
+                      <div className="mt-1 text-xs text-black/55">
+                        Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
+                      </div>
+
+                      <Button className="mt-3 w-full" variant="secondary" onClick={() => repeatOrder(order)}>
+                        Повторить заказ
+                      </Button>
+                    </div>
+                  );
+                })}
+                {history.length === 0 && <div className="text-sm text-black/50">История заказов пока пуста.</div>}
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 

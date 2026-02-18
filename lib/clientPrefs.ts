@@ -15,12 +15,19 @@ export type OrderHistoryEntry = {
   lines: SavedOrderLine[];
 };
 
+export type SavedLocation = {
+  line: string;
+  container: string;
+};
+
 const PHONE_COOKIE = "dordoi_phone";
 const HISTORY_COOKIE = "dordoi_order_history";
+const HISTORY_STORAGE_KEY = "dordoi_order_history";
 const PENDING_PAY_ORDER_KEY = "dordoi_pending_pay_order_id";
 const PENDING_PAY_ORDER_COOKIE = "dordoi_pending_pay_order_id_cookie";
 const ACTIVE_ORDER_KEY = "dordoi_active_order_id";
 const ACTIVE_ORDER_COOKIE = "dordoi_active_order_id_cookie";
+const LOCATION_COOKIE = "dordoi_last_location";
 const COOKIE_DAYS = 120;
 const HISTORY_LIMIT = 8;
 
@@ -65,19 +72,35 @@ export function setSavedPhone(phone: string) {
 }
 
 export function getOrderHistory() {
+  if (typeof window !== "undefined") {
+    const localRaw = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (localRaw) return safeParse<OrderHistoryEntry[]>(localRaw, []);
+  }
   return safeParse<OrderHistoryEntry[]>(getCookie(HISTORY_COOKIE), []);
+}
+
+export function getOrderHistoryEntry(orderId: string) {
+  return getOrderHistory().find((entry) => entry.orderId === orderId) ?? null;
 }
 
 export function addOrderToHistory(entry: OrderHistoryEntry) {
   const next = [entry, ...getOrderHistory()]
     .filter((item, index, arr) => arr.findIndex((x) => x.orderId === item.orderId) === index)
     .slice(0, HISTORY_LIMIT);
-  setCookie(HISTORY_COOKIE, JSON.stringify(next));
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+  } else {
+    setCookie(HISTORY_COOKIE, JSON.stringify(next));
+  }
 }
 
 export function removeOrderFromHistory(orderId: string) {
   const next = getOrderHistory().filter((entry) => entry.orderId !== orderId);
-  setCookie(HISTORY_COOKIE, JSON.stringify(next));
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+  } else {
+    setCookie(HISTORY_COOKIE, JSON.stringify(next));
+  }
 }
 
 export function getLastOrderId() {
@@ -146,6 +169,21 @@ export function clearActiveOrderId(orderId?: string) {
   if (currentCookie === orderId) {
     removeCookie(ACTIVE_ORDER_COOKIE);
   }
+}
+
+export function getSavedLocation(): SavedLocation {
+  const parsed = safeParse<Partial<SavedLocation>>(getCookie(LOCATION_COOKIE), {});
+  return {
+    line: typeof parsed.line === "string" ? parsed.line : "",
+    container: typeof parsed.container === "string" ? parsed.container : ""
+  };
+}
+
+export function setSavedLocation(location: SavedLocation) {
+  const line = location.line.trim();
+  const container = location.container.trim();
+  if (!line && !container) return;
+  setCookie(LOCATION_COOKIE, JSON.stringify({ line, container }));
 }
 
 export function getFrequentMenuItems(restaurantSlug: string) {

@@ -20,13 +20,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "phone or ids required" }, { status: 400 });
     }
 
-    const where =
-      orderIds.length > 0
-        ? {
-            id: { in: orderIds },
-            ...(phone.length >= 7 ? { customerPhone: phone } : {})
-          }
-        : { customerPhone: phone };
+    const whereClauses: Array<Record<string, unknown>> = [];
+    if (orderIds.length > 0) whereClauses.push({ id: { in: orderIds } });
+    if (phone.length >= 7) whereClauses.push({ customerPhone: phone });
+    const where = whereClauses.length === 1 ? whereClauses[0] : { OR: whereClauses };
 
     const orders = await prisma.order.findMany({
       where,
@@ -54,6 +51,7 @@ export async function GET(req: Request) {
         },
         items: order.items.map((x) => ({
           id: x.id,
+          menuItemId: x.menuItemId,
           title: x.titleSnap,
           qty: x.qty,
           priceKgs: x.priceKgs,

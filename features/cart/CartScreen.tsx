@@ -10,7 +10,9 @@ import {
   addOrderToHistory,
   setActiveOrderId,
   clearPendingPayOrderId,
+  getSavedLocation,
   getSavedPhone,
+  setSavedLocation,
   setPendingPayOrderId,
   setSavedPhone
 } from "@/lib/clientPrefs";
@@ -27,8 +29,23 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
 }
 
-function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, "");
+function normalizeKgPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const rest = digits.startsWith("996") ? digits.slice(3) : digits;
+  const normalized = `996${rest}`.slice(0, 12);
+  return /^996\d{9}$/.test(normalized) ? normalized : null;
+}
+
+function formatKgPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const rest = digits.startsWith("996") ? digits.slice(3) : digits;
+  const normalized = `996${rest}`.slice(0, 12);
+  const local = normalized.slice(3);
+
+  if (local.length === 0) return "996";
+  if (local.length <= 3) return `996 (${local}`;
+  if (local.length <= 6) return `996 (${local.slice(0, 3)}) ${local.slice(3)}`;
+  return `996 (${local.slice(0, 3)}) ${local.slice(3, 6)} - ${local.slice(6, 9)}`;
 }
 
 export default function CartScreen() {
@@ -52,7 +69,10 @@ export default function CartScreen() {
 
   useEffect(() => {
     setIsHydrated(true);
-    setCustomerPhone(getSavedPhone());
+    setCustomerPhone(formatKgPhone(getSavedPhone()));
+    const savedLocation = getSavedLocation();
+    setLine(savedLocation.line);
+    setContainer(savedLocation.container);
   }, []);
 
   const canSubmit = useMemo(() => {
@@ -62,7 +82,7 @@ export default function CartScreen() {
         lines.length > 0 &&
         line.trim().length > 0 &&
         container.trim().length > 0 &&
-        normalizePhone(customerPhone).length >= 7 &&
+        Boolean(normalizeKgPhone(customerPhone)) &&
         !loading
     );
   }, [container, customerPhone, isHydrated, line, lines.length, loading, restaurantSlug]);
@@ -86,13 +106,13 @@ export default function CartScreen() {
       return;
     }
 
-    const phone = normalizePhone(customerPhone.trim());
+    const phone = normalizeKgPhone(customerPhone.trim());
     if (!line.trim() || !container.trim()) {
       toast.error("Заполни проход и контейнер");
       return;
     }
-    if (phone.length < 7) {
-      toast.error("Укажи номер телефона");
+    if (!phone) {
+      toast.error("Укажи телефон в формате 996 (xxx) xxx - xxx");
       return;
     }
 
@@ -129,6 +149,7 @@ export default function CartScreen() {
       });
       setActiveOrderId(j.orderId);
       setSavedPhone(phone);
+      setSavedLocation({ line: line.trim(), container: container.trim() });
       clear();
 
       if (paymentMethod === "bank") {
@@ -230,9 +251,10 @@ export default function CartScreen() {
           />
           <input
             className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Телефон WhatsApp"
+            placeholder="996 (___) ___ - ___"
             value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
+            onChange={(e) => setCustomerPhone(formatKgPhone(e.target.value))}
+            inputMode="tel"
             required
           />
           <input

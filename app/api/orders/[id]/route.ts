@@ -31,7 +31,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         obankNumber: order.restaurant.obankNumber ?? "",
         bakaiNumber: order.restaurant.bakaiNumber ?? ""
       },
-      items: order.items.map((x) => ({ id: x.id, title: x.titleSnap, qty: x.qty, priceKgs: x.priceKgs, photoUrl: x.photoSnap })),
+      items: order.items.map((x) => ({
+        id: x.id,
+        menuItemId: x.menuItemId,
+        title: x.titleSnap,
+        qty: x.qty,
+        priceKgs: x.priceKgs,
+        photoUrl: x.photoSnap
+      })),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt
     });

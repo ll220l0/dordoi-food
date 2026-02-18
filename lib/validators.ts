@@ -9,7 +9,7 @@ export const DeliveryLocationSchema = z.object({
 export const CreateOrderSchema = z.object({
   restaurantSlug: z.string().min(1),
   paymentMethod: z.enum(["bank", "cash", "qr_image"]).default("bank"),
-  customerPhone: z.string().trim().min(7).max(24).regex(/^\+?[0-9\s\-()]+$/),
+  customerPhone: z.string().trim().regex(/^996\d{9}$/),
   payerName: z.string().trim().max(60).optional().or(z.literal("")),
   comment: z.string().max(120).optional().or(z.literal("")),
   location: DeliveryLocationSchema,
