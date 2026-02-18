@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Photo, Pill } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import { useCart } from "@/lib/cartStore";
-import { getLastOrderId, getPendingPayOrderId } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 
 type MenuResp = {
@@ -38,7 +37,6 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   const router = useRouter();
   const [activeCat, setActiveCat] = useState<string | null>(null);
-  const [orderHref, setOrderHref] = useState<string | null>(null);
 
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
@@ -47,12 +45,6 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const lines = useCart((state) => state.lines);
 
   const effectiveSlug = data?.restaurant?.slug ?? slug;
-
-  useEffect(() => {
-    const pendingPayOrderId = getPendingPayOrderId();
-    const lastOrderId = getLastOrderId();
-    setOrderHref(pendingPayOrderId ? `/pay/${pendingPayOrderId}` : lastOrderId ? `/order/${lastOrderId}` : null);
-  }, []);
 
   useEffect(() => {
     setRestaurant(effectiveSlug);
@@ -147,7 +139,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <ClientNav menuHref={`/r/${effectiveSlug}`} orderHref={orderHref} />
+      <ClientNav menuHref={`/r/${effectiveSlug}`} />
     </main>
   );
 }

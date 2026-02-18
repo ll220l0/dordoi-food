@@ -10,7 +10,6 @@ import {
   addOrderToHistory,
   setActiveOrderId,
   clearPendingPayOrderId,
-  getLastOrderId,
   getSavedPhone,
   setPendingPayOrderId,
   setSavedPhone
@@ -50,12 +49,10 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(false);
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsHydrated(true);
     setCustomerPhone(getSavedPhone());
-    setLastOrderId(getLastOrderId());
   }, []);
 
   const canSubmit = useMemo(() => {
@@ -164,7 +161,7 @@ export default function CartScreen() {
             </Link>
           </Card>
         </div>
-        <ClientNav menuHref={restaurantSlug ? `/r/${restaurantSlug}` : "/"} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
+        <ClientNav menuHref={restaurantSlug ? `/r/${restaurantSlug}` : "/"} />
       </main>
     );
   }
@@ -274,7 +271,7 @@ export default function CartScreen() {
         </Card>
       </div>
 
-      <ClientNav menuHref={restaurantSlug ? `/r/${restaurantSlug}` : "/"} orderHref={lastOrderId ? `/order/${lastOrderId}` : null} />
+      <ClientNav menuHref={restaurantSlug ? `/r/${restaurantSlug}` : "/"} />
 
       {redirectingTo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 backdrop-blur-md">

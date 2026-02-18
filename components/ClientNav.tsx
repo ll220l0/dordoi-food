@@ -48,12 +48,38 @@ export function ClientNav({ menuHref, orderHref }: Props) {
 
   useEffect(() => {
     if (orderHref) return;
-    const pendingPayOrderId = getPendingPayOrderId();
-    const activeOrderId = getActiveOrderId();
-    const lastOrderId = getLastOrderId();
-    setFallbackOrderHref(
-      pendingPayOrderId ? `/pay/${pendingPayOrderId}` : activeOrderId ? `/order/${activeOrderId}` : lastOrderId ? `/order/${lastOrderId}` : "/order"
-    );
+    const syncOrderHref = () => {
+      const pendingPayOrderId = getPendingPayOrderId();
+      const activeOrderId = getActiveOrderId();
+      const lastOrderId = getLastOrderId();
+      setFallbackOrderHref(
+        pendingPayOrderId ? `/pay/${pendingPayOrderId}` : activeOrderId ? `/order/${activeOrderId}` : lastOrderId ? `/order/${lastOrderId}` : "/order"
+      );
+    };
+
+    syncOrderHref();
+    const timer = window.setInterval(syncOrderHref, 1500);
+    const onFocus = () => syncOrderHref();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") syncOrderHref();
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (!event.key) return;
+      if (event.key === "dordoi_pending_pay_order_id" || event.key === "dordoi_active_order_id") {
+        syncOrderHref();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("storage", onStorage);
+    };
   }, [orderHref]);
 
   useEffect(() => {
