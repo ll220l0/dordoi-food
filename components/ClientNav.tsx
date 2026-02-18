@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cartStore";
-import { getLastOrderId, getPendingPayOrderId } from "@/lib/clientPrefs";
+import { getActiveOrderId, getLastOrderId, getPendingPayOrderId } from "@/lib/clientPrefs";
 import { isHistoryStatus } from "@/lib/orderStatus";
 
 type Props = {
@@ -49,8 +49,11 @@ export function ClientNav({ menuHref, orderHref }: Props) {
   useEffect(() => {
     if (orderHref) return;
     const pendingPayOrderId = getPendingPayOrderId();
+    const activeOrderId = getActiveOrderId();
     const lastOrderId = getLastOrderId();
-    setFallbackOrderHref(pendingPayOrderId ? `/pay/${pendingPayOrderId}` : lastOrderId ? `/order/${lastOrderId}` : "/order");
+    setFallbackOrderHref(
+      pendingPayOrderId ? `/pay/${pendingPayOrderId}` : activeOrderId ? `/order/${activeOrderId}` : lastOrderId ? `/order/${lastOrderId}` : "/order"
+    );
   }, [orderHref]);
 
   useEffect(() => {

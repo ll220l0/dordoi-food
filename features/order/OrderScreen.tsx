@@ -5,11 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import {
+  clearActiveOrderId,
   clearPendingPayOrderId,
+  getActiveOrderId,
   getLastOrderId,
   getOrderHistory,
   getPendingPayOrderId,
   getSavedPhone,
+  setActiveOrderId,
   setPendingPayOrderId
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
@@ -152,6 +155,12 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
       setOrderHref(`/pay/${pendingPayOrderId}`);
       return;
     }
+    const activeOrderId = getActiveOrderId();
+    if (activeOrderId) {
+      setLastOrderId(activeOrderId);
+      setOrderHref(`/order/${activeOrderId}`);
+      return;
+    }
     const lastOrderIdValue = getLastOrderId();
     setLastOrderId(lastOrderIdValue);
     setOrderHref(lastOrderIdValue ? `/order/${lastOrderIdValue}` : null);
@@ -173,12 +182,18 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
     if (isBankPayment && isPendingPayStatus) {
       setPendingPayOrderId(data.id);
+      setActiveOrderId(data.id);
       setLastOrderId(data.id);
       setOrderHref(`/pay/${data.id}`);
       return;
     }
 
     clearPendingPayOrderId(data.id);
+    if (isHistoryStatus(data.status)) {
+      clearActiveOrderId(data.id);
+    } else {
+      setActiveOrderId(data.id);
+    }
     setLastOrderId(data.id);
     setOrderHref(`/order/${data.id}`);
   }, [data?.id, data?.paymentMethod, data?.status]);

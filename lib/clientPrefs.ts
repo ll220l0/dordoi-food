@@ -18,6 +18,7 @@ export type OrderHistoryEntry = {
 const PHONE_COOKIE = "dordoi_phone";
 const HISTORY_COOKIE = "dordoi_order_history";
 const PENDING_PAY_ORDER_KEY = "dordoi_pending_pay_order_id";
+const ACTIVE_ORDER_KEY = "dordoi_active_order_id";
 const COOKIE_DAYS = 120;
 const HISTORY_LIMIT = 8;
 
@@ -97,6 +98,30 @@ export function clearPendingPayOrderId(orderId?: string) {
   const current = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
   if (current === orderId) {
     window.localStorage.removeItem(PENDING_PAY_ORDER_KEY);
+  }
+}
+
+export function getActiveOrderId() {
+  if (typeof window === "undefined") return null;
+  const value = window.localStorage.getItem(ACTIVE_ORDER_KEY);
+  return value?.trim() ? value : null;
+}
+
+export function setActiveOrderId(orderId: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ACTIVE_ORDER_KEY, orderId);
+}
+
+export function clearActiveOrderId(orderId?: string) {
+  if (typeof window === "undefined") return;
+  if (!orderId) {
+    window.localStorage.removeItem(ACTIVE_ORDER_KEY);
+    return;
+  }
+
+  const current = window.localStorage.getItem(ACTIVE_ORDER_KEY);
+  if (current === orderId) {
+    window.localStorage.removeItem(ACTIVE_ORDER_KEY);
   }
 }
 

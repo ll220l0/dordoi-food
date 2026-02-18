@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getLastOrderId, getOrderHistory, getPendingPayOrderId } from "@/lib/clientPrefs";
+import { getActiveOrderId, getLastOrderId, getOrderHistory, getPendingPayOrderId } from "@/lib/clientPrefs";
 
 export default function OrderHubPage() {
   const router = useRouter();
@@ -18,6 +18,13 @@ export default function OrderHubPage() {
     if (pendingPayOrderId) {
       setHasOrder(true);
       router.replace(`/pay/${pendingPayOrderId}`);
+      return;
+    }
+
+    const activeOrderId = getActiveOrderId();
+    if (activeOrderId) {
+      setHasOrder(true);
+      router.replace(`/order/${activeOrderId}`);
       return;
     }
 

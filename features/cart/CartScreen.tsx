@@ -8,6 +8,7 @@ import { ClientNav } from "@/components/ClientNav";
 import { useCart } from "@/lib/cartStore";
 import {
   addOrderToHistory,
+  setActiveOrderId,
   clearPendingPayOrderId,
   getLastOrderId,
   getSavedPhone,
@@ -129,6 +130,7 @@ export default function CartScreen() {
         createdAt: new Date().toISOString(),
         lines
       });
+      setActiveOrderId(j.orderId);
       setSavedPhone(phone);
       clear();
 

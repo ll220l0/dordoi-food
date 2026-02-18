@@ -5,10 +5,11 @@ import { useEffect, useMemo, useState, type SVGProps } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { clearPendingPayOrderId, removeOrderFromHistory, setPendingPayOrderId } from "@/lib/clientPrefs";
+import { clearActiveOrderId, clearPendingPayOrderId, removeOrderFromHistory, setActiveOrderId, setPendingPayOrderId } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { buildMbankPayUrl, normalizeMbankNumber } from "@/lib/mbankLink";
 import { formatKgs } from "@/lib/money";
+import { isHistoryStatus } from "@/lib/orderStatus";
 
 type OrderResp = {
   id: string;
@@ -78,6 +79,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   useEffect(() => {
     setPendingPayOrderId(orderId);
+    setActiveOrderId(orderId);
   }, [orderId]);
 
   useEffect(() => {
@@ -114,6 +116,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       setWaitingForAdmin(true);
     }
   }, [data?.status]);
+
+  useEffect(() => {
+    if (!data) return;
+    if (isHistoryStatus(data.status)) {
+      clearActiveOrderId(orderId);
+      return;
+    }
+    setActiveOrderId(orderId);
+  }, [data, orderId]);
 
   useEffect(() => {
     if (!data) return;
@@ -188,6 +199,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
 
+      clearActiveOrderId(orderId);
       clearPendingPayOrderId(orderId);
       removeOrderFromHistory(orderId);
       toast.success("Заказ отменен");
