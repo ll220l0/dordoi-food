@@ -255,12 +255,12 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 onClick={goToBankPayment}
                 disabled={!resolvedBankUrl || !data || effectiveTotalKgs <= 0 || cancelling}
                 className="w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
+                aria-label="Перейти к Mbank"
               >
-                <div className="flex items-center justify-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35 backdrop-blur-[1px]">
-                    <Image src="/mbank-logo-white.svg" alt="Mbank" width={20} height={20} className="h-5 w-5 object-contain" priority />
+                <div className="flex items-center justify-center">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35 backdrop-blur-[1px]">
+                    <Image src="/mbank-logo-white.svg" alt="Mbank" width={22} height={22} className="h-[22px] w-[22px] object-contain" priority />
                   </span>
-                  <span className="text-sm font-semibold tracking-[0.02em] text-white">Перейти к Mbank</span>
                 </div>
               </Button>
               <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="w-full">
