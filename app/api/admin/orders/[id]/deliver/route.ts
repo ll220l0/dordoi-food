@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendOrderStatusPush } from "@/lib/push";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,11 +17,5 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     where: { id },
     data: { status: "delivered" }
   });
-
-  try {
-    await sendOrderStatusPush(id, "delivered");
-  } catch (error) {
-    console.error("Failed to send push for delivered", { id, error });
-  }
   return NextResponse.json({ ok: true, status: updated.status });
 }

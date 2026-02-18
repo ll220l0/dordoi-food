@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { Button, Card, Photo } from "@/components/ui";
+import { Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import {
   clearPendingPayOrderId,
@@ -55,33 +54,6 @@ type HistoryOrder = {
   items: OrderItem[];
 };
 
-function isPushSupported() {
-  if (typeof window === "undefined") return false;
-  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-}
-
-function base64UrlToUint8Array(value: string) {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  const raw = window.atob(padded);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) {
-    output[i] = raw.charCodeAt(i);
-  }
-  return output;
-}
-
-function notifyUser(title: string, body: string) {
-  if (typeof window === "undefined" || !("Notification" in window)) return false;
-  if (Notification.permission !== "granted") return false;
-  try {
-    new Notification(title, { body });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function StatusProgress({ status }: { status: string }) {
   if (isPendingConfirmation(status)) {
     return (
@@ -124,30 +96,33 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [orderLoading, setOrderLoading] = useState(true);
   const [history, setHistory] = useState<HistoryOrder[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
-  const [pushSupported, setPushSupported] = useState(false);
 
-  const loadOrder = useCallback(async (silent = false) => {
-    if (!silent) setOrderLoading(true);
-    try {
-      const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
-      if (res.status === 404) {
-        setData(null);
-        setOrderMissing(true);
-        return;
+  const loadOrder = useCallback(
+    async (silent = false) => {
+      if (!silent) setOrderLoading(true);
+      try {
+        const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
+        if (res.status === 404) {
+          setData(null);
+          setOrderMissing(true);
+          return;
+        }
+        if (!res.ok) return;
+
+        const j = (await res.json()) as OrderData;
+        setData(j);
+        setOrderMissing(false);
+      } finally {
+        if (!silent) setOrderLoading(false);
       }
-      if (!res.ok) return;
-
-      const j = (await res.json()) as OrderData;
-      setData(j);
-      setOrderMissing(false);
-    } finally {
-      if (!silent) setOrderLoading(false);
-    }
-  }, [orderId]);
+    },
+    [orderId]
+  );
 
   const loadHistory = useCallback(async () => {
-    const ids = getOrderHistory().map((entry) => entry.orderId).filter(Boolean);
+    const ids = getOrderHistory()
+      .map((entry) => entry.orderId)
+      .filter(Boolean);
     const phone = getSavedPhone().trim();
 
     if (ids.length === 0 && phone.length < 7) {
@@ -178,12 +153,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    setPushSupported(isPushSupported());
-    setNotificationPermission(Notification.permission);
-  }, []);
-
-  useEffect(() => {
     void loadOrder();
   }, [loadOrder]);
 
@@ -194,36 +163,16 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (!data?.id) return;
 
-    const isQrPayment = data.paymentMethod === "bank";
+    const isBankPayment = data.paymentMethod === "bank";
     const isPendingPayStatus = data.status === "created" || data.status === "pending_confirmation";
 
-    if (isQrPayment && isPendingPayStatus) {
+    if (isBankPayment && isPendingPayStatus) {
       setPendingPayOrderId(data.id);
       return;
     }
 
     clearPendingPayOrderId(data.id);
   }, [data?.id, data?.paymentMethod, data?.status]);
-
-  useEffect(() => {
-    if (!data?.status) return;
-    if (typeof window === "undefined") return;
-
-    const notifyKey = `dordoi_order_notified_status_${orderId}`;
-    const lastNotifiedStatus = window.localStorage.getItem(notifyKey);
-
-    if (data.status === "confirmed" && lastNotifiedStatus !== "confirmed") {
-      const shown = notifyUser("Заказ подтвержден", "Ресторан подтвердил ваш заказ.");
-      if (!shown) toast.success("Заказ подтвержден");
-      window.localStorage.setItem(notifyKey, "confirmed");
-    }
-
-    if (data.status === "delivered" && lastNotifiedStatus !== "delivered") {
-      const shown = notifyUser("Заказ доставлен", "Спасибо, что выбрали Dordoi Food.");
-      if (!shown) toast.success("Заказ доставлен");
-      window.localStorage.setItem(notifyKey, "delivered");
-    }
-  }, [data?.status, orderId]);
 
   useEffect(() => {
     if (!data || orderMissing || isHistoryStatus(data.status)) return;
@@ -235,91 +184,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
   const isArchived = isHistoryStatus(data?.status ?? "");
   const hasNoActiveOrder = !orderLoading && (orderMissing || !data);
-  const canEnableNotifications = notificationPermission !== "granted";
-
-  async function subscribePush(orderIdToSubscribe: string, silent = false) {
-    if (!isPushSupported()) {
-      if (!silent) toast.error("Push is not supported on this device.");
-      return false;
-    }
-
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
-    if (!vapidPublicKey) {
-      if (!silent) toast.error("Push is not configured.");
-      return false;
-    }
-
-    try {
-      const registration = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: base64UrlToUint8Array(vapidPublicKey)
-        });
-      }
-
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: orderIdToSubscribe,
-          subscription: subscription.toJSON()
-        })
-      });
-
-      if (!res.ok) {
-        if (!silent) toast.error("Failed to save push subscription.");
-        return false;
-      }
-
-      window.localStorage.setItem(`dordoi_push_subscribed_${orderIdToSubscribe}`, "1");
-      return true;
-    } catch {
-      if (!silent) toast.error("Failed to enable push notifications.");
-      return false;
-    }
-  }
-
-  useEffect(() => {
-    if (!data?.id) return;
-    if (notificationPermission !== "granted") return;
-    if (!pushSupported) return;
-    if (window.localStorage.getItem(`dordoi_push_subscribed_${data.id}`) === "1") return;
-
-    void subscribePush(data.id, true);
-  }, [data?.id, notificationPermission, pushSupported]);
-
-  async function enablePushNotifications() {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      toast.error("Notifications are not supported on this device.");
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      if (permission !== "granted") {
-        toast.error("Allow notifications in browser settings.");
-        return;
-      }
-
-      const targetOrderId = data?.id ?? orderId;
-      if (!targetOrderId) {
-        toast.success("Notifications enabled");
-        return;
-      }
-
-      const subscribed = await subscribePush(targetOrderId, false);
-      if (subscribed) {
-        toast.success("Push notifications enabled");
-      } else {
-        toast.success("Notifications enabled");
-      }
-    } catch {
-      toast.error("Failed to enable notifications.");
-    }
-  }
 
   return (
     <main className="min-h-screen p-5 pb-40">
@@ -366,25 +230,10 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
               </div>
 
               <div className="mt-3 text-sm text-black/70">
-                Проход <span className="font-bold">{data?.location?.line ?? ""}</span>, контейнер{" "}
-                <span className="font-bold">{data?.location?.container ?? ""}</span>
+                Проход <span className="font-bold">{data?.location?.line ?? ""}</span>, контейнер <span className="font-bold">{data?.location?.container ?? ""}</span>
                 {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
               </div>
               {data?.comment ? <div className="mt-1 text-sm text-black/55">Комментарий: {data.comment}</div> : null}
-
-              <div className="mt-4 space-y-2">
-                <Button variant="secondary" onClick={() => void loadOrder()} className="w-full">
-                  Обновить
-                </Button>
-                {canEnableNotifications && (
-                  <Button variant="secondary" onClick={() => void enablePushNotifications()} className="w-full">
-                    Включить уведомления
-                  </Button>
-                )}
-                <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-                  В меню
-                </Link>
-              </div>
             </Card>
 
             <div className="space-y-3">
@@ -409,9 +258,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
         ) : (
           <Card className="p-4">
             <div className="text-sm text-black/60">Активный заказ</div>
-            <div className="mt-2 text-sm text-black/70">
-              Этот заказ завершен и перенесен в историю. Оформите новый заказ в меню.
-            </div>
+            <div className="mt-2 text-sm text-black/70">Этот заказ завершен и перенесен в историю. Оформите новый заказ в меню.</div>
             <div className="mt-3">
               <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
                 В меню

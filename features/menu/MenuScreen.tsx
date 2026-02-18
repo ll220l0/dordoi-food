@@ -1,10 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import { Button, Card, Photo, Pill } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import { useCart } from "@/lib/cartStore";
@@ -37,18 +35,20 @@ export default function MenuScreen({ slug }: { slug: string }) {
     queryFn: () => fetchMenu(slug),
     refetchInterval: 5000
   });
+
   const router = useRouter();
-  const [isHydrated, setIsHydrated] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [orderHref, setOrderHref] = useState<string | null>(null);
+
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
-  const total = useCart((state) => state.total());
-  const count = useCart((state) => state.count());
+  const inc = useCart((state) => state.inc);
+  const dec = useCart((state) => state.dec);
+  const lines = useCart((state) => state.lines);
+
   const effectiveSlug = data?.restaurant?.slug ?? slug;
 
   useEffect(() => {
-    setIsHydrated(true);
     const pendingPayOrderId = getPendingPayOrderId();
     const lastOrderId = getLastOrderId();
     setOrderHref(pendingPayOrderId ? `/pay/${pendingPayOrderId}` : lastOrderId ? `/order/${lastOrderId}` : null);
@@ -68,6 +68,12 @@ export default function MenuScreen({ slug }: { slug: string }) {
     if (data?.categories?.length && !activeCat) setActiveCat(data.categories[0].id);
   }, [data?.categories, activeCat]);
 
+  const qtyByItemId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const line of lines) map.set(line.menuItemId, line.qty);
+    return map;
+  }, [lines]);
+
   const items = useMemo(() => {
     if (!data) return [];
     if (!activeCat) return data.items;
@@ -76,7 +82,6 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   function addToCart(item: MenuResp["items"][number]) {
     add({ menuItemId: item.id, title: item.title, photoUrl: item.photoUrl, priceKgs: item.priceKgs });
-    toast.success("Добавлено в корзину");
   }
 
   return (
@@ -99,47 +104,47 @@ export default function MenuScreen({ slug }: { slug: string }) {
           {isLoading ? (
             <div className="text-sm text-black/50">Загрузка...</div>
           ) : (
-            items.map((m) => (
-              <Card key={m.id} className="p-3">
-                <div className="flex gap-3">
-                  <Photo src={m.photoUrl} alt={m.title} />
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="font-semibold">{m.title}</div>
-                      <div className="font-bold">{formatKgs(m.priceKgs)}</div>
-                    </div>
-                    <div className="mt-1 text-sm text-black/55">{m.description}</div>
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        disabled={!m.isAvailable}
-                        onClick={() => addToCart(m)}
-                        className="px-4 py-2"
-                        variant={m.isAvailable ? "primary" : "secondary"}
-                      >
-                        {m.isAvailable ? "+ Добавить" : "Нет в наличии"}
-                      </Button>
+            items.map((m) => {
+              const qty = qtyByItemId.get(m.id) ?? 0;
+              return (
+                <Card key={m.id} className="p-3">
+                  <div className="flex gap-3">
+                    <Photo src={m.photoUrl} alt={m.title} />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="font-semibold">{m.title}</div>
+                        <div className="font-bold">{formatKgs(m.priceKgs)}</div>
+                      </div>
+                      <div className="mt-1 text-sm text-black/55">{m.description}</div>
+
+                      <div className="mt-3 flex justify-end">
+                        {!m.isAvailable ? (
+                          <Button disabled variant="secondary" className="px-4 py-2">
+                            Нет в наличии
+                          </Button>
+                        ) : qty > 0 ? (
+                          <div className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-2 py-1">
+                            <Button variant="secondary" className="px-3 py-1" onClick={() => dec(m.id)}>
+                              -1
+                            </Button>
+                            <span className="min-w-8 text-center text-sm font-semibold">{qty}</span>
+                            <Button className="px-3 py-1" onClick={() => inc(m.id)}>
+                              +1
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button onClick={() => addToCart(m)} className="px-4 py-2" variant="primary">
+                            + Добавить
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           )}
         </div>
-
-        {isHydrated && count > 0 && (
-          <div className="fixed left-0 right-0 bottom-24 z-30 px-4">
-            <div className="mx-auto max-w-md">
-              <Link
-                href="/cart"
-                className="flex items-center justify-between rounded-2xl border border-white/70 bg-white/85 px-4 py-4 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl"
-              >
-                <div className="font-semibold">Корзина</div>
-                <div className="text-sm text-black/60">{count} шт</div>
-                <div className="font-extrabold">{formatKgs(total)}</div>
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
 
       <ClientNav menuHref={`/r/${effectiveSlug}`} orderHref={orderHref} />
