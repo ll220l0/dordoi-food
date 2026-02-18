@@ -381,15 +381,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                     Включить уведомления
                   </Button>
                 )}
-                {data?.paymentMethod === "bank" &&
-                  (data?.status === "created" || data?.status === "pending_confirmation") && (
-                    <Link
-                      href={`/pay/${data.id}`}
-                      className="block rounded-xl border border-black/15 bg-white py-3 text-center font-semibold text-black"
-                    >
-                      К оплате
-                    </Link>
-                  )}
                 <Link href={`/r/${menuSlug}`} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
                   В меню
                 </Link>
