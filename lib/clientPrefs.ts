@@ -18,7 +18,9 @@ export type OrderHistoryEntry = {
 const PHONE_COOKIE = "dordoi_phone";
 const HISTORY_COOKIE = "dordoi_order_history";
 const PENDING_PAY_ORDER_KEY = "dordoi_pending_pay_order_id";
+const PENDING_PAY_ORDER_COOKIE = "dordoi_pending_pay_order_id_cookie";
 const ACTIVE_ORDER_KEY = "dordoi_active_order_id";
+const ACTIVE_ORDER_COOKIE = "dordoi_active_order_id_cookie";
 const COOKIE_DAYS = 120;
 const HISTORY_LIMIT = 8;
 
@@ -38,6 +40,11 @@ function setCookie(name: string, value: string, days = COOKIE_DAYS) {
   if (!isBrowser()) return;
   const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function removeCookie(name: string) {
+  if (!isBrowser()) return;
+  document.cookie = `${name}=; expires=${new Date(0).toUTCString()}; path=/; SameSite=Lax`;
 }
 
 function safeParse<T>(value: string, fallback: T): T {
@@ -79,49 +86,65 @@ export function getLastOrderId() {
 
 export function getPendingPayOrderId() {
   if (typeof window === "undefined") return null;
-  const value = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
-  return value?.trim() ? value : null;
+  const localValue = window.localStorage.getItem(PENDING_PAY_ORDER_KEY)?.trim() ?? "";
+  if (localValue) return localValue;
+  const cookieValue = getCookie(PENDING_PAY_ORDER_COOKIE).trim();
+  return cookieValue || null;
 }
 
 export function setPendingPayOrderId(orderId: string) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PENDING_PAY_ORDER_KEY, orderId);
+  setCookie(PENDING_PAY_ORDER_COOKIE, orderId);
 }
 
 export function clearPendingPayOrderId(orderId?: string) {
   if (typeof window === "undefined") return;
   if (!orderId) {
     window.localStorage.removeItem(PENDING_PAY_ORDER_KEY);
+    removeCookie(PENDING_PAY_ORDER_COOKIE);
     return;
   }
 
-  const current = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
-  if (current === orderId) {
+  const currentLocal = window.localStorage.getItem(PENDING_PAY_ORDER_KEY);
+  if (currentLocal === orderId) {
     window.localStorage.removeItem(PENDING_PAY_ORDER_KEY);
+  }
+  const currentCookie = getCookie(PENDING_PAY_ORDER_COOKIE);
+  if (currentCookie === orderId) {
+    removeCookie(PENDING_PAY_ORDER_COOKIE);
   }
 }
 
 export function getActiveOrderId() {
   if (typeof window === "undefined") return null;
-  const value = window.localStorage.getItem(ACTIVE_ORDER_KEY);
-  return value?.trim() ? value : null;
+  const localValue = window.localStorage.getItem(ACTIVE_ORDER_KEY)?.trim() ?? "";
+  if (localValue) return localValue;
+  const cookieValue = getCookie(ACTIVE_ORDER_COOKIE).trim();
+  return cookieValue || null;
 }
 
 export function setActiveOrderId(orderId: string) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(ACTIVE_ORDER_KEY, orderId);
+  setCookie(ACTIVE_ORDER_COOKIE, orderId);
 }
 
 export function clearActiveOrderId(orderId?: string) {
   if (typeof window === "undefined") return;
   if (!orderId) {
     window.localStorage.removeItem(ACTIVE_ORDER_KEY);
+    removeCookie(ACTIVE_ORDER_COOKIE);
     return;
   }
 
-  const current = window.localStorage.getItem(ACTIVE_ORDER_KEY);
-  if (current === orderId) {
+  const currentLocal = window.localStorage.getItem(ACTIVE_ORDER_KEY);
+  if (currentLocal === orderId) {
     window.localStorage.removeItem(ACTIVE_ORDER_KEY);
+  }
+  const currentCookie = getCookie(ACTIVE_ORDER_COOKIE);
+  if (currentCookie === orderId) {
+    removeCookie(ACTIVE_ORDER_COOKIE);
   }
 }
 
