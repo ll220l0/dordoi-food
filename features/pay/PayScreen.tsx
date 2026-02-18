@@ -258,9 +258,14 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 aria-label="Перейти к Mbank"
               >
                 <div className="flex items-center justify-center">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35 backdrop-blur-[1px]">
-                    <Image src="/mbank-logo-white.svg" alt="Mbank" width={22} height={22} className="h-[22px] w-[22px] object-contain" priority />
-                  </span>
+                  <Image
+                    src="/mbank-logo-white.svg"
+                    alt="Mbank"
+                    width={132}
+                    height={32}
+                    className="h-8 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]"
+                    priority
+                  />
                 </div>
               </Button>
               <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="w-full">
