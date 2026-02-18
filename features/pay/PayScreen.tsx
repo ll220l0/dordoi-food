@@ -29,7 +29,7 @@ const DEFAULT_MBANK_LINK =
 const PHONE_RE = /^996\d{9}$/;
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Error";
+  return error instanceof Error ? error.message : "Ошибка";
 }
 
 function normalizeBankNumber(value: string | null | undefined) {
@@ -238,15 +238,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   function goToBankPayment() {
     if (!resolvedBankUrl) {
-      toast.error("Bank payment link is not configured");
+      toast.error("Ссылка оплаты банком не настроена");
       return;
     }
     if (!data || effectiveTotalKgs <= 0) {
-      toast.error("Order total is not ready yet");
+      toast.error("Сумма заказа еще загружается");
       return;
     }
     if (!mbankNumber) {
-      toast.error("Mbank number is not configured in admin");
+      toast.error("Номер Mbank не настроен в админке");
       return;
     }
 
@@ -257,16 +257,16 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     if (!mbankNumber || typeof navigator === "undefined" || !navigator.clipboard) return;
     try {
       await navigator.clipboard.writeText(mbankNumber);
-      toast.success("Number copied");
+      toast.success("Номер скопирован");
     } catch {
-      toast.error("Failed to copy number");
+      toast.error("Не удалось скопировать номер");
     }
   }
 
   async function markPaid() {
     const payer = payerName.trim();
     if (payer.length < 2) {
-      toast.error("Enter sender name");
+      toast.error("Укажи имя отправителя перевода");
       return;
     }
 
@@ -278,9 +278,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         body: JSON.stringify({ payerName: payer })
       });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Error");
+      if (!res.ok) throw new Error(j?.error ?? "Ошибка");
 
-      toast.success("Waiting for restaurant confirmation");
+      toast.success("Ожидаем подтверждения ресторана");
       clearPendingPayOrderId(orderId);
       clearCart();
       goToOrder();
@@ -296,11 +296,11 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Failed to cancel order");
+      if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
 
       clearPendingPayOrderId(orderId);
       removeOrderFromHistory(orderId);
-      toast.success("Order cancelled");
+      toast.success("Заказ отменен");
       router.replace("/order");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
@@ -312,39 +312,39 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   return (
     <main className="min-h-screen p-5 pb-36">
       <div className="mx-auto max-w-md">
-        <div className="text-3xl font-extrabold">Bank Payment</div>
+        <div className="text-3xl font-extrabold">Оплата банком</div>
         <div className="mt-1 text-sm text-black/60">{data?.restaurant?.name ?? ""}</div>
 
         <Card className="mt-4 p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-black/60">Total</div>
+            <div className="text-sm text-black/60">Итого</div>
             <div className="text-xl font-extrabold">{formatKgs(effectiveTotalKgs)}</div>
           </div>
 
           <input
             className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-            placeholder="Sender name"
+            placeholder="Имя отправителя перевода"
             value={payerName}
             onChange={(e) => setPayerName(e.target.value)}
           />
 
-          <div className="mt-3 text-xs text-black/55">Bank: Mbank</div>
+          <div className="mt-3 text-xs text-black/55">Банк: Mbank</div>
 
           <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2">
-            <div className="text-xs text-black/55">Recipient number:</div>
+            <div className="text-xs text-black/55">Номер получателя:</div>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold">{mbankNumber ?? "Not configured"}</div>
+              <div className="text-sm font-semibold">{mbankNumber ?? "Не настроен"}</div>
               <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => void copyBankNumber()} disabled={!mbankNumber}>
-                Copy
+                Копировать
               </Button>
             </div>
           </div>
 
-          <div className="mt-1 text-[12px] text-black/45">Admin will see sender name when confirming payment.</div>
+          <div className="mt-1 text-[12px] text-black/45">Администратор увидит имя отправителя при подтверждении оплаты.</div>
 
           <div className="mt-4 space-y-2">
             <Button onClick={() => void markPaid()} disabled={loading || navigatingToOrder || cancelling} className="w-full">
-              I paid
+              Я оплатил(а)
             </Button>
             <Button
               variant="ghost"
@@ -356,11 +356,11 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/35">
                   <BankButtonIcon className="h-5 w-5" />
                 </span>
-                <span className="text-sm font-semibold tracking-[0.02em] text-white">Pay via Mbank</span>
+                <span className="text-sm font-semibold tracking-[0.02em] text-white">Оплатить через Mbank</span>
               </div>
             </Button>
             <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || navigatingToOrder || cancelling} className="w-full text-rose-700">
-              {cancelling ? "Cancelling..." : "Cancel order"}
+              {cancelling ? "Отменяем..." : "Отменить заказ"}
             </Button>
           </div>
         </Card>
@@ -371,7 +371,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/75 backdrop-blur-md">
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-black/60 border-t-transparent" />
-            <div className="mt-3 text-sm font-semibold text-black/70">Opening order...</div>
+            <div className="mt-3 text-sm font-semibold text-black/70">Переходим к заказу...</div>
           </div>
         </div>
       )}
