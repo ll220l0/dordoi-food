@@ -1,2 +1,2 @@
-﻿ALTER TABLE "Order"
+ALTER TABLE "Order"
 ADD COLUMN "canceledReason" TEXT;
