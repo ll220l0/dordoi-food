@@ -11,7 +11,6 @@ type Restaurant = {
   id: string;
   name: string;
   slug: string;
-  qrImageUrl: string;
   mbankNumber: string;
   obankNumber: string;
   bakaiNumber: string;
@@ -78,10 +77,6 @@ export default function AdminMenuPage() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemAvail, setItemAvail] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [qrImageUrl, setQrImageUrl] = useState("");
-  const [qrPassword, setQrPassword] = useState("");
-  const [uploadingQr, setUploadingQr] = useState(false);
-  const [savingQr, setSavingQr] = useState(false);
   const [mbankNumber, setMbankNumber] = useState("");
   const [obankNumber, setObankNumber] = useState("");
   const [bakaiNumber, setBakaiNumber] = useState("");
@@ -94,7 +89,6 @@ export default function AdminMenuPage() {
     const first = j.restaurants?.[0];
     if (first) {
       setRestaurantSlug((current) => current || first.slug);
-      setQrImageUrl(first.qrImageUrl ?? "");
       setMbankNumber(first.mbankNumber ?? "");
       setObankNumber(first.obankNumber ?? "");
       setBakaiNumber(first.bakaiNumber ?? "");
@@ -158,51 +152,18 @@ export default function AdminMenuPage() {
     }
   }
 
-  async function uploadQr(file: File) {
-    setUploadingQr(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const j = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !j.url) throw new Error(j.error ?? "Не удалось загрузить QR");
-
-      setQrImageUrl(j.url);
-      toast.success("QR загружен");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setUploadingQr(false);
-    }
-  }
-
-  async function saveQr() {
-    if (!restaurantSlug || !qrImageUrl || !qrPassword.trim()) {
-      toast.error("Введите пароль для смены QR");
-      return;
-    }
-    setSavingQr(true);
-    try {
-      const res = await fetch("/api/admin/restaurants", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug: restaurantSlug, qrImageUrl, qrPassword: qrPassword.trim() })
-      });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Не удалось сохранить QR");
-      toast.success("QR обновлен");
-      setQrPassword("");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setSavingQr(false);
-    }
-  }
-
   async function saveBankNumbers() {
     if (!restaurantSlug || !bankPassword.trim()) {
       toast.error("Введите пароль для смены номеров банков");
+      return;
+    }
+    const mbank = mbankNumber.replace(/[^\d]/g, "");
+    const obank = obankNumber.replace(/[^\d]/g, "");
+    const bakai = bakaiNumber.replace(/[^\d]/g, "");
+    const numberRe = /^996\d{9}$/;
+
+    if ((mbank && !numberRe.test(mbank)) || (obank && !numberRe.test(obank)) || (bakai && !numberRe.test(bakai))) {
+      toast.error("Формат номера: 996XXXXXXXXX");
       return;
     }
 
@@ -213,9 +174,9 @@ export default function AdminMenuPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           slug: restaurantSlug,
-          mbankNumber,
-          obankNumber,
-          bakaiNumber,
+          mbankNumber: mbank,
+          obankNumber: obank,
+          bakaiNumber: bakai,
           bankPassword: bankPassword.trim()
         })
       });
@@ -351,68 +312,32 @@ export default function AdminMenuPage() {
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-4">
             <Card className="p-4">
-              <div className="text-sm font-semibold">QR для оплаты</div>
-              <div className="mt-2 text-xs text-black/55">Загрузи новый QR, чтобы обновить ссылку кнопки банка у клиента.</div>
-              <label className="mt-3 flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-                <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ QR</span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadQr(file);
-                  }}
-                />
-              </label>
-
-              {qrImageUrl && (
-                <div className="relative mt-3 h-44 overflow-hidden rounded-2xl border border-black/10 bg-black/5">
-                  <Image src={qrImageUrl} alt="QR preview" fill className="object-contain p-3" sizes="360px" />
-                </div>
-              )}
-
-              <input
-                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="password"
-                placeholder="Пароль для смены QR"
-                value={qrPassword}
-                onChange={(e) => setQrPassword(e.target.value)}
-              />
-
-              <Button
-                className="mt-3 w-full"
-                disabled={!restaurantSlug || !qrImageUrl || !qrPassword.trim() || uploadingQr || savingQr}
-                onClick={() => void saveQr()}
-              >
-                {uploadingQr ? "Загружаем QR..." : savingQr ? "Сохраняем..." : "Сохранить QR"}
-              </Button>
-            </Card>
-
-            <Card className="p-4">
               <div className="text-sm font-semibold">Номера банков</div>
-              <div className="mt-2 text-xs text-black/55">Укажи номера для Mbank, O bank и Bakai Bank. Сохранение защищено паролем.</div>
+              <div className="mt-2 text-xs text-black/55">Укажи номера в формате 996XXXXXXXXX. Сохранение защищено паролем.</div>
 
               <input
                 className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
                 type="text"
-                placeholder="Mbank номер"
+                inputMode="numeric"
+                placeholder="Mbank номер (996XXXXXXXXX)"
                 value={mbankNumber}
-                onChange={(e) => setMbankNumber(e.target.value)}
+                onChange={(e) => setMbankNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
               />
               <input
                 className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
                 type="text"
-                placeholder="O bank номер"
+                inputMode="numeric"
+                placeholder="O bank номер (996XXXXXXXXX)"
                 value={obankNumber}
-                onChange={(e) => setObankNumber(e.target.value)}
+                onChange={(e) => setObankNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
               />
               <input
                 className="mt-2 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
                 type="text"
-                placeholder="Bakai Bank номер"
+                inputMode="numeric"
+                placeholder="Bakai Bank номер (996XXXXXXXXX)"
                 value={bakaiNumber}
-                onChange={(e) => setBakaiNumber(e.target.value)}
+                onChange={(e) => setBakaiNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
               />
 
               <input

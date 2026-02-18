@@ -26,7 +26,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   if (!restaurant) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({
-    restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, qrImageUrl: restaurant.qrImageUrl },
+    restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug },
     categories: restaurant.categories.map((c) => ({ id: c.id, title: c.title, sortOrder: c.sortOrder })),
     items: restaurant.items.map((i) => ({
       id: i.id,

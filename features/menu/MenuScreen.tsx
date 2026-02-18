@@ -12,7 +12,7 @@ import { getLastOrderId, getPendingPayOrderId } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 
 type MenuResp = {
-  restaurant: { id: string; name: string; slug: string; qrImageUrl: string };
+  restaurant: { id: string; name: string; slug: string };
   categories: { id: string; title: string; sortOrder: number }[];
   items: {
     id: string;
