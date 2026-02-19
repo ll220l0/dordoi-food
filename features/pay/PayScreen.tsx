@@ -155,6 +155,14 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     return () => window.clearTimeout(timer);
   }, [isApproved]);
 
+  useEffect(() => {
+    if (!isApproved || !showApprovedCheck || navigatingToOrder) return;
+    const timer = window.setTimeout(() => {
+      openOrder();
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [isApproved, showApprovedCheck, navigatingToOrder]);
+
   const menuHref = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
 
   function openOrder() {
@@ -299,10 +307,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 ✓
               </div>
               <div className="mt-3 text-lg font-bold text-emerald-700">Оплата подтверждена</div>
-              <div className="mt-1 text-sm text-black/60">Заказ принят в работу.</div>
-              <Button className="mt-4 w-full" onClick={openOrder}>
-                К заказу
-              </Button>
+              <div className="mt-1 text-sm text-black/60">Заказ принят в работу. Переходим к заказу...</div>
             </div>
           </Card>
         )}
