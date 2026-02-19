@@ -64,9 +64,11 @@ export default function AdminMenuPage() {
   const [restaurantSlug, setRestaurantSlug] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   const [catTitle, setCatTitle] = useState("");
   const [itemId, setItemId] = useState<string | null>(null);
+  const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemCategoryId, setItemCategoryId] = useState("");
   const [itemTitle, setItemTitle] = useState("");
   const [itemDesc, setItemDesc] = useState("");
@@ -204,6 +206,7 @@ export default function AdminMenuPage() {
 
       toast.success(itemId ? "Блюдо обновлено" : "Блюдо создано");
       resetItemForm();
+      setItemModalOpen(false);
       await loadMenu(restaurantSlug);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
@@ -242,7 +245,17 @@ export default function AdminMenuPage() {
     setItemPhoto(item.photoUrl);
     setItemPrice(String(item.priceKgs));
     setItemAvail(item.isAvailable);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setItemModalOpen(true);
+  }
+
+  function openCreateItemModal() {
+    resetItemForm();
+    setItemModalOpen(true);
+  }
+
+  function closeItemModal() {
+    if (uploadingPhoto) return;
+    setItemModalOpen(false);
   }
 
   return (
@@ -261,95 +274,42 @@ export default function AdminMenuPage() {
         <div className="mt-5 space-y-4">
           <div className="space-y-4">
             <Card className="p-4">
-              <div className="text-sm font-semibold">Категории</div>
-              <div className="mt-2 space-y-2">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
-                    <span>{category.title}</span>
-                    <button className="text-red-600 underline" onClick={() => void deleteCategory(category.id)}>
-                      Удалить
-                    </button>
-                  </div>
-                ))}
+              <button type="button" className="flex w-full items-center justify-between" onClick={() => setCategoriesOpen((prev) => !prev)}>
+                <div className="text-sm font-semibold">Категории</div>
+                <span className={`text-sm text-black/55 transition-transform duration-300 ${categoriesOpen ? "rotate-180" : "rotate-0"}`}>⌄</span>
+              </button>
+
+              <div className={`overflow-hidden transition-all duration-300 ${categoriesOpen ? "mt-3 max-h-[42rem] opacity-100" : "mt-0 max-h-0 opacity-0"}`}>
+                <div className="space-y-2">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
+                      <span>{category.title}</span>
+                      <button className="text-red-600 underline" onClick={() => void deleteCategory(category.id)}>
+                        Удалить
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <input
+                  className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                  placeholder="Новая категория"
+                  value={catTitle}
+                  onChange={(e) => setCatTitle(e.target.value)}
+                />
+                <Button className="mt-2 w-full" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
+                  Создать категорию
+                </Button>
               </div>
-              <input
-                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="Новая категория"
-                value={catTitle}
-                onChange={(e) => setCatTitle(e.target.value)}
-              />
-              <Button className="mt-2 w-full" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
-                Создать категорию
-              </Button>
             </Card>
 
             <Card className="p-4">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
-                {itemId && (
-                  <button className="text-sm underline text-black/60" onClick={resetItemForm}>
-                    Сброс
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-3 space-y-2">
-                <select
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  value={itemCategoryId}
-                  onChange={(e) => setItemCategoryId(e.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.title}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  placeholder="Название блюда"
-                  value={itemTitle}
-                  onChange={(e) => setItemTitle(e.target.value)}
-                />
-                <input
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  placeholder="Описание"
-                  value={itemDesc}
-                  onChange={(e) => setItemDesc(e.target.value)}
-                />
-                <input
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="цена"
-                  value={itemPrice}
-                  onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
-                />
-                <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void uploadPhoto(file);
-                    }}
-                  />
-                </label>
-
-                {itemPhoto && (
-                  <div className="relative mt-2 h-40 overflow-hidden rounded-2xl border border-black/10 bg-black/5">
-                    <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="360px" />
-                  </div>
-                )}
-
-                <Button
-                  className="w-full"
-                  disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
-                  onClick={() => void upsertItem()}
-                >
-                  {uploadingPhoto ? "Загружаем фото..." : itemId ? "Сохранить блюдо" : "Создать блюдо"}
+                <div>
+                  <div className="text-sm font-semibold">Блюда</div>
+                  <div className="mt-1 text-xs text-black/55">Создание и редактирование открываются во всплывающем окне.</div>
+                </div>
+                <Button className="px-4 py-2" onClick={openCreateItemModal} disabled={categories.length === 0}>
+                  + Новое блюдо
                 </Button>
               </div>
             </Card>
@@ -417,6 +377,88 @@ export default function AdminMenuPage() {
           </Card>
         </div>
       </div>
+
+      {itemModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно блюда" onClick={closeItemModal} />
+
+          <Card className="motion-pop relative z-10 w-full max-w-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
+              <div className="flex items-center gap-2">
+                {itemId && (
+                  <button className="text-sm underline text-black/60" onClick={resetItemForm}>
+                    Сброс
+                  </button>
+                )}
+                <button className="text-sm underline text-black/60" onClick={closeItemModal}>
+                  Закрыть
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              <select
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                value={itemCategoryId}
+                onChange={(e) => setItemCategoryId(e.target.value)}
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                placeholder="Название блюда"
+                value={itemTitle}
+                onChange={(e) => setItemTitle(e.target.value)}
+              />
+              <input
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                placeholder="Описание"
+                value={itemDesc}
+                onChange={(e) => setItemDesc(e.target.value)}
+              />
+              <input
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                type="text"
+                inputMode="numeric"
+                placeholder="цена"
+                value={itemPrice}
+                onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
+              />
+              <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
+                <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadPhoto(file);
+                  }}
+                />
+              </label>
+
+              {itemPhoto && (
+                <div className="relative mt-2 h-40 overflow-hidden rounded-2xl border border-black/10 bg-black/5">
+                  <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="360px" />
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
+                onClick={() => void upsertItem()}
+              >
+                {uploadingPhoto ? "Загружаем фото..." : itemId ? "Сохранить блюдо" : "Создать блюдо"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }
