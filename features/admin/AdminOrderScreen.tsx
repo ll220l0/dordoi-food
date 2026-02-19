@@ -41,6 +41,8 @@ function normalizePhone(phone: string) {
 export default function AdminOrderScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<AdminOrderData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { cache: "no-store" });
@@ -90,10 +92,19 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     }
   }
 
+  function openCancelModal() {
+    setCancelReason("");
+    setCancelModalOpen(true);
+  }
+
+  function closeCancelModal(force = false) {
+    if (loading && !force) return;
+    setCancelModalOpen(false);
+    setCancelReason("");
+  }
+
   async function cancelOrder() {
-    const reasonInput = window.prompt("Укажите причину отмены заказа");
-    if (reasonInput === null) return;
-    const reason = reasonInput.trim();
+    const reason = cancelReason.trim();
     if (!reason) {
       toast.error("Причина отмены обязательна");
       return;
@@ -109,6 +120,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Failed");
       toast.success("Заказ отменен");
+      closeCancelModal(true);
       void load();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Ошибка");
@@ -193,7 +205,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
               <Button
                 disabled={loading}
-                onClick={() => void cancelOrder()}
+                onClick={openCancelModal}
                 variant="secondary"
                 className="border-rose-300 bg-rose-50 text-rose-700"
               >
@@ -232,6 +244,35 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           ))}
         </div>
       </div>
+
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            aria-label="Закрыть окно причины отмены"
+            onClick={() => closeCancelModal()}
+          />
+          <Card className="relative z-10 w-full max-w-md p-4">
+            <div className="text-lg font-extrabold">Причина отмены</div>
+            <div className="mt-1 text-sm text-black/60">Укажите причину, она будет видна в истории заказа.</div>
+            <textarea
+              className="mt-3 h-28 w-full resize-none rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/25"
+              placeholder="Например: клиент попросил отмену"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              disabled={loading}
+            />
+            <div className="mt-3 flex gap-2">
+              <Button className="flex-1" variant="secondary" onClick={() => closeCancelModal()} disabled={loading}>
+                Отмена
+              </Button>
+              <Button className="flex-1" onClick={() => void cancelOrder()} disabled={loading}>
+                {loading ? "Сохраняем..." : "Подтвердить"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }

@@ -48,6 +48,9 @@ function normalizePhone(phone: string) {
 export default function AdminOrdersPage() {
   const [data, setData] = useState<AdminOrdersResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     try {
@@ -107,24 +110,43 @@ export default function AdminOrdersPage() {
     void load(true);
   }
 
-  async function cancelOrder(id: string) {
-    const reasonInput = window.prompt("Укажите причину отмены заказа");
-    if (reasonInput === null) return;
-    const reason = reasonInput.trim();
+  function openCancelModal(id: string) {
+    setCancelOrderId(id);
+    setCancelReason("");
+  }
+
+  function closeCancelModal(force = false) {
+    if (cancelLoading && !force) return;
+    setCancelOrderId(null);
+    setCancelReason("");
+  }
+
+  async function submitCancelOrder() {
+    if (!cancelOrderId) return;
+    const reason = cancelReason.trim();
     if (!reason) {
       toast.error("Причина отмены обязательна");
       return;
     }
 
-    const res = await fetch(`/api/admin/orders/${id}/cancel`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reason })
-    });
-    const j = (await res.json().catch(() => null)) as { error?: string } | null;
-    if (!res.ok) toast.error(j?.error ?? "Ошибка");
-    else toast.success("Заказ отменен");
-    void load(true);
+    setCancelLoading(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${cancelOrderId}/cancel`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason })
+      });
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) {
+        toast.error(j?.error ?? "Ошибка");
+        return;
+      }
+      toast.success("Заказ отменен");
+      closeCancelModal(true);
+      await load(true);
+    } finally {
+      setCancelLoading(false);
+    }
   }
 
   const orders = useMemo(() => data?.orders ?? [], [data?.orders]);
@@ -190,7 +212,7 @@ export default function AdminOrdersPage() {
             </Button>
           )}
           {isApprovedStatus(order.status) && order.status !== "delivered" && (
-            <Button onClick={() => void cancelOrder(order.id)} variant="secondary" className="border-rose-300 bg-rose-50 text-rose-700">
+            <Button onClick={() => openCancelModal(order.id)} variant="secondary" className="border-rose-300 bg-rose-50 text-rose-700">
               Отменить заказ
             </Button>
           )}
@@ -257,6 +279,35 @@ export default function AdminOrdersPage() {
           <div className="space-y-3">{historyOrders.map((order) => renderOrderCard(order))}</div>
         </div>
       </div>
+
+      {cancelOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            aria-label="Закрыть окно причины отмены"
+            onClick={() => closeCancelModal()}
+          />
+          <Card className="relative z-10 w-full max-w-md p-4">
+            <div className="text-lg font-extrabold">Причина отмены</div>
+            <div className="mt-1 text-sm text-black/60">Укажите причину, она будет видна в истории заказа.</div>
+            <textarea
+              className="mt-3 h-28 w-full resize-none rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/25"
+              placeholder="Например: клиент попросил отмену"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              disabled={cancelLoading}
+            />
+            <div className="mt-3 flex gap-2">
+              <Button className="flex-1" variant="secondary" onClick={() => closeCancelModal()} disabled={cancelLoading}>
+                Отмена
+              </Button>
+              <Button className="flex-1" onClick={() => void submitCancelOrder()} disabled={cancelLoading}>
+                {cancelLoading ? "Сохраняем..." : "Подтвердить"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }
