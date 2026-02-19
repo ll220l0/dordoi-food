@@ -332,11 +332,20 @@ export default function AdminMenuPage() {
               </Button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 transition hover:bg-black/5"
+                aria-expanded={categoriesOpen}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 bg-white px-3 text-sm font-semibold text-black/70 transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-black/5 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]"
                 onClick={() => setCategoriesOpen((prev) => !prev)}
               >
                 Категории
-                <span className={`transition-transform duration-300 ${categoriesOpen ? "rotate-180" : "rotate-0"}`}>⌄</span>
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/5 text-black/70 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    categoriesOpen ? "rotate-180" : "rotate-0"
+                  }`}
+                >
+                  <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                    <path d="M5.5 7.5L10 12.5L14.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
               </button>
               <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Категорий: {categories.length}</span>

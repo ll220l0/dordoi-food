@@ -246,34 +246,38 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
           </Card>
         ) : !isArchived ? (
           <>
-            <Card className="p-4">
-              <div className="text-sm text-black/60">Статус</div>
-              <div className="mt-2">
+            <Card className="overflow-hidden p-0">
+              <div className="flex items-center justify-between gap-3 border-b border-black/10 bg-white/75 px-4 py-3">
+                <div className="text-sm font-semibold text-black/65">Активный заказ</div>
                 <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
               </div>
 
-              <StatusProgress status={data?.status ?? ""} />
+              <div className="p-4">
+                <StatusProgress status={data?.status ?? ""} />
 
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="text-black/60">Итого</div>
-                <div className="text-right font-bold">{formatKgs(data?.totalKgs ?? 0)}</div>
-                <div className="text-black/60">Плательщик</div>
-                <div className="text-right font-bold">{data?.payerName ?? "-"}</div>
-                <div className="text-black/60">Способ оплаты</div>
-                <div className="text-right">{paymentMethodLabel(data?.paymentMethod ?? "")}</div>
-                <div className="text-black/60">Телефон</div>
-                <div className="text-right">{data?.customerPhone ?? "-"}</div>
-                <div className="text-black/60">Время заказа</div>
-                <div className="text-right">{data?.createdAt ? new Date(data.createdAt).toLocaleString() : "-"}</div>
-                <div className="text-black/60">Обновлен</div>
-                <div className="text-right">{data?.updatedAt ? new Date(data.updatedAt).toLocaleString() : "-"}</div>
-              </div>
+                <div className="mt-4 rounded-2xl border border-black/10 bg-white/70 p-3">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                    <div className="text-black/60">Итого</div>
+                    <div className="text-right text-base font-extrabold">{formatKgs(data?.totalKgs ?? 0)}</div>
+                    <div className="text-black/60">Плательщик</div>
+                    <div className="text-right font-bold break-words">{data?.payerName ?? "-"}</div>
+                    <div className="text-black/60">Способ оплаты</div>
+                    <div className="text-right">{paymentMethodLabel(data?.paymentMethod ?? "")}</div>
+                    <div className="text-black/60">Телефон</div>
+                    <div className="text-right">{data?.customerPhone ?? "-"}</div>
+                    <div className="text-black/60">Время заказа</div>
+                    <div className="text-right">{data?.createdAt ? new Date(data.createdAt).toLocaleString() : "-"}</div>
+                    <div className="text-black/60">Обновлен</div>
+                    <div className="text-right">{data?.updatedAt ? new Date(data.updatedAt).toLocaleString() : "-"}</div>
+                  </div>
+                </div>
 
-              <div className="mt-3 text-sm text-black/70">
-                Проход <span className="font-bold">{data?.location?.line ?? ""}</span>, контейнер <span className="font-bold">{data?.location?.container ?? ""}</span>
-                {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
+                <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-3 py-2 text-sm text-black/70">
+                  Проход <span className="font-bold">{data?.location?.line ?? "-"}</span>, контейнер <span className="font-bold">{data?.location?.container ?? "-"}</span>
+                  {data?.location?.landmark ? <> ({data.location.landmark})</> : null}
+                </div>
+                {data?.comment ? <div className="mt-2 rounded-2xl border border-black/10 bg-white/70 px-3 py-2 text-sm text-black/60">Комментарий: {data.comment}</div> : null}
               </div>
-              {data?.comment ? <div className="mt-1 text-sm text-black/55">Комментарий: {data.comment}</div> : null}
             </Card>
 
             <div className="space-y-3">
@@ -281,10 +285,10 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                 <Card key={it.id} className="p-3">
                   <div className="flex gap-3">
                     <Photo src={it.photoUrl} alt={it.title} />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-semibold">{it.title}</div>
-                        <div className="font-bold">{formatKgs(it.priceKgs * it.qty)}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1 font-semibold break-words">{it.title}</div>
+                        <div className="shrink-0 whitespace-nowrap font-bold">{formatKgs(it.priceKgs * it.qty)}</div>
                       </div>
                       <div className="mt-1 text-sm text-black/55">
                         {it.qty} x {formatKgs(it.priceKgs)}
