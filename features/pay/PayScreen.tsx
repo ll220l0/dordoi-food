@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Button, Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
@@ -65,8 +65,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [payerName, setPayerName] = useState("");
   const [waitingForAdmin, setWaitingForAdmin] = useState(false);
   const [showApprovedCheck, setShowApprovedCheck] = useState(false);
-  const [showCanceledCross, setShowCanceledCross] = useState(false);
-  const [showCanceledMark, setShowCanceledMark] = useState(false);
+  const [showAdminCanceledFx, setShowAdminCanceledFx] = useState(false);
+  const prevStatusRef = useRef<OrderResp["status"] | null>(null);
+  const cancelInitiatedByClientRef = useRef(false);
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
   const historyTotalKgs = useMemo(() => {
@@ -140,6 +141,23 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [isCanceled, clearCart, orderId]);
 
   useEffect(() => {
+    const status = data?.status;
+    if (!status) return;
+
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    if (status !== "canceled" || cancelInitiatedByClientRef.current) return;
+
+    const canceledAfterPayment = prevStatus === "pending_confirmation" || (!!prevStatus && CONFIRMED_STATUSES.has(prevStatus));
+    if (!canceledAfterPayment) return;
+
+    setWaitingForAdmin(false);
+    setShowApprovedCheck(false);
+    setShowAdminCanceledFx(true);
+  }, [data?.status]);
+
+  useEffect(() => {
     if (!data) return;
     if (isHistoryStatus(data.status)) {
       clearActiveOrderId(orderId);
@@ -166,28 +184,13 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [isApproved]);
 
   useEffect(() => {
-    if (isCanceled) {
-      setShowCanceledCross(true);
-    }
-  }, [isCanceled]);
-
-  useEffect(() => {
-    if (!showCanceledCross) {
-      setShowCanceledMark(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setShowCanceledMark(true), 120);
-    return () => window.clearTimeout(timer);
-  }, [showCanceledCross]);
-
-  useEffect(() => {
-    if (!showCanceledCross) return;
+    if (!showAdminCanceledFx) return;
     const menuTarget = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
     const timer = window.setTimeout(() => {
       router.replace(menuTarget);
-    }, 2000);
+    }, 2300);
     return () => window.clearTimeout(timer);
-  }, [showCanceledCross, data?.restaurant?.slug, router]);
+  }, [showAdminCanceledFx, data?.restaurant?.slug, router]);
 
   useEffect(() => {
     if (!isApproved || !showApprovedCheck || navigatingToOrder) return;
@@ -249,6 +252,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   async function cancelOrder() {
     setCancelling(true);
+    cancelInitiatedByClientRef.current = true;
     try {
       const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -260,7 +264,6 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       removeOrderFromHistory(orderId);
       setWaitingForAdmin(false);
       setShowApprovedCheck(false);
-      setShowCanceledCross(true);
       setData((prev) => (prev ? { ...prev, status: "canceled" } : prev));
       toast.success("Заказ отменен");
     } catch (error: unknown) {
@@ -270,7 +273,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }
 
-  const showCanceledCard = (showCanceledCross || isCanceled) && !isApproved;
+  const showCanceledCard = isCanceled && !isApproved && !showAdminCanceledFx;
   const showWaitingCard = waitingForAdmin && !isApproved && !showCanceledCard;
   const showPayCard = !showWaitingCard && !isApproved && !showCanceledCard;
 
@@ -331,9 +334,6 @@ export default function PayScreen({ orderId }: { orderId: string }) {
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-black/50 border-t-transparent" />
               <div className="mt-3 text-lg font-bold">Проверяем оплату</div>
               <div className="mt-1 text-sm text-black/60">Ожидаем подтверждения администратора...</div>
-              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={cancelling} className="mt-4 h-12 w-full py-0 text-rose-700">
-                {cancelling ? "Отменяем..." : "Отменить заказ"}
-              </Button>
             </div>
           </Card>
         )}
@@ -357,13 +357,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         {showCanceledCard && (
           <Card className="mt-4 p-6">
             <div className="flex flex-col items-center text-center">
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-2xl text-white transition-all duration-500 ${
-                  showCanceledMark ? "scale-100 opacity-100" : "scale-75 opacity-0"
-                }`}
-              >
-                ×
-              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-2xl text-white">×</div>
               <div className="mt-3 text-lg font-bold text-rose-700">Заказ отменен</div>
               <div className="mt-1 text-sm text-black/60">Заказ обнулен. Возвращаем в меню...</div>
             </div>
@@ -378,6 +372,28 @@ export default function PayScreen({ orderId }: { orderId: string }) {
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-black/60 border-t-transparent" />
             <div className="mt-3 text-sm font-semibold text-black/70">Переходим к заказу...</div>
+          </div>
+        </div>
+      )}
+
+      {showAdminCanceledFx && (
+        <div className="canceled-overlay pointer-events-none fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="canceled-card relative w-full max-w-sm overflow-hidden rounded-[28px] border border-rose-200/80 bg-white/90 p-7 text-center shadow-[0_24px_70px_-24px_rgba(244,63,94,0.62)] backdrop-blur-xl">
+            <div className="relative mx-auto h-24 w-24">
+              <div className="canceled-cross-ring absolute inset-0 rounded-full border-4 border-rose-300/75" />
+              <div className="canceled-cross-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-rose-500 to-rose-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(225,29,72,0.8)]">
+                ×
+              </div>
+            </div>
+            <div className="mt-4 text-[24px] font-extrabold leading-tight text-rose-700">Заказ отменен</div>
+            <div className="mt-1 text-sm font-semibold text-rose-700/75">Администратор отклонил оплату</div>
+
+            <span className="canceled-dot canceled-dot-1" />
+            <span className="canceled-dot canceled-dot-2" />
+            <span className="canceled-dot canceled-dot-3" />
+            <span className="canceled-dot canceled-dot-4" />
+            <span className="canceled-dot canceled-dot-5" />
+            <span className="canceled-dot canceled-dot-6" />
           </div>
         </div>
       )}

@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
-import { DeliverySuccessOverlay } from "@/components/DeliverySuccessOverlay";
 import { Button, Card } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
@@ -66,8 +65,6 @@ export default function AdminOrdersPage() {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [deliveredFxOrderId, setDeliveredFxOrderId] = useState<string | null>(null);
-  const deliveredFxTimerRef = useRef<number | null>(null);
 
   const load = useCallback(async (silent = false) => {
     try {
@@ -111,21 +108,6 @@ export default function AdminOrdersPage() {
     };
   }, [load]);
 
-  useEffect(() => {
-    return () => {
-      if (deliveredFxTimerRef.current) window.clearTimeout(deliveredFxTimerRef.current);
-    };
-  }, []);
-
-  function showDeliveredFx(id: string) {
-    setDeliveredFxOrderId(id);
-    if (deliveredFxTimerRef.current) window.clearTimeout(deliveredFxTimerRef.current);
-    deliveredFxTimerRef.current = window.setTimeout(() => {
-      setDeliveredFxOrderId(null);
-      deliveredFxTimerRef.current = null;
-    }, 2200);
-  }
-
   async function confirm(id: string) {
     const res = await fetch(`/api/admin/orders/${id}/confirm`, { method: "POST" });
     const j = (await res.json()) as { error?: string };
@@ -138,10 +120,7 @@ export default function AdminOrdersPage() {
     const res = await fetch(`/api/admin/orders/${id}/deliver`, { method: "POST" });
     const j = (await res.json()) as { error?: string };
     if (!res.ok) toast.error(j?.error ?? "Ошибка");
-    else {
-      showDeliveredFx(id);
-      toast.success("Заказ доставлен");
-    }
+    else toast.success("Заказ доставлен");
     void load(true);
   }
 
@@ -373,12 +352,6 @@ export default function AdminOrdersPage() {
           </Card>
         </div>
       )}
-
-      <DeliverySuccessOverlay
-        visible={Boolean(deliveredFxOrderId)}
-        title={deliveredFxOrderId ? `Заказ #${deliveredFxOrderId.slice(-6)} доставлен` : "Заказ доставлен"}
-        subtitle="Статус успешно обновлен"
-      />
     </main>
   );
 }

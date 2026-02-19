@@ -167,6 +167,58 @@ textarea:focus-visible {
   }
 }
 
+@keyframes canceled-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes canceled-ring-pulse {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+@keyframes canceled-cross-pop {
+  0% {
+    transform: scale(0.78) rotate(8deg);
+  }
+  65% {
+    transform: scale(1.08) rotate(0deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes canceled-dot-float {
+  0% {
+    transform: translateY(8px) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px) scale(1);
+    opacity: 0;
+  }
+}
+
 main {
   animation: page-enter 320ms var(--motion-ease);
 }
@@ -244,6 +296,71 @@ main {
   animation-delay: 220ms;
 }
 
+.canceled-overlay {
+  background: rgba(15, 23, 42, 0.32);
+  backdrop-filter: blur(9px);
+  animation: delivered-backdrop-in 220ms var(--motion-ease);
+}
+
+.canceled-card {
+  animation: canceled-card-in 540ms var(--motion-ease);
+}
+
+.canceled-cross-ring {
+  animation: canceled-ring-pulse 1.2s var(--motion-ease) infinite;
+}
+
+.canceled-cross-core {
+  animation: canceled-cross-pop 460ms var(--motion-ease);
+}
+
+.canceled-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #fb7185 0%, #f43f5e 70%, #e11d48 100%);
+  box-shadow: 0 10px 20px -10px rgba(244, 63, 94, 0.9);
+  opacity: 0;
+  animation: canceled-dot-float 1.45s ease-out infinite;
+}
+
+.canceled-dot-1 {
+  left: 18%;
+  bottom: 24%;
+  animation-delay: 80ms;
+}
+
+.canceled-dot-2 {
+  left: 30%;
+  bottom: 12%;
+  animation-delay: 0ms;
+}
+
+.canceled-dot-3 {
+  left: 45%;
+  bottom: 18%;
+  animation-delay: 120ms;
+}
+
+.canceled-dot-4 {
+  right: 34%;
+  bottom: 14%;
+  animation-delay: 170ms;
+}
+
+.canceled-dot-5 {
+  right: 22%;
+  bottom: 23%;
+  animation-delay: 40ms;
+}
+
+.canceled-dot-6 {
+  right: 14%;
+  bottom: 10%;
+  animation-delay: 220ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -259,7 +376,12 @@ main {
   .delivered-card,
   .delivered-check-ring,
   .delivered-check-core,
-  .delivered-dot {
+  .delivered-dot,
+  .canceled-overlay,
+  .canceled-card,
+  .canceled-cross-ring,
+  .canceled-cross-core,
+  .canceled-dot {
     animation: none;
   }
   a,
