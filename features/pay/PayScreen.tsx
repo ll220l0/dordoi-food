@@ -65,6 +65,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const [payerName, setPayerName] = useState("");
   const [waitingForAdmin, setWaitingForAdmin] = useState(false);
   const [showApprovedCheck, setShowApprovedCheck] = useState(false);
+  const [showCanceledCross, setShowCanceledCross] = useState(false);
+  const [showCanceledMark, setShowCanceledMark] = useState(false);
   const router = useRouter();
   const clearCart = useCart((state) => state.clear);
   const historyTotalKgs = useMemo(() => {
@@ -156,6 +158,30 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [isApproved]);
 
   useEffect(() => {
+    if (isCanceled) {
+      setShowCanceledCross(true);
+    }
+  }, [isCanceled]);
+
+  useEffect(() => {
+    if (!showCanceledCross) {
+      setShowCanceledMark(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowCanceledMark(true), 120);
+    return () => window.clearTimeout(timer);
+  }, [showCanceledCross]);
+
+  useEffect(() => {
+    if (!showCanceledCross) return;
+    const menuTarget = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
+    const timer = window.setTimeout(() => {
+      router.replace(menuTarget);
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [showCanceledCross, data?.restaurant?.slug, router]);
+
+  useEffect(() => {
     if (!isApproved || !showApprovedCheck || navigatingToOrder) return;
     const timer = window.setTimeout(() => {
       openOrder();
@@ -220,11 +246,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Не удалось отменить заказ");
 
+      clearCart();
       clearActiveOrderId(orderId);
       clearPendingPayOrderId(orderId);
       removeOrderFromHistory(orderId);
+      setWaitingForAdmin(false);
+      setShowApprovedCheck(false);
+      setShowCanceledCross(true);
+      setData((prev) => (prev ? { ...prev, status: "canceled" } : prev));
       toast.success("Заказ отменен");
-      router.replace("/order");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -232,8 +262,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }
   }
 
-  const showWaitingCard = waitingForAdmin && !isApproved && !isCanceled;
-  const showPayCard = !showWaitingCard && !isApproved && !isCanceled;
+  const showCanceledCard = (showCanceledCross || isCanceled) && !isApproved;
+  const showWaitingCard = waitingForAdmin && !isApproved && !showCanceledCard;
+  const showPayCard = !showWaitingCard && !isApproved && !showCanceledCard;
 
   return (
     <main className="min-h-screen p-5 pb-36">
@@ -292,6 +323,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-black/50 border-t-transparent" />
               <div className="mt-3 text-lg font-bold">Проверяем оплату</div>
               <div className="mt-1 text-sm text-black/60">Ожидаем подтверждения администратора...</div>
+              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={cancelling} className="mt-4 h-12 w-full py-0 text-rose-700">
+                {cancelling ? "Отменяем..." : "Отменить заказ"}
+              </Button>
             </div>
           </Card>
         )}
@@ -312,13 +346,18 @@ export default function PayScreen({ orderId }: { orderId: string }) {
           </Card>
         )}
 
-        {isCanceled && (
+        {showCanceledCard && (
           <Card className="mt-4 p-6">
-            <div className="text-center">
-              <div className="text-lg font-bold text-rose-700">Заказ отменен</div>
-              <Button className="mt-4 w-full" onClick={() => router.replace(`/r/${data?.restaurant?.slug ?? ""}`)}>
-                В меню
-              </Button>
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-2xl text-white transition-all duration-500 ${
+                  showCanceledMark ? "scale-100 opacity-100" : "scale-75 opacity-0"
+                }`}
+              >
+                ×
+              </div>
+              <div className="mt-3 text-lg font-bold text-rose-700">Заказ отменен</div>
+              <div className="mt-1 text-sm text-black/60">Заказ обнулен. Возвращаем в меню...</div>
             </div>
           </Card>
         )}
