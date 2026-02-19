@@ -168,15 +168,10 @@ export default function AdminOrdersPage() {
     const statusForDisplay = order.status === "created" ? "pending_confirmation" : order.status;
     const statusMeta = getOrderStatusMeta(statusForDisplay);
     const statusTone = getStatusTone(statusForDisplay);
-    const whatsappHref = order.customerPhone
-      ? buildWhatsAppLink(
-          normalizePhone(order.customerPhone),
-          `Здравствуйте! По заказу ${order.id}: статус "${statusMeta.label}". Спасибо за выбор Dordoi Food!`
-        )
-      : null;
+    const whatsappHref = order.customerPhone ? buildWhatsAppLink(normalizePhone(order.customerPhone)) : null;
 
     return (
-      <Card key={order.id} className="overflow-hidden border border-black/10 bg-white/90 p-0 shadow-[0_14px_35px_rgba(15,23,42,0.12)]">
+      <Card key={order.id} className="motion-fade-up overflow-hidden border border-black/10 bg-white/90 p-0 shadow-[0_14px_35px_rgba(15,23,42,0.12)]">
         <div className="border-b border-black/10 bg-white/85 px-4 py-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -307,7 +302,7 @@ export default function AdminOrdersPage() {
             aria-label="Закрыть окно причины отмены"
             onClick={() => closeCancelModal()}
           />
-          <Card className="relative z-10 w-full max-w-md p-4">
+          <Card className="motion-pop relative z-10 w-full max-w-md p-4">
             <div className="text-lg font-extrabold">Причина отмены</div>
             <div className="mt-1 text-sm text-black/60">Укажите причину, она будет видна в истории заказа.</div>
             <textarea

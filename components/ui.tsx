@@ -6,7 +6,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={clsx(
-        "rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl shadow-[0_20px_55px_rgba(15,23,42,0.14)]",
+        "rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl shadow-[0_20px_55px_rgba(15,23,42,0.14)] transition-[transform,box-shadow,background-color,border-color,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function Button({
   children: ReactNode; onClick?: ()=>void; variant?: "primary"|"secondary"|"ghost"; type?: "button"|"submit"; disabled?: boolean; className?: string;
 }) {
   const base =
-    "rounded-2xl px-4 py-3 font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:active:scale-100";
+    "rounded-2xl px-4 py-3 font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] disabled:opacity-50 disabled:active:scale-100";
   const styles =
     variant === "primary"
       ? "bg-black text-white shadow-[0_16px_30px_rgba(15,23,42,0.3)]"

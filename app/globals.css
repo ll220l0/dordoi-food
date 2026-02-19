@@ -7,6 +7,10 @@
   --bg-start: #f5f7fb;
   --bg-mid: #edf2ff;
   --bg-end: #f8fafc;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --motion-slow: 420ms;
 }
 
 html,
@@ -47,13 +51,26 @@ html {
 a,
 button,
 input,
-select {
+select,
+textarea {
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    transform var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease),
+    color var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+button:disabled {
+  transition-duration: var(--motion-fast);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
 @keyframes page-enter {
@@ -67,8 +84,38 @@ select {
   }
 }
 
+@keyframes motion-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 main {
-  animation: page-enter 260ms ease-out;
+  animation: page-enter 320ms var(--motion-ease);
+}
+
+.motion-fade-up {
+  animation: motion-fade-up var(--motion-base) var(--motion-ease);
+}
+
+.motion-pop {
+  animation: motion-pop var(--motion-base) var(--motion-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -78,10 +125,15 @@ main {
   main {
     animation: none;
   }
+  .motion-fade-up,
+  .motion-pop {
+    animation: none;
+  }
   a,
   button,
   input,
-  select {
+  select,
+  textarea {
     transition: none;
   }
 }

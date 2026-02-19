@@ -133,12 +133,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     const statusForDisplay = data?.status === "created" ? "pending_confirmation" : data?.status ?? "";
     return getOrderStatusMeta(statusForDisplay);
   }, [data?.status]);
-  const whatsappHref = data?.customerPhone
-    ? buildWhatsAppLink(
-        normalizePhone(data.customerPhone),
-        `Здравствуйте! По заказу ${data.id}: статус "${statusMeta.label}". Спасибо за выбор Dordoi Food!`
-      )
-    : null;
+  const whatsappHref = data?.customerPhone ? buildWhatsAppLink(normalizePhone(data.customerPhone)) : null;
 
   return (
     <main className="min-h-screen p-5">
@@ -156,7 +151,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           </div>
         </div>
 
-        <Card className="mt-4 p-4">
+        <Card className="motion-fade-up mt-4 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-semibold">{data?.restaurant?.name ?? "..."}</div>
             <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
@@ -227,7 +222,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
 
         <div className="mt-4 space-y-3">
           {(data?.items ?? []).map((item) => (
-            <Card key={item.id} className="p-3">
+            <Card key={item.id} className="motion-fade-up p-3">
               <div className="flex gap-3">
                 <Photo src={item.photoUrl} alt={item.title} />
                 <div className="flex-1">
@@ -252,7 +247,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
             aria-label="Закрыть окно причины отмены"
             onClick={() => closeCancelModal()}
           />
-          <Card className="relative z-10 w-full max-w-md p-4">
+          <Card className="motion-pop relative z-10 w-full max-w-md p-4">
             <div className="text-lg font-extrabold">Причина отмены</div>
             <div className="mt-1 text-sm text-black/60">Укажите причину, она будет видна в истории заказа.</div>
             <textarea

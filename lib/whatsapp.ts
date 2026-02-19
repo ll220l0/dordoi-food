@@ -4,9 +4,14 @@ function normalizePhone(phone: string) {
   return hasPlus ? `+${digits}` : digits;
 }
 
-export function buildWhatsAppLink(phone: string, text: string) {
+export function buildWhatsAppLink(phone: string, text?: string) {
   const normalized = normalizePhone(phone);
   const waPhone = normalized.startsWith("+") ? normalized.slice(1) : normalized;
-  const encodedText = encodeURIComponent(text);
+  const normalizedText = text?.trim() ?? "";
+  if (!normalizedText) {
+    return `https://wa.me/${waPhone}`;
+  }
+
+  const encodedText = encodeURIComponent(normalizedText);
   return `https://wa.me/${waPhone}?text=${encodedText}`;
 }

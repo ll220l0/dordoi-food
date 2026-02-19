@@ -346,7 +346,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-black/10 px-3 pb-3 pt-2">
+                        <div className="motion-fade-up border-t border-black/10 px-3 pb-3 pt-2">
                           <div className="text-xs text-black/55">
                             {order.restaurant?.name ?? "-"} · {paymentMethodLabel(order.paymentMethod)}
                           </div>
