@@ -467,8 +467,8 @@ export default function AdminMenuPage() {
                                 <div className="shrink-0 whitespace-nowrap text-right text-[15px] font-extrabold">{formatKgs(item.priceKgs)}</div>
                               </div>
 
-                              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                <label className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-2 py-1.5 text-sm">
+                              <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <label className="inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-2 py-1.5 text-sm">
                                   <span className="text-black/60">Наличие</span>
                                   <button
                                     type="button"
@@ -488,7 +488,7 @@ export default function AdminMenuPage() {
                                   </span>
                                 </label>
 
-                                <div className="flex gap-2">
+                                <div className="flex w-full justify-center gap-2 sm:w-auto">
                                   <button
                                     className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/75 transition hover:bg-black/5"
                                     onClick={() => editItem(item)}
@@ -517,10 +517,10 @@ export default function AdminMenuPage() {
       </div>
 
       {itemModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
           <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно блюда" onClick={closeItemModal} />
 
-          <Card className="motion-pop relative z-10 w-full max-w-3xl p-4">
+          <Card className="motion-pop relative z-10 w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
