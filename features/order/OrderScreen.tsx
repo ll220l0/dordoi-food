@@ -321,6 +321,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
           {historyOpen && (
             <div className="border-t border-black/10 px-4 pb-4 pt-3">
+              <div className="mb-2 text-[11px] text-black/45">Нажмите на заказ, чтобы посмотреть детали.</div>
               <div className="space-y-2">
                 {history.map((order) => {
                   const isExpanded = openedHistoryOrderId === order.id;
@@ -334,9 +335,13 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                       >
                         <div className="w-6 shrink-0">{historyStatusIcon(order.status)}</div>
                         <div className="flex-1 text-center text-sm font-bold">{formatKgs(order.totalKgs)}</div>
-                        <div className="w-28 shrink-0 text-right">
+                        <div className="w-32 shrink-0 text-right">
                           <div className="text-xs text-black/55">{createdDate.toLocaleDateString()}</div>
                           <div className="text-xs text-black/55">{createdDate.toLocaleTimeString()}</div>
+                          <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-black/45">
+                            <span>{isExpanded ? "Свернуть" : "Подробнее"}</span>
+                            <span className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}>⌄</span>
+                          </div>
                         </div>
                       </button>
 
