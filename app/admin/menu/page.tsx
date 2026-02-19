@@ -252,16 +252,13 @@ export default function AdminMenuPage() {
           <div>
             <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Редактор меню</div>
-            <Link className="mt-1 inline-block text-sm text-black/60 underline" href="/admin/banks">
-              Редактировать номер Mbank
-            </Link>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
             Назад
           </Link>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="mt-5 space-y-4">
           <div className="space-y-4">
             <Card className="p-4">
               <div className="text-sm font-semibold">Категории</div>
