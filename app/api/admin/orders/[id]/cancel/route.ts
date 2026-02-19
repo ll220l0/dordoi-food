@@ -20,9 +20,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
   }
 
-  const canCancel = order.status === "confirmed" || order.status === "cooking" || order.status === "delivering";
+  const canCancel =
+    order.status === "created" ||
+    order.status === "pending_confirmation" ||
+    order.status === "confirmed" ||
+    order.status === "cooking" ||
+    order.status === "delivering";
   if (!canCancel) {
-    return NextResponse.json({ error: "Можно отменять только подтвержденные активные заказы" }, { status: 400 });
+    return NextResponse.json({ error: "Можно отменять только активные заказы в ожидании или в работе" }, { status: 400 });
   }
 
   const updated = await prisma.order.update({

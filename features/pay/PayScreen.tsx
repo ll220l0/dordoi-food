@@ -132,6 +132,14 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   }, [data?.status]);
 
   useEffect(() => {
+    if (!isCanceled) return;
+    clearCart();
+    clearActiveOrderId(orderId);
+    clearPendingPayOrderId(orderId);
+    removeOrderFromHistory(orderId);
+  }, [isCanceled, clearCart, orderId]);
+
+  useEffect(() => {
     if (!data) return;
     if (isHistoryStatus(data.status)) {
       clearActiveOrderId(orderId);

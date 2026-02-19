@@ -55,6 +55,10 @@ function getStatusTone(status: string) {
   return "border-slate-200 bg-slate-100 text-slate-700";
 }
 
+function canCancelOrder(status: string) {
+  return status === "created" || status === "pending_confirmation" || (isApprovedStatus(status) && status !== "delivered");
+}
+
 export default function AdminOrdersPage() {
   const [data, setData] = useState<AdminOrdersResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -172,7 +176,7 @@ export default function AdminOrdersPage() {
     const statusTone = getStatusTone(statusForDisplay);
     const normalizedPhone = order.customerPhone ? normalizePhone(order.customerPhone) : "";
     const whatsappHref = normalizedPhone ? buildWhatsAppLink(normalizedPhone) : null;
-    const phoneHref = normalizedPhone ? `tel:${normalizedPhone}` : null;
+    const phoneHref = normalizedPhone ? `tel:+${normalizedPhone.replace(/^\+/, "")}` : null;
 
     return (
       <Card key={order.id} className="motion-fade-up overflow-hidden border border-black/10 bg-white/90 p-0 shadow-[0_14px_35px_rgba(15,23,42,0.12)]">
@@ -231,7 +235,7 @@ export default function AdminOrdersPage() {
                 Подтвердить доставку
               </Button>
             )}
-            {isApprovedStatus(order.status) && order.status !== "delivered" && (
+            {canCancelOrder(order.status) && (
               <Button onClick={() => openCancelModal(order.id)} variant="secondary" className="h-10 border-rose-300 bg-rose-50 px-4 text-rose-700">
                 Отменить заказ
               </Button>

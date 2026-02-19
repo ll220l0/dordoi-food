@@ -40,6 +40,11 @@ function normalizePhone(phone: string) {
   return hasPlus ? `+${digits}` : digits;
 }
 
+function canCancelOrder(status: string | undefined) {
+  if (!status) return false;
+  return status === "created" || status === "pending_confirmation" || (isApprovedStatus(status) && status !== "delivered");
+}
+
 export default function AdminOrderScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<AdminOrderData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,7 +142,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
   }, [data?.status]);
   const normalizedPhone = data?.customerPhone ? normalizePhone(data.customerPhone) : "";
   const whatsappHref = normalizedPhone ? buildWhatsAppLink(normalizedPhone) : null;
-  const phoneHref = normalizedPhone ? `tel:${normalizedPhone}` : null;
+  const phoneHref = normalizedPhone ? `tel:+${normalizedPhone.replace(/^\+/, "")}` : null;
 
   return (
     <main className="min-h-screen p-5">
@@ -201,7 +206,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
                 Подтвердить доставку
               </Button>
             )}
-            {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
+            {canCancelOrder(data?.status) && (
               <Button
                 disabled={loading}
                 onClick={openCancelModal}
