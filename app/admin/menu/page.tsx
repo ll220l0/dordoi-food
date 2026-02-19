@@ -11,7 +11,6 @@ type Restaurant = {
   id: string;
   name: string;
   slug: string;
-  mbankNumber: string;
 };
 type Category = { id: string; title: string; sortOrder: number };
 type Item = {
@@ -75,9 +74,6 @@ export default function AdminMenuPage() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemAvail, setItemAvail] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [mbankNumber, setMbankNumber] = useState("");
-  const [bankPassword, setBankPassword] = useState("");
-  const [savingBankNumbers, setSavingBankNumbers] = useState(false);
 
   const loadRestaurants = useCallback(async () => {
     const res = await fetch("/api/admin/restaurants", { cache: "no-store" });
@@ -85,7 +81,6 @@ export default function AdminMenuPage() {
     const first = j.restaurants?.[0];
     if (first) {
       setRestaurantSlug((current) => current || first.slug);
-      setMbankNumber(first.mbankNumber ?? "");
     }
   }, []);
 
@@ -143,42 +138,6 @@ export default function AdminMenuPage() {
       toast.error(getErrorMessage(error));
     } finally {
       setUploadingPhoto(false);
-    }
-  }
-
-  async function saveBankNumbers() {
-    if (!restaurantSlug || !bankPassword.trim()) {
-      toast.error("Введите пароль для смены номеров банков");
-      return;
-    }
-    const mbank = mbankNumber.replace(/[^\d]/g, "");
-    const numberRe = /^996\d{9}$/;
-
-    if (mbank && !numberRe.test(mbank)) {
-      toast.error("Формат номера: 996XXXXXXXXX");
-      return;
-    }
-
-    setSavingBankNumbers(true);
-    try {
-      const res = await fetch("/api/admin/restaurants", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          slug: restaurantSlug,
-          mbankNumber: mbank,
-          bankPassword: bankPassword.trim()
-        })
-      });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "Не удалось сохранить номера банков");
-
-      toast.success("Номера банков обновлены");
-      setBankPassword("");
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setSavingBankNumbers(false);
     }
   }
 
@@ -293,6 +252,9 @@ export default function AdminMenuPage() {
           <div>
             <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Редактор меню</div>
+            <Link className="mt-1 inline-block text-sm text-black/60 underline" href="/admin/banks">
+              Редактировать номер Mbank
+            </Link>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
             Назад
@@ -301,32 +263,6 @@ export default function AdminMenuPage() {
 
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-4">
-            <Card className="p-4">
-              <div className="text-sm font-semibold">Номер Mbank</div>
-              <div className="mt-2 text-xs text-black/55">Укажи номер в формате 996XXXXXXXXX. Сохранение защищено паролем.</div>
-
-              <input
-                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="text"
-                inputMode="numeric"
-                placeholder="Mbank номер (996XXXXXXXXX)"
-                value={mbankNumber}
-                onChange={(e) => setMbankNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
-              />
-
-              <input
-                className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="password"
-                placeholder="Пароль для смены номеров"
-                value={bankPassword}
-                onChange={(e) => setBankPassword(e.target.value)}
-              />
-
-              <Button className="mt-3 w-full" disabled={!restaurantSlug || !bankPassword.trim() || savingBankNumbers} onClick={() => void saveBankNumbers()}>
-                {savingBankNumbers ? "Сохраняем..." : "Сохранить номера банков"}
-              </Button>
-            </Card>
-
             <Card className="p-4">
               <div className="text-sm font-semibold">Категории</div>
               <div className="mt-2 space-y-2">
