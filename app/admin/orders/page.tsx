@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
-import { Button, Card, Photo } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus } from "@/lib/orderStatus";
@@ -43,6 +44,13 @@ function getErrorMessage(error: unknown) {
 
 function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, "");
+}
+
+function getStatusTone(status: string) {
+  if (status === "delivered") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "canceled") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (status === "created" || status === "pending_confirmation") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-100 text-slate-700";
 }
 
 export default function AdminOrdersPage() {
@@ -159,6 +167,7 @@ export default function AdminOrdersPage() {
   function renderOrderCard(order: AdminOrder) {
     const statusForDisplay = order.status === "created" ? "pending_confirmation" : order.status;
     const statusMeta = getOrderStatusMeta(statusForDisplay);
+    const statusTone = getStatusTone(statusForDisplay);
     const whatsappHref = order.customerPhone
       ? buildWhatsAppLink(
           normalizePhone(order.customerPhone),
@@ -167,84 +176,95 @@ export default function AdminOrdersPage() {
       : null;
 
     return (
-      <Card key={order.id} className="p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="font-semibold">{order.restaurant?.name ?? "-"}</div>
-          <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
-        </div>
-
-        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Плательщик</div>
-          <div className="mt-1 text-lg font-extrabold text-emerald-900">{order.payerName || "НЕ УКАЗАН"}</div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div className="text-black/60">Сумма</div>
-          <div className="text-right font-bold">{formatKgs(order.totalKgs)}</div>
-          <div className="text-black/60">Метод оплаты</div>
-          <div className="text-right">{paymentMethodLabel(order.paymentMethod)}</div>
-          <div className="text-black/60">Телефон</div>
-          <div className="text-right">{order.customerPhone || "-"}</div>
-          <div className="text-black/60">Создан</div>
-          <div className="text-right">{new Date(order.createdAt).toLocaleString()}</div>
-          <div className="text-black/60">Обновлен</div>
-          <div className="text-right">{new Date(order.updatedAt).toLocaleString()}</div>
-        </div>
-
-        <div className="mt-3 text-sm text-black/70">
-          Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
-          {order.location?.landmark ? <> ({order.location.landmark})</> : null}
-        </div>
-        {order.comment ? <div className="mt-1 text-sm text-black/70">Комментарий: {order.comment}</div> : null}
-        {order.status === "canceled" && order.canceledReason ? (
-          <div className="mt-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            Причина отмены: {order.canceledReason}
+      <Card key={order.id} className="overflow-hidden border border-black/10 bg-white/90 p-0 shadow-[0_14px_35px_rgba(15,23,42,0.12)]">
+        <div className="border-b border-black/10 bg-white/85 px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-black/45">Заказ #{order.id.slice(-6)}</div>
+              <div className="mt-1 text-base font-bold text-black/90">{order.restaurant?.name ?? "-"}</div>
+            </div>
+            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone}`}>{statusMeta.label}</span>
           </div>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(order.status === "created" || order.status === "pending_confirmation") && (
-            <Button onClick={() => void confirm(order.id)}>Подтвердить оплату</Button>
-          )}
-          {isApprovedStatus(order.status) && order.status !== "delivered" && (
-            <Button onClick={() => void deliver(order.id)} variant="secondary">
-              Подтвердить доставку
-            </Button>
-          )}
-          {isApprovedStatus(order.status) && order.status !== "delivered" && (
-            <Button onClick={() => openCancelModal(order.id)} variant="secondary" className="border-rose-300 bg-rose-50 text-rose-700">
-              Отменить заказ
-            </Button>
-          )}
-          {whatsappHref && (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"
-            >
-              Написать в WhatsApp
-            </a>
-          )}
+          <div className="mt-2 text-xs text-black/50">Обновлен: {new Date(order.updatedAt).toLocaleString()}</div>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {order.items.map((item) => (
-            <Card key={item.id} className="p-3">
-              <div className="flex gap-3">
-                <Photo src={item.photoUrl} alt={item.title} />
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold">{item.title}</div>
-                    <div className="font-bold">{formatKgs(item.priceKgs * item.qty)}</div>
-                  </div>
-                  <div className="mt-1 text-sm text-black/55">
+        <div className="space-y-3 px-4 py-4">
+          <div className="rounded-2xl border border-black/10 bg-slate-50/80 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-black/45">Плательщик</div>
+                <div className="mt-1 text-base font-bold text-black/90">{order.payerName || "НЕ УКАЗАН"}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-black/45">Сумма</div>
+                <div className="mt-1 text-lg font-extrabold text-black/90">{formatKgs(order.totalKgs)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 rounded-2xl border border-black/10 bg-white p-3 text-sm">
+            <div className="text-black/55">Метод оплаты</div>
+            <div className="text-right font-semibold text-black/85">{paymentMethodLabel(order.paymentMethod)}</div>
+            <div className="text-black/55">Телефон</div>
+            <div className="text-right font-semibold text-black/85">{order.customerPhone || "-"}</div>
+            <div className="text-black/55">Создан</div>
+            <div className="text-right text-black/75">{new Date(order.createdAt).toLocaleString()}</div>
+          </div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-3 text-sm text-black/75">
+            Проход <b>{order.location?.line || "-"}</b>, контейнер <b>{order.location?.container || "-"}</b>
+            {order.location?.landmark ? <> ({order.location.landmark})</> : null}
+          </div>
+
+          {order.comment ? <div className="rounded-2xl border border-black/10 bg-white p-3 text-sm text-black/75">Комментарий: {order.comment}</div> : null}
+          {order.status === "canceled" && order.canceledReason ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">Причина отмены: {order.canceledReason}</div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            {(order.status === "created" || order.status === "pending_confirmation") && (
+              <Button onClick={() => void confirm(order.id)} className="h-10 px-4">
+                Подтвердить оплату
+              </Button>
+            )}
+            {isApprovedStatus(order.status) && order.status !== "delivered" && (
+              <Button onClick={() => void deliver(order.id)} variant="secondary" className="h-10 px-4">
+                Подтвердить доставку
+              </Button>
+            )}
+            {isApprovedStatus(order.status) && order.status !== "delivered" && (
+              <Button onClick={() => openCancelModal(order.id)} variant="secondary" className="h-10 border-rose-300 bg-rose-50 px-4 text-rose-700">
+                Отменить заказ
+              </Button>
+            )}
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-10 items-center rounded-2xl border border-black/15 bg-white px-4 text-sm font-semibold text-black/75 transition hover:bg-black/[0.03]"
+              >
+                Написать в WhatsApp
+              </a>
+            )}
+          </div>
+
+          <div className="space-y-2 border-t border-black/10 pt-3">
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-white px-2 py-2">
+                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-black/5 ring-1 ring-black/5">
+                  <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="44px" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-black/90">{item.title}</div>
+                  <div className="text-xs text-black/55">
                     {item.qty} x {formatKgs(item.priceKgs)}
                   </div>
                 </div>
+                <div className="text-sm font-bold text-black/90">{formatKgs(item.priceKgs * item.qty)}</div>
               </div>
-            </Card>
-          ))}
+            ))}
+          </div>
         </div>
       </Card>
     );
