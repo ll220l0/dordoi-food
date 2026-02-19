@@ -341,15 +341,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         {isApproved && (
           <Card className="mt-4 p-6">
             <div className="flex flex-col items-center text-center">
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-2xl text-white transition-all duration-500 ${
-                  showApprovedCheck ? "scale-100 opacity-100" : "scale-75 opacity-0"
-                }`}
-              >
-                ✓
-              </div>
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-emerald-500/70 border-t-transparent" />
               <div className="mt-3 text-lg font-bold text-emerald-700">Оплата подтверждена</div>
-              <div className="mt-1 text-sm text-black/60">Заказ принят в работу. Переходим к заказу...</div>
+              <div className="mt-1 text-sm text-black/60">Подготавливаем переход к заказу...</div>
             </div>
           </Card>
         )}
@@ -394,6 +388,31 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <span className="canceled-dot canceled-dot-4" />
             <span className="canceled-dot canceled-dot-5" />
             <span className="canceled-dot canceled-dot-6" />
+          </div>
+        </div>
+      )}
+
+      {isApproved && showApprovedCheck && (
+        <div className="approved-overlay pointer-events-none fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="approved-card relative w-full max-w-sm overflow-hidden rounded-[30px] border border-emerald-200/85 bg-white/90 p-7 text-center shadow-[0_28px_75px_-26px_rgba(16,185,129,0.7)] backdrop-blur-xl">
+            <div className="approved-shine absolute inset-x-[-24%] top-0 h-16 -rotate-6 bg-gradient-to-r from-transparent via-white/65 to-transparent" />
+
+            <div className="relative mx-auto h-24 w-24">
+              <div className="approved-ring absolute inset-0 rounded-full border-4 border-emerald-300/70" />
+              <div className="approved-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-3xl font-black text-white shadow-[0_14px_34px_-14px_rgba(5,150,105,0.95)]">
+                ✓
+              </div>
+            </div>
+
+            <div className="mt-4 text-[24px] font-extrabold leading-tight text-emerald-700">Оплата подтверждена</div>
+            <div className="mt-1 text-sm font-semibold text-emerald-700/75">Заказ принят в работу</div>
+
+            <span className="approved-dot approved-dot-1" />
+            <span className="approved-dot approved-dot-2" />
+            <span className="approved-dot approved-dot-3" />
+            <span className="approved-dot approved-dot-4" />
+            <span className="approved-dot approved-dot-5" />
+            <span className="approved-dot approved-dot-6" />
           </div>
         </div>
       )}
