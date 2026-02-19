@@ -59,6 +59,8 @@ type HistoryOrder = {
   items: OrderItem[];
 };
 
+const DELIVERY_WAIT_STATUSES = new Set(["confirmed", "cooking", "delivering"]);
+
 function StatusProgress({ status }: { status: string }) {
   if (isPendingConfirmation(status)) {
     return (
@@ -115,6 +117,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [openedHistoryOrderId, setOpenedHistoryOrderId] = useState<string | null>(null);
   const [showDeliveredFx, setShowDeliveredFx] = useState(false);
+  const [showCanceledFx, setShowCanceledFx] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
 
   const loadOrder = useCallback(
@@ -223,11 +226,19 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = status;
 
-    if (!prevStatus || prevStatus === "delivered" || status !== "delivered") return;
+    if (!prevStatus) return;
 
-    setShowDeliveredFx(true);
-    const timer = setTimeout(() => setShowDeliveredFx(false), 2400);
-    return () => clearTimeout(timer);
+    if (status === "delivered" && prevStatus !== "delivered") {
+      setShowDeliveredFx(true);
+      const timer = setTimeout(() => setShowDeliveredFx(false), 2400);
+      return () => clearTimeout(timer);
+    }
+
+    if (status === "canceled" && DELIVERY_WAIT_STATUSES.has(prevStatus)) {
+      setShowCanceledFx(true);
+      const timer = setTimeout(() => setShowCanceledFx(false), 2400);
+      return () => clearTimeout(timer);
+    }
   }, [data?.status]);
 
   useEffect(() => {
@@ -261,6 +272,28 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
             <span className="delivered-dot delivered-dot-4" />
             <span className="delivered-dot delivered-dot-5" />
             <span className="delivered-dot delivered-dot-6" />
+          </div>
+        </div>
+      )}
+
+      {showCanceledFx && (
+        <div className="canceled-overlay pointer-events-none fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="canceled-card relative w-full max-w-sm overflow-hidden rounded-[28px] border border-rose-200/80 bg-white/90 p-7 text-center shadow-[0_24px_70px_-24px_rgba(244,63,94,0.62)] backdrop-blur-xl">
+            <div className="relative mx-auto h-24 w-24">
+              <div className="canceled-cross-ring absolute inset-0 rounded-full border-4 border-rose-300/75" />
+              <div className="canceled-cross-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-rose-500 to-rose-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(225,29,72,0.8)]">
+                ×
+              </div>
+            </div>
+            <div className="mt-4 text-[24px] font-extrabold leading-tight text-rose-700">Заказ отменен</div>
+            <div className="mt-1 text-sm font-semibold text-rose-700/75">Администратор отменил заказ</div>
+
+            <span className="canceled-dot canceled-dot-1" />
+            <span className="canceled-dot canceled-dot-2" />
+            <span className="canceled-dot canceled-dot-3" />
+            <span className="canceled-dot canceled-dot-4" />
+            <span className="canceled-dot canceled-dot-5" />
+            <span className="canceled-dot canceled-dot-6" />
           </div>
         </div>
       )}
