@@ -1,9 +1,10 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
+import { DeliverySuccessOverlay } from "@/components/DeliverySuccessOverlay";
 import { Button, Card, Photo } from "@/components/ui";
 import { formatKgs } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/paymentMethod";
@@ -50,6 +51,8 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showDeliveredFx, setShowDeliveredFx] = useState(false);
+  const deliveredFxTimerRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { cache: "no-store" });
@@ -68,6 +71,12 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
       toast.error(error instanceof Error ? error.message : "Ошибка");
     });
   }, [load]);
+
+  useEffect(() => {
+    return () => {
+      if (deliveredFxTimerRef.current) window.clearTimeout(deliveredFxTimerRef.current);
+    };
+  }, []);
 
   async function confirm() {
     setLoading(true);
@@ -90,6 +99,12 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
       const res = await fetch(`/api/admin/orders/${orderId}/deliver`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(j?.error ?? "Операция не выполнена");
+      setShowDeliveredFx(true);
+      if (deliveredFxTimerRef.current) window.clearTimeout(deliveredFxTimerRef.current);
+      deliveredFxTimerRef.current = window.setTimeout(() => {
+        setShowDeliveredFx(false);
+        deliveredFxTimerRef.current = null;
+      }, 2200);
       toast.success("Заказ отмечен как доставленный");
       void load();
     } catch (error: unknown) {
@@ -298,6 +313,8 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           </Card>
         </div>
       )}
+
+      <DeliverySuccessOverlay visible={showDeliveredFx} title="Заказ доставлен" subtitle="Готово, можно закрывать заказ" />
     </main>
   );
 }

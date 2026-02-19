@@ -106,6 +106,67 @@ textarea:focus-visible {
   }
 }
 
+@keyframes delivered-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes delivered-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes delivered-ring-pulse {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+@keyframes delivered-check-pop {
+  0% {
+    transform: scale(0.78) rotate(-8deg);
+  }
+  65% {
+    transform: scale(1.08) rotate(0deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes delivered-dot-float {
+  0% {
+    transform: translateY(8px) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px) scale(1);
+    opacity: 0;
+  }
+}
+
 main {
   animation: page-enter 320ms var(--motion-ease);
 }
@@ -118,6 +179,71 @@ main {
   animation: motion-pop var(--motion-base) var(--motion-ease);
 }
 
+.delivered-overlay {
+  background: rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(8px);
+  animation: delivered-backdrop-in 220ms var(--motion-ease);
+}
+
+.delivered-card {
+  animation: delivered-card-in 540ms var(--motion-ease);
+}
+
+.delivered-check-ring {
+  animation: delivered-ring-pulse 1.2s var(--motion-ease) infinite;
+}
+
+.delivered-check-core {
+  animation: delivered-check-pop 460ms var(--motion-ease);
+}
+
+.delivered-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #34d399 0%, #10b981 70%, #059669 100%);
+  box-shadow: 0 10px 20px -10px rgba(16, 185, 129, 0.85);
+  opacity: 0;
+  animation: delivered-dot-float 1.45s ease-out infinite;
+}
+
+.delivered-dot-1 {
+  left: 18%;
+  bottom: 24%;
+  animation-delay: 80ms;
+}
+
+.delivered-dot-2 {
+  left: 30%;
+  bottom: 12%;
+  animation-delay: 0ms;
+}
+
+.delivered-dot-3 {
+  left: 45%;
+  bottom: 18%;
+  animation-delay: 120ms;
+}
+
+.delivered-dot-4 {
+  right: 34%;
+  bottom: 14%;
+  animation-delay: 170ms;
+}
+
+.delivered-dot-5 {
+  right: 22%;
+  bottom: 23%;
+  animation-delay: 40ms;
+}
+
+.delivered-dot-6 {
+  right: 14%;
+  bottom: 10%;
+  animation-delay: 220ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -127,6 +253,13 @@ main {
   }
   .motion-fade-up,
   .motion-pop {
+    animation: none;
+  }
+  .delivered-overlay,
+  .delivered-card,
+  .delivered-check-ring,
+  .delivered-check-core,
+  .delivered-dot {
     animation: none;
   }
   a,

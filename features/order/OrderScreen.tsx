@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, Photo } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
 import {
@@ -114,6 +114,8 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [orderHref, setOrderHref] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [openedHistoryOrderId, setOpenedHistoryOrderId] = useState<string | null>(null);
+  const [showDeliveredFx, setShowDeliveredFx] = useState(false);
+  const prevStatusRef = useRef<string | null>(null);
 
   const loadOrder = useCallback(
     async (silent = false) => {
@@ -215,6 +217,20 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, [data?.id, data?.paymentMethod, data?.status]);
 
   useEffect(() => {
+    const status = data?.status;
+    if (!status) return;
+
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    if (!prevStatus || prevStatus === "delivered" || status !== "delivered") return;
+
+    setShowDeliveredFx(true);
+    const timer = setTimeout(() => setShowDeliveredFx(false), 2400);
+    return () => clearTimeout(timer);
+  }, [data?.status]);
+
+  useEffect(() => {
     if (!data || orderMissing || isHistoryStatus(data.status)) return;
     const timer = setInterval(() => void loadOrder(true), 4000);
     return () => clearInterval(timer);
@@ -227,6 +243,28 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
 
   return (
     <main className="min-h-screen p-5 pb-40">
+      {showDeliveredFx && (
+        <div className="delivered-overlay pointer-events-none fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="delivered-card relative w-full max-w-sm overflow-hidden rounded-[28px] border border-emerald-200/80 bg-white/90 p-7 text-center shadow-[0_24px_70px_-24px_rgba(16,185,129,0.65)] backdrop-blur-xl">
+            <div className="relative mx-auto h-24 w-24">
+              <div className="delivered-check-ring absolute inset-0 rounded-full border-4 border-emerald-300/70" />
+              <div className="delivered-check-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(5,150,105,0.85)]">
+                ✓
+              </div>
+            </div>
+            <div className="mt-4 text-[24px] font-extrabold leading-tight text-emerald-700">Заказ доставлен</div>
+            <div className="mt-1 text-sm font-semibold text-emerald-700/75">Приятного аппетита!</div>
+
+            <span className="delivered-dot delivered-dot-1" />
+            <span className="delivered-dot delivered-dot-2" />
+            <span className="delivered-dot delivered-dot-3" />
+            <span className="delivered-dot delivered-dot-4" />
+            <span className="delivered-dot delivered-dot-5" />
+            <span className="delivered-dot delivered-dot-6" />
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-md space-y-4">
         <div className="text-3xl font-extrabold">Заказ</div>
 
