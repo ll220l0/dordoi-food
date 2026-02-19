@@ -22,6 +22,7 @@ type Item = {
   priceKgs: number;
   isAvailable: boolean;
 };
+type AvailabilityFilter = "all" | "available" | "hidden";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
@@ -65,6 +66,9 @@ export default function AdminMenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [categoriesOpen, setCategoriesOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>("all");
 
   const [catTitle, setCatTitle] = useState("");
   const [itemId, setItemId] = useState<string | null>(null);
@@ -104,13 +108,41 @@ export default function AdminMenuPage() {
     void loadMenu(restaurantSlug);
   }, [restaurantSlug, loadMenu]);
 
+  useEffect(() => {
+    if (filterCategoryId !== "all" && !categories.some((x) => x.id === filterCategoryId)) {
+      setFilterCategoryId("all");
+    }
+  }, [categories, filterCategoryId]);
+
+  const categoryItemCount = useMemo(() => {
+    const countMap = new Map<string, number>();
+    for (const item of items) {
+      countMap.set(item.categoryId, (countMap.get(item.categoryId) ?? 0) + 1);
+    }
+    return countMap;
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return items.filter((item) => {
+      if (filterCategoryId !== "all" && item.categoryId !== filterCategoryId) return false;
+      if (availabilityFilter === "available" && !item.isAvailable) return false;
+      if (availabilityFilter === "hidden" && item.isAvailable) return false;
+      if (!query) return true;
+      const haystack = `${item.title} ${item.description ?? ""}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [availabilityFilter, filterCategoryId, items, searchQuery]);
+
   const groupedItems = useMemo(
     () =>
-      categories.map((category) => ({
-        category,
-        items: items.filter((item) => item.categoryId === category.id)
-      })),
-    [categories, items]
+      categories
+        .map((category) => ({
+          category,
+          items: filteredItems.filter((item) => item.categoryId === category.id)
+        }))
+        .filter((entry) => (filterCategoryId === "all" ? entry.items.length > 0 : true)),
+    [categories, filteredItems, filterCategoryId]
   );
 
   function resetItemForm() {
@@ -250,6 +282,9 @@ export default function AdminMenuPage() {
 
   function openCreateItemModal() {
     resetItemForm();
+    if (filterCategoryId !== "all") {
+      setItemCategoryId(filterCategoryId);
+    }
     setItemModalOpen(true);
   }
 
@@ -257,6 +292,24 @@ export default function AdminMenuPage() {
     if (uploadingPhoto) return;
     setItemModalOpen(false);
   }
+
+  useEffect(() => {
+    if (!itemModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeItemModal();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [itemModalOpen, uploadingPhoto]);
 
   return (
     <main className="min-h-screen p-5">
@@ -272,107 +325,183 @@ export default function AdminMenuPage() {
         </div>
 
         <div className="mt-5 space-y-4">
-          <div className="space-y-4">
-            <Card className="p-4">
-              <button type="button" className="flex w-full items-center justify-between" onClick={() => setCategoriesOpen((prev) => !prev)}>
-                <div className="text-sm font-semibold">Категории</div>
-                <span className={`text-sm text-black/55 transition-transform duration-300 ${categoriesOpen ? "rotate-180" : "rotate-0"}`}>⌄</span>
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button className="px-4 py-2" onClick={openCreateItemModal} disabled={categories.length === 0}>
+                + Новое блюдо
+              </Button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 transition hover:bg-black/5"
+                onClick={() => setCategoriesOpen((prev) => !prev)}
+              >
+                Категории
+                <span className={`transition-transform duration-300 ${categoriesOpen ? "rotate-180" : "rotate-0"}`}>⌄</span>
               </button>
+              <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Категорий: {categories.length}</span>
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Блюд: {items.length}</span>
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">В выдаче: {filteredItems.length}</span>
+              </div>
+            </div>
 
-              <div className={`overflow-hidden transition-all duration-300 ${categoriesOpen ? "mt-3 max-h-[42rem] opacity-100" : "mt-0 max-h-0 opacity-0"}`}>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
-                      <span>{category.title}</span>
-                      <button className="text-red-600 underline" onClick={() => void deleteCategory(category.id)}>
-                        Удалить
-                      </button>
+            <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+              <input
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                placeholder="Поиск по названию или описанию..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <select
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                value={filterCategoryId}
+                onChange={(e) => setFilterCategoryId(e.target.value)}
+              >
+                <option value="all">Все категории</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.title} ({categoryItemCount.get(category.id) ?? 0})
+                  </option>
+                ))}
+              </select>
+              <div className="inline-flex rounded-xl border border-black/10 bg-white p-1">
+                <button
+                  type="button"
+                  onClick={() => setAvailabilityFilter("all")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${availabilityFilter === "all" ? "bg-black text-white" : "text-black/65"}`}
+                >
+                  Все
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvailabilityFilter("available")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    availabilityFilter === "available" ? "bg-emerald-600 text-white" : "text-black/65"
+                  }`}
+                >
+                  В наличии
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvailabilityFilter("hidden")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    availabilityFilter === "hidden" ? "bg-rose-600 text-white" : "text-black/65"
+                  }`}
+                >
+                  Скрытые
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {categoriesOpen && (
+            <Card className="p-4">
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between rounded-xl border border-black/10 bg-white px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{category.title}</span>
+                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-black/60">{categoryItemCount.get(category.id) ?? 0} блюд</span>
                     </div>
-                  ))}
-                </div>
+                    <button className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700" onClick={() => void deleteCategory(category.id)}>
+                      Удалить
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <input
-                  className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                  className="min-w-[220px] flex-1 rounded-xl border border-black/10 bg-white px-3 py-3"
                   placeholder="Новая категория"
                   value={catTitle}
                   onChange={(e) => setCatTitle(e.target.value)}
                 />
-                <Button className="mt-2 w-full" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
+                <Button className="px-4 py-3" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
                   Создать категорию
                 </Button>
               </div>
             </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold">Блюда</div>
-                  <div className="mt-1 text-xs text-black/55">Создание и редактирование открываются во всплывающем окне.</div>
-                </div>
-                <Button className="px-4 py-2" onClick={openCreateItemModal} disabled={categories.length === 0}>
-                  + Новое блюдо
-                </Button>
-              </div>
-            </Card>
-          </div>
+          )}
 
           <Card className="p-4">
-            <div className="text-sm text-black/50">Превью клиентского меню</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-black/50">Превью клиентского меню</div>
+              {searchQuery.trim().length > 0 && (
+                <button className="text-xs text-black/55 underline" onClick={() => setSearchQuery("")}>
+                  Очистить поиск
+                </button>
+              )}
+            </div>
             <div className="mt-3 space-y-6">
-              {groupedItems.map(({ category, items: categoryItems }) => (
-                <section key={category.id}>
-                  <div className="text-xl font-bold">{category.title}</div>
-                  <div className="mt-3 space-y-3">
-                    {categoryItems.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-black/10 bg-white p-3">
-                        <div className="flex gap-3">
-                          <Photo src={item.photoUrl} alt={item.title} />
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="font-semibold">{item.title}</div>
-                                <div className="text-sm text-black/55">{item.description}</div>
+              {groupedItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-black/20 bg-white/70 p-8 text-center text-sm text-black/55">
+                  По текущим фильтрам блюд не найдено.
+                </div>
+              ) : (
+                groupedItems.map(({ category, items: categoryItems }) => (
+                  <section key={category.id}>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xl font-bold">{category.title}</div>
+                      <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-xs font-semibold text-black/60">{categoryItems.length} шт.</span>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {categoryItems.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-black/10 bg-white p-3 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
+                          <div className="flex gap-3">
+                            <Photo src={item.photoUrl} alt={item.title} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[15px] font-semibold leading-snug break-words">{item.title}</div>
+                                  <div className="mt-1 text-sm text-black/55 break-words">{item.description}</div>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap text-right text-[15px] font-extrabold">{formatKgs(item.priceKgs)}</div>
                               </div>
-                              <div className="font-bold">{formatKgs(item.priceKgs)}</div>
-                            </div>
 
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                              <label className="inline-flex items-center gap-2 text-sm">
-                                <span className="text-black/60">Наличие</span>
-                                <button
-                                  type="button"
-                                  role="switch"
-                                  aria-checked={item.isAvailable}
-                                  onClick={() => void toggleAvailability(item.id, !item.isAvailable)}
-                                  className={`relative h-7 w-12 rounded-full transition ${item.isAvailable ? "bg-emerald-500" : "bg-slate-300"}`}
-                                >
-                                  <span
-                                    className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${
-                                      item.isAvailable ? "left-[1.35rem]" : "left-0.5"
-                                    }`}
-                                  />
-                                </button>
-                                <span className={item.isAvailable ? "text-emerald-700" : "text-rose-700"}>
-                                  {item.isAvailable ? "В наличии" : "Нет в наличии"}
-                                </span>
-                              </label>
+                              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                <label className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-2 py-1.5 text-sm">
+                                  <span className="text-black/60">Наличие</span>
+                                  <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={item.isAvailable}
+                                    onClick={() => void toggleAvailability(item.id, !item.isAvailable)}
+                                    className={`relative h-7 w-12 rounded-full transition ${item.isAvailable ? "bg-emerald-500" : "bg-slate-300"}`}
+                                  >
+                                    <span
+                                      className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${
+                                        item.isAvailable ? "left-[1.35rem]" : "left-0.5"
+                                      }`}
+                                    />
+                                  </button>
+                                  <span className={`font-semibold ${item.isAvailable ? "text-emerald-700" : "text-rose-700"}`}>
+                                    {item.isAvailable ? "В наличии" : "Скрыто"}
+                                  </span>
+                                </label>
 
-                              <div className="flex gap-3 text-sm">
-                                <button className="underline text-black/70" onClick={() => editItem(item)}>
-                                  Редактировать
-                                </button>
-                                <button className="underline text-red-600" onClick={() => void deleteItem(item.id)}>
-                                  Удалить
-                                </button>
+                                <div className="flex gap-2">
+                                  <button
+                                    className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/75 transition hover:bg-black/5"
+                                    onClick={() => editItem(item)}
+                                  >
+                                    Редактировать
+                                  </button>
+                                  <button
+                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                                    onClick={() => void deleteItem(item.id)}
+                                  >
+                                    Удалить
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                    {categoryItems.length === 0 && <div className="text-sm text-black/50">В этой категории пока нет блюд.</div>}
-                  </div>
-                </section>
-              ))}
+                      ))}
+                    </div>
+                  </section>
+                ))
+              )}
             </div>
           </Card>
         </div>
@@ -382,74 +511,114 @@ export default function AdminMenuPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно блюда" onClick={closeItemModal} />
 
-          <Card className="motion-pop relative z-10 w-full max-w-lg p-4">
+          <Card className="motion-pop relative z-10 w-full max-w-3xl p-4">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
+              <div>
+                <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
+                <div className="mt-1 text-xs text-black/55">Заполните поля и сразу проверьте предпросмотр справа.</div>
+              </div>
               <div className="flex items-center gap-2">
                 {itemId && (
-                  <button className="text-sm underline text-black/60" onClick={resetItemForm}>
+                  <button className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/70" onClick={resetItemForm}>
                     Сброс
                   </button>
                 )}
-                <button className="text-sm underline text-black/60" onClick={closeItemModal}>
+                <button className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/70" onClick={closeItemModal}>
                   Закрыть
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 space-y-2">
-              <select
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                value={itemCategoryId}
-                onChange={(e) => setItemCategoryId(e.target.value)}
-              >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="Название блюда"
-                value={itemTitle}
-                onChange={(e) => setItemTitle(e.target.value)}
-              />
-              <input
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                placeholder="Описание"
-                value={itemDesc}
-                onChange={(e) => setItemDesc(e.target.value)}
-              />
-              <input
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
-                type="text"
-                inputMode="numeric"
-                placeholder="цена"
-                value={itemPrice}
-                onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
-              />
-              <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-                <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
+            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+              <div className="space-y-2">
+                <select
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                  value={itemCategoryId}
+                  onChange={(e) => setItemCategoryId(e.target.value)}
+                >
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.title}
+                    </option>
+                  ))}
+                </select>
                 <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadPhoto(file);
-                  }}
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                  placeholder="Название блюда"
+                  value={itemTitle}
+                  onChange={(e) => setItemTitle(e.target.value)}
                 />
-              </label>
-
-              {itemPhoto && (
-                <div className="relative mt-2 h-40 overflow-hidden rounded-2xl border border-black/10 bg-black/5">
-                  <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="360px" />
+                <input
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                  placeholder="Описание"
+                  value={itemDesc}
+                  onChange={(e) => setItemDesc(e.target.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="цена"
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
+                  />
+                  <div className="shrink-0 rounded-xl border border-black/10 bg-white px-3 py-3 text-sm font-semibold text-black/70">сом</div>
                 </div>
-              )}
+                <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
+                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadPhoto(file);
+                    }}
+                  />
+                </label>
+                <label className="inline-flex w-fit items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm">
+                  <span className="text-black/60">Наличие</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={itemAvail}
+                    onClick={() => setItemAvail((prev) => !prev)}
+                    className={`relative h-7 w-12 rounded-full transition ${itemAvail ? "bg-emerald-500" : "bg-slate-300"}`}
+                  >
+                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${itemAvail ? "left-[1.35rem]" : "left-0.5"}`} />
+                  </button>
+                  <span className={`font-semibold ${itemAvail ? "text-emerald-700" : "text-rose-700"}`}>{itemAvail ? "В наличии" : "Скрыто"}</span>
+                </label>
+              </div>
 
+              <div className="space-y-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-black/50">Предпросмотр</div>
+                <div className="rounded-2xl border border-black/10 bg-white p-3">
+                  {itemPhoto ? (
+                    <div className="relative h-36 overflow-hidden rounded-xl border border-black/10 bg-black/5">
+                      <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="240px" />
+                    </div>
+                  ) : (
+                    <div className="flex h-36 items-center justify-center rounded-xl border border-dashed border-black/20 bg-black/5 text-xs text-black/45">
+                      Фото не выбрано
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <div className="text-sm font-semibold break-words">{itemTitle || "Название блюда"}</div>
+                    <div className="mt-1 text-xs text-black/55 break-words">{itemDesc || "Короткое описание блюда"}</div>
+                    <div className="mt-2 text-sm font-extrabold">{formatKgs(Number(itemPrice) || 0)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <Button className="flex-1" variant="secondary" onClick={closeItemModal} disabled={uploadingPhoto}>
+                Отмена
+              </Button>
               <Button
-                className="w-full"
+                className="flex-1"
                 disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
                 onClick={() => void upsertItem()}
               >
