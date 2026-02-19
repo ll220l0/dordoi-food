@@ -142,12 +142,12 @@ export default function MenuScreen({ slug }: { slug: string }) {
                 <Card key={m.id} className="p-3">
                   <div className="flex gap-3">
                     <Photo src={m.photoUrl} alt={m.title} />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-semibold">{m.title}</div>
-                        <div className="font-bold">{formatKgs(m.priceKgs)}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1 font-semibold leading-snug break-words">{m.title}</div>
+                        <div className="shrink-0 whitespace-nowrap text-right font-bold">{formatKgs(m.priceKgs)}</div>
                       </div>
-                      <div className="mt-1 text-sm text-black/55">{m.description}</div>
+                      <div className="mt-1 text-sm text-black/55 break-words">{m.description}</div>
 
                       <div className="mt-3 flex justify-end">
                         {!m.isAvailable ? (
