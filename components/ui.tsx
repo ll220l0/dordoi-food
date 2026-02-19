@@ -44,7 +44,7 @@ export function Button({
   children: ReactNode; onClick?: ()=>void; variant?: "primary"|"secondary"|"ghost"; type?: "button"|"submit"; disabled?: boolean; className?: string;
 }) {
   const base =
-    "rounded-2xl px-4 py-3 font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] disabled:opacity-50 disabled:active:scale-100";
+    "inline-flex items-center justify-center rounded-2xl px-4 py-3 text-center leading-none font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] disabled:opacity-50 disabled:active:scale-100";
   const styles =
     variant === "primary"
       ? "bg-black text-white shadow-[0_16px_30px_rgba(15,23,42,0.3)]"

@@ -317,7 +317,7 @@ export default function AdminMenuPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-black/50">Админка</div>
-            <div className="text-3xl font-extrabold">Редактор меню</div>
+            <div className="text-2xl font-extrabold sm:text-3xl">Редактор меню</div>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
             Назад
@@ -326,14 +326,14 @@ export default function AdminMenuPage() {
 
         <div className="mt-5 space-y-4">
           <Card className="p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button className="px-4 py-2" onClick={openCreateItemModal} disabled={categories.length === 0}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button className="h-10 w-full px-4 sm:w-auto" onClick={openCreateItemModal} disabled={categories.length === 0}>
                 + Новое блюдо
               </Button>
               <button
                 type="button"
                 aria-expanded={categoriesOpen}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-black/10 bg-white px-3 text-sm font-semibold text-black/70 transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-black/5 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-3 text-sm font-semibold text-black/70 transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-black/5 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)] sm:w-auto"
                 onClick={() => setCategoriesOpen((prev) => !prev)}
               >
                 Категории
@@ -347,14 +347,14 @@ export default function AdminMenuPage() {
                   </svg>
                 </span>
               </button>
-              <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex w-full flex-wrap items-center gap-2 text-xs sm:ml-auto sm:w-auto">
                 <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Категорий: {categories.length}</span>
                 <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Блюд: {items.length}</span>
                 <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">В выдаче: {filteredItems.length}</span>
               </div>
             </div>
 
-            <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_220px]">
               <input
                 className="w-full rounded-xl border border-black/10 bg-white px-3 py-3"
                 placeholder="Поиск по названию или описанию..."
@@ -373,11 +373,11 @@ export default function AdminMenuPage() {
                   </option>
                 ))}
               </select>
-              <div className="inline-flex rounded-xl border border-black/10 bg-white p-1">
+              <div className="inline-flex w-full flex-wrap rounded-xl border border-black/10 bg-white p-1 sm:col-span-2">
                 <button
                   type="button"
                   onClick={() => setAvailabilityFilter("all")}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${availabilityFilter === "all" ? "bg-black text-white" : "text-black/65"}`}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${availabilityFilter === "all" ? "bg-black text-white" : "text-black/65"}`}
                 >
                   Все
                 </button>
@@ -386,7 +386,7 @@ export default function AdminMenuPage() {
                   onClick={() => setAvailabilityFilter("available")}
                   className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                     availabilityFilter === "available" ? "bg-emerald-600 text-white" : "text-black/65"
-                  }`}
+                  } flex-1`}
                 >
                   В наличии
                 </button>
@@ -395,7 +395,7 @@ export default function AdminMenuPage() {
                   onClick={() => setAvailabilityFilter("hidden")}
                   className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                     availabilityFilter === "hidden" ? "bg-rose-600 text-white" : "text-black/65"
-                  }`}
+                  } flex-1`}
                 >
                   Скрытые
                 </button>
@@ -407,9 +407,9 @@ export default function AdminMenuPage() {
             <Card className="p-4">
               <div className="space-y-2">
                 {categories.map((category) => (
-                  <div key={category.id} className="flex items-center justify-between rounded-xl border border-black/10 bg-white px-3 py-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{category.title}</span>
+                  <div key={category.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="break-words font-semibold">{category.title}</span>
                       <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-black/60">{categoryItemCount.get(category.id) ?? 0} блюд</span>
                     </div>
                     <button className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700" onClick={() => void deleteCategory(category.id)}>
@@ -425,7 +425,7 @@ export default function AdminMenuPage() {
                   value={catTitle}
                   onChange={(e) => setCatTitle(e.target.value)}
                 />
-                <Button className="px-4 py-3" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
+                <Button className="h-11 w-full px-4 sm:w-auto" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
                   Создать категорию
                 </Button>
               </div>
@@ -521,18 +521,18 @@ export default function AdminMenuPage() {
           <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно блюда" onClick={closeItemModal} />
 
           <Card className="motion-pop relative z-10 w-full max-w-3xl p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
                 <div className="mt-1 text-xs text-black/55">Заполните поля и сразу проверьте предпросмотр справа.</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 {itemId && (
-                  <button className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/70" onClick={resetItemForm}>
+                  <button className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none" onClick={resetItemForm}>
                     Сброс
                   </button>
                 )}
-                <button className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm font-semibold text-black/70" onClick={closeItemModal}>
+                <button className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none" onClick={closeItemModal}>
                   Закрыть
                 </button>
               </div>
@@ -622,7 +622,7 @@ export default function AdminMenuPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <Button className="flex-1" variant="secondary" onClick={closeItemModal} disabled={uploadingPhoto}>
                 Отмена
               </Button>
