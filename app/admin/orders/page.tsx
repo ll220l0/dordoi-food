@@ -39,7 +39,7 @@ type AdminOrder = {
 type AdminOrdersResponse = { orders: AdminOrder[] };
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Failed to fetch orders";
+  return error instanceof Error ? error.message : "Не удалось получить заказы";
 }
 
 function normalizePhone(phone: string) {
@@ -65,7 +65,7 @@ export default function AdminOrdersPage() {
       const res = await fetch("/api/admin/orders", { cache: "no-store" });
       if (!res.ok) {
         const j = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(j?.error ?? `Failed to load orders (${res.status})`);
+        throw new Error(j?.error ?? `Не удалось загрузить заказы (${res.status})`);
       }
 
       const j = (await res.json()) as AdminOrdersResponse;
@@ -275,7 +275,7 @@ export default function AdminOrdersPage() {
       <div className="mx-auto max-w-3xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs text-black/50">Admin</div>
+            <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Заказы</div>
           </div>
           <div className="flex items-center gap-2">

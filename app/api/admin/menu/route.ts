@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug");
-  if (!slug) return NextResponse.json({ error: "slug required" }, { status: 400 });
+  if (!slug) return NextResponse.json({ error: "Требуется slug ресторана" }, { status: 400 });
 
   const restaurant = await prisma.restaurant.findUnique({
     where: { slug },
     include: { categories: { orderBy: { sortOrder: "asc" } }, items: { orderBy: { sortOrder: "asc" } } }
   });
-  if (!restaurant) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!restaurant) return NextResponse.json({ error: "Ресторан не найден" }, { status: 404 });
 
   return NextResponse.json({
     restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug },

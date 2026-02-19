@@ -48,11 +48,11 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     const res = await fetch(`/api/admin/orders/${orderId}`, { cache: "no-store" });
     if (!res.ok) {
       const errorPayload = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(errorPayload?.error ?? "Failed to load order");
+      throw new Error(errorPayload?.error ?? "Не удалось загрузить заказ");
     }
 
     const payload = (await res.json().catch(() => null)) as AdminOrderData | null;
-    if (!payload) throw new Error("Failed to load order");
+    if (!payload) throw new Error("Не удалось загрузить заказ");
     setData(payload);
   }, [orderId]);
 
@@ -67,7 +67,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/confirm`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      if (!res.ok) throw new Error(j?.error ?? "Операция не выполнена");
       toast.success("Оплата подтверждена");
       void load();
     } catch (error: unknown) {
@@ -82,7 +82,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/deliver`, { method: "POST" });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      if (!res.ok) throw new Error(j?.error ?? "Операция не выполнена");
       toast.success("Заказ отмечен как доставленный");
       void load();
     } catch (error: unknown) {
@@ -118,7 +118,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
         body: JSON.stringify({ reason })
       });
       const j = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      if (!res.ok) throw new Error(j?.error ?? "Операция не выполнена");
       toast.success("Заказ отменен");
       closeCancelModal(true);
       void load();
@@ -145,7 +145,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
       <div className="mx-auto max-w-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs text-black/50">Admin</div>
+            <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Заказ #{orderId.slice(-6)}</div>
           </div>
           <div className="flex items-center gap-2">

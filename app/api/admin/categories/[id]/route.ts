@@ -19,7 +19,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json(
         {
           error:
-            "Cannot delete category because some items are used in orders. Remove such items from the category or mark them unavailable."
+            "Нельзя удалить категорию: некоторые позиции уже используются в заказах. Удалите такие позиции из категории или сделайте их недоступными."
         },
         { status: 409 }
       );
@@ -32,7 +32,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return NextResponse.json({ error: "Category not found" }, { status: 404 });
+      return NextResponse.json({ error: "Категория не найдена" }, { status: 404 });
     }
 
     throw error;

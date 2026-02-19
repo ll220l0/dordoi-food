@@ -44,7 +44,7 @@ async function resizeImage(file: File) {
     canvas.width = target;
     canvas.height = target;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas not available");
+    if (!ctx) throw new Error("Холст недоступен");
 
     const minSide = Math.min(img.width, img.height);
     const sx = (img.width - minSide) / 2;
@@ -291,7 +291,7 @@ export default function AdminMenuPage() {
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs text-black/50">Admin</div>
+            <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Редактор меню</div>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
@@ -407,7 +407,7 @@ export default function AdminMenuPage() {
 
                 {itemPhoto && (
                   <div className="relative mt-2 h-40 overflow-hidden rounded-2xl border border-black/10 bg-black/5">
-                    <Image src={itemPhoto} alt="Preview" fill className="object-cover" sizes="360px" />
+                    <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="360px" />
                   </div>
                 )}
 

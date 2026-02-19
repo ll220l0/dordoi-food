@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const expirationTime = body?.subscription?.expirationTime ?? null;
 
   if (!orderId || !endpoint || !p256dh || !auth) {
-    return NextResponse.json({ error: "Invalid subscription payload" }, { status: 400 });
+    return NextResponse.json({ error: "Некорректные данные подписки" }, { status: 400 });
   }
 
   const order = await prisma.order.findUnique({
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     select: { id: true }
   });
   if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
   }
 
   await savePushSubscription({ orderId, endpoint, p256dh, auth, expirationTime });

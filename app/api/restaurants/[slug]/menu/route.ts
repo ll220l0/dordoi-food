@@ -23,7 +23,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
           }
         });
 
-  if (!restaurant) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!restaurant) return NextResponse.json({ error: "Ресторан не найден" }, { status: 404 });
 
   return NextResponse.json({
     restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug },

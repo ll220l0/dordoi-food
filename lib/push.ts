@@ -57,7 +57,7 @@ function getStatusPayload(orderId: string, status: PushOrderStatus): PushPayload
     return {
       ...base,
       title: "Dordoi Food",
-      body: "Order confirmed by restaurant."
+      body: "Заказ подтвержден рестораном."
     };
   }
 
@@ -65,7 +65,7 @@ function getStatusPayload(orderId: string, status: PushOrderStatus): PushPayload
     return {
       ...base,
       title: "Dordoi Food",
-      body: "Order marked as delivered."
+      body: "Заказ отмечен как доставленный."
     };
   }
 
@@ -73,14 +73,14 @@ function getStatusPayload(orderId: string, status: PushOrderStatus): PushPayload
     return {
       ...base,
       title: "Dordoi Food",
-      body: "Payment received. Waiting for restaurant confirmation."
+      body: "Оплата получена. Ожидаем подтверждения ресторана."
     };
   }
 
   return {
     ...base,
     title: "Dordoi Food",
-    body: "Order canceled."
+    body: "Заказ отменен."
   };
 }
 

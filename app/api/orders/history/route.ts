@@ -17,7 +17,7 @@ export async function GET(req: Request) {
       .slice(0, 30);
 
     if (phone.length < 7 && orderIds.length === 0) {
-      return NextResponse.json({ error: "phone or ids required" }, { status: 400 });
+      return NextResponse.json({ error: "Требуется телефон или список id заказов" }, { status: 400 });
     }
 
     const whereClauses: Array<Record<string, unknown>> = [];
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
       }))
     });
   } catch (error: unknown) {
-    const apiError = toApiError(error, "Failed to load order history");
+    const apiError = toApiError(error, "Не удалось загрузить историю заказов");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }

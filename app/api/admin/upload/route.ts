@@ -12,15 +12,15 @@ export async function POST(req: Request) {
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "File not found" }, { status: 400 });
+    return NextResponse.json({ error: "Файл не найден" }, { status: 400 });
   }
 
   if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json({ error: "Unsupported file format" }, { status: 400 });
+    return NextResponse.json({ error: "Неподдерживаемый формат файла" }, { status: 400 });
   }
 
   if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: "File is too large" }, { status: 400 });
+    return NextResponse.json({ error: "Файл слишком большой" }, { status: 400 });
   }
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Blob storage is not configured" }, { status: 500 });
+    return NextResponse.json({ error: "Blob-хранилище не настроено" }, { status: 500 });
   }
 
   const uploadDir = path.join(process.cwd(), "public", "uploads");

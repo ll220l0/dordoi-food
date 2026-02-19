@@ -39,7 +39,7 @@ export async function GET() {
       }))
     });
   } catch (error: unknown) {
-    const apiError = toApiError(error, "Failed to load orders");
+    const apiError = toApiError(error, "Не удалось загрузить заказы");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 function toErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown error";
+  return error instanceof Error ? error.message : "Неизвестная ошибка";
 }
 
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
       dbError = toErrorMessage(error);
     }
   } else {
-    dbError = "DATABASE_URL is missing";
+    dbError = "Отсутствует переменная DATABASE_URL";
   }
 
   const ok = missingEnv.length === 0 && dbOk;

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const endpoint = body?.endpoint?.trim() ?? "";
 
   if (!endpoint) {
-    return NextResponse.json({ error: "endpoint required" }, { status: 400 });
+    return NextResponse.json({ error: "Требуется адрес подписки" }, { status: 400 });
   }
 
   await removePushSubscription({ orderId, endpoint });

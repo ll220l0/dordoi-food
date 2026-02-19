@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
 
 export default function AdminHome() {
@@ -7,7 +7,7 @@ export default function AdminHome() {
       <div className="mx-auto max-w-xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-2xl font-extrabold">Admin</div>
+            <div className="text-2xl font-extrabold">Админка</div>
             <div className="mt-1 text-sm text-black/55">Панель управления.</div>
           </div>
           <AdminLogoutButton className="px-3 py-2 text-sm" />

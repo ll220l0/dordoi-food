@@ -13,8 +13,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const payerName = body?.payerName?.trim() ?? "";
 
     const order = await prisma.order.findUnique({ where: { id } });
-    if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (order.paymentMethod === "cash") return NextResponse.json({ error: "Not bank order" }, { status: 400 });
+    if (!order) return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
+    if (order.paymentMethod === "cash") return NextResponse.json({ error: "Это не банковский заказ" }, { status: 400 });
 
     const updated = await prisma.order.update({
       where: { id },
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
     return NextResponse.json({ ok: true, status: updated.status });
   } catch (error: unknown) {
-    const apiError = toApiError(error, "Failed to update payment status");
+    const apiError = toApiError(error, "Не удалось обновить статус оплаты");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }

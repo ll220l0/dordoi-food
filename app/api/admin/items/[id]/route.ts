@@ -8,7 +8,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   const ordersCount = await prisma.orderItem.count({ where: { menuItemId: id } });
   if (ordersCount > 0) {
     return NextResponse.json(
-      { error: "Cannot delete item with order history. Mark it unavailable instead." },
+      { error: "Нельзя удалить позицию с историей заказов. Сделайте ее недоступной." },
       { status: 409 }
     );
   }
@@ -20,13 +20,13 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2003") {
         return NextResponse.json(
-          { error: "Cannot delete item with order history. Mark it unavailable instead." },
+          { error: "Нельзя удалить позицию с историей заказов. Сделайте ее недоступной." },
           { status: 409 }
         );
       }
 
       if (error.code === "P2025") {
-        return NextResponse.json({ error: "Item not found" }, { status: 404 });
+        return NextResponse.json({ error: "Позиция не найдена" }, { status: 404 });
       }
     }
 
@@ -39,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = (await req.json().catch(() => null)) as { isAvailable?: boolean } | null;
 
   if (typeof body?.isAvailable !== "boolean") {
-    return NextResponse.json({ error: "isAvailable boolean required" }, { status: 400 });
+    return NextResponse.json({ error: "Параметр isAvailable должен быть булевым значением" }, { status: 400 });
   }
 
   const item = await prisma.menuItem.update({

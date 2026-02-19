@@ -52,16 +52,16 @@ export async function PATCH(req: Request) {
   const hasBankNumbersUpdate = hasMbankUpdate || hasObankUpdate || hasBakaiUpdate;
 
   if (!slug) {
-    return NextResponse.json({ error: "slug is required" }, { status: 400 });
+    return NextResponse.json({ error: "Требуется slug ресторана" }, { status: 400 });
   }
 
   if (!hasBankNumbersUpdate) {
-    return NextResponse.json({ error: "No changes provided" }, { status: 400 });
+    return NextResponse.json({ error: "Нет данных для обновления" }, { status: 400 });
   }
 
   const expectedBankPassword = process.env.ADMIN_BANK_PASS ?? process.env.ADMIN_PASS ?? "";
   if (expectedBankPassword && bankPassword !== expectedBankPassword) {
-    return NextResponse.json({ error: "Invalid bank password" }, { status: 403 });
+    return NextResponse.json({ error: "Неверный пароль для изменения банковских данных" }, { status: 403 });
   }
 
   const data: Prisma.RestaurantUpdateInput = {};
@@ -69,21 +69,21 @@ export async function PATCH(req: Request) {
   if (hasMbankUpdate) {
     const parsed = validateBankNumber(body?.mbankNumber);
     if (body?.mbankNumber && !parsed) {
-      return NextResponse.json({ error: "Invalid Mbank number. Use format 996XXXXXXXXX" }, { status: 400 });
+      return NextResponse.json({ error: "Некорректный номер Mbank. Используйте формат 996XXXXXXXXX" }, { status: 400 });
     }
     data.mbankNumber = parsed;
   }
   if (hasObankUpdate) {
     const parsed = validateBankNumber(body?.obankNumber);
     if (body?.obankNumber && !parsed) {
-      return NextResponse.json({ error: "Invalid O bank number. Use format 996XXXXXXXXX" }, { status: 400 });
+      return NextResponse.json({ error: "Некорректный номер O bank. Используйте формат 996XXXXXXXXX" }, { status: 400 });
     }
     data.obankNumber = parsed;
   }
   if (hasBakaiUpdate) {
     const parsed = validateBankNumber(body?.bakaiNumber);
     if (body?.bakaiNumber && !parsed) {
-      return NextResponse.json({ error: "Invalid Bakai number. Use format 996XXXXXXXXX" }, { status: 400 });
+      return NextResponse.json({ error: "Некорректный номер Bakai. Используйте формат 996XXXXXXXXX" }, { status: 400 });
     }
     data.bakaiNumber = parsed;
   }

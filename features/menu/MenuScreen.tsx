@@ -24,7 +24,7 @@ type MenuResp = {
 
 async function fetchMenu(slug: string): Promise<MenuResp> {
   const res = await fetch(`/api/restaurants/${slug}/menu`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load menu");
+  if (!res.ok) throw new Error("Не удалось загрузить меню");
   return res.json();
 }
 

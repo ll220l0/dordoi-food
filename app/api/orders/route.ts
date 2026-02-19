@@ -10,12 +10,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     const parsed = CreateOrderSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Invalid payload", details: parsed.error.flatten() }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: "Некорректные данные запроса", details: parsed.error.flatten() }, { status: 400 });
 
     const { restaurantSlug, items, location, paymentMethod, customerPhone, payerName, comment } = parsed.data;
 
     const restaurant = await prisma.restaurant.findUnique({ where: { slug: restaurantSlug } });
-    if (!restaurant) return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    if (!restaurant) return NextResponse.json({ error: "Ресторан не найден" }, { status: 404 });
 
     const menuItems = await prisma.menuItem.findMany({
       where: { restaurantId: restaurant.id, id: { in: items.map((x) => x.menuItemId) } }
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     for (const x of items) {
       const m = map.get(x.menuItemId);
       if (!m || !m.isAvailable) {
-        return NextResponse.json({ error: "Menu item not available" }, { status: 400 });
+        return NextResponse.json({ error: "Позиция меню недоступна" }, { status: 400 });
       }
       orderLines.push({ m, qty: x.qty });
     }
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     const bankPayUrl = dbPaymentMethod === "cash" ? null : buildMbankPayUrl({ totalKgs, bankPhone: restaurant.mbankNumber });
     return NextResponse.json({ orderId: order.id, bankPayUrl });
   } catch (error: unknown) {
-    const apiError = toApiError(error, "Failed to create order");
+    const apiError = toApiError(error, "Не удалось создать заказ");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }

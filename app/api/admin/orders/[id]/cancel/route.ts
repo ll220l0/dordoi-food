@@ -12,17 +12,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const reason = normalizeReason(payload?.reason);
 
   if (!reason) {
-    return NextResponse.json({ error: "Cancel reason is required" }, { status: 400 });
+    return NextResponse.json({ error: "Причина отмены обязательна" }, { status: 400 });
   }
 
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
   }
 
   const canCancel = order.status === "confirmed" || order.status === "cooking" || order.status === "delivering";
   if (!canCancel) {
-    return NextResponse.json({ error: "Only confirmed active orders can be canceled" }, { status: 400 });
+    return NextResponse.json({ error: "Можно отменять только подтвержденные активные заказы" }, { status: 400 });
   }
 
   const updated = await prisma.order.update({

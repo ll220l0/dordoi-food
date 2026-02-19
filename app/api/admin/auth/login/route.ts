@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_TTL_SECONDS,
@@ -14,7 +14,7 @@ type LoginBody = {
 
 export async function POST(req: Request) {
   if (!hasAdminCredentials()) {
-    return NextResponse.json({ error: "Admin credentials are not configured" }, { status: 500 });
+    return NextResponse.json({ error: "Учетные данные администратора не настроены" }, { status: 500 });
   }
 
   const body = (await req.json().catch(() => null)) as LoginBody | null;
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const token = await createAdminSessionToken();
   if (!token) {
-    return NextResponse.json({ error: "Cannot create admin session" }, { status: 500 });
+    return NextResponse.json({ error: "Не удалось создать сессию администратора" }, { status: 500 });
   }
 
   const res = NextResponse.json({ ok: true });

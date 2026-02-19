@@ -5,7 +5,7 @@ import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? "Dordoi Food",
-  description: "Restaurant ordering for containers with bank and cash payment.",
+  description: "Заказ еды с доставкой в контейнеры, с оплатой банком или наличными.",
   manifest: "/manifest.json",
   icons: {
     icon: [

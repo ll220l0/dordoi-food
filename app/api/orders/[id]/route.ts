@@ -12,7 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       where: { id },
       include: { restaurant: true, items: true }
     });
-    if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!order) return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
 
     return NextResponse.json({
       id: order.id,
@@ -43,7 +43,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       updatedAt: order.updatedAt
     });
   } catch (error: unknown) {
-    const apiError = toApiError(error, "Failed to load order");
+    const apiError = toApiError(error, "Не удалось загрузить заказ");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
