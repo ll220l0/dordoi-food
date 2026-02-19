@@ -354,7 +354,7 @@ export default function CartScreen() {
             <div className="text-xl font-extrabold">{formatKgs(total)}</div>
           </div>
           <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submitOrder}>
-            {loading ? "Создаем заказ..." : paymentMethod === "bank" ? "К оплате Mbank" : "Оформить заказ"}
+            {loading ? "Создаем заказ..." : paymentMethod === "bank" ? "К оплате" : "Оформить заказ"}
           </Button>
           <Button className="mt-2 w-full" variant="secondary" disabled={loading} onClick={cancelCart}>
             Отменить и очистить корзину

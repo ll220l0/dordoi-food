@@ -21,7 +21,7 @@ export default function AdminHome() {
             Меню
           </Link>
           <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/banks">
-            Номера банков
+            Реквизиты
           </Link>
         </div>
       </div>
