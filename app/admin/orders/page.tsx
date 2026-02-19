@@ -242,7 +242,7 @@ export default function AdminOrdersPage() {
                 href={whatsappHref}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 items-center rounded-2xl border border-black/15 bg-white px-4 text-sm font-semibold text-black/75 transition hover:bg-black/[0.03]"
+                className="inline-flex h-10 items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
               >
                 Написать в WhatsApp
               </a>

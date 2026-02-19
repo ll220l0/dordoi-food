@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Photo } from "@/components/ui";
@@ -112,6 +113,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [orderHref, setOrderHref] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [openedHistoryOrderId, setOpenedHistoryOrderId] = useState<string | null>(null);
 
   const loadOrder = useCallback(
     async (silent = false) => {
@@ -321,26 +323,51 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
             <div className="border-t border-black/10 px-4 pb-4 pt-3">
               <div className="space-y-2">
                 {history.map((order) => {
-                  const meta = getOrderStatusMeta(order.status);
+                  const isExpanded = openedHistoryOrderId === order.id;
+                  const createdDate = new Date(order.createdAt);
+
                   return (
-                    <div key={order.id} className="rounded-2xl border border-black/10 bg-white/70 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2">
-                          {historyStatusIcon(order.status)}
-                          <div>
-                            <div className="font-semibold">#{order.id.slice(-6)}</div>
-                            <div className="text-xs text-black/50">{new Date(order.createdAt).toLocaleString()}</div>
+                    <div key={order.id} className="rounded-2xl border border-black/10 bg-white/70">
+                      <button
+                        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+                        onClick={() => setOpenedHistoryOrderId((value) => (value === order.id ? null : order.id))}
+                      >
+                        <div className="w-6 shrink-0">{historyStatusIcon(order.status)}</div>
+                        <div className="flex-1 text-center text-sm font-bold">{formatKgs(order.totalKgs)}</div>
+                        <div className="w-28 shrink-0 text-right">
+                          <div className="text-xs text-black/55">{createdDate.toLocaleDateString()}</div>
+                          <div className="text-xs text-black/55">{createdDate.toLocaleTimeString()}</div>
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t border-black/10 px-3 pb-3 pt-2">
+                          <div className="text-xs text-black/55">
+                            {order.restaurant?.name ?? "-"} · {paymentMethodLabel(order.paymentMethod)}
+                          </div>
+                          <div className="mt-1 text-xs text-black/55">
+                            Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
+                          </div>
+                          {order.comment ? <div className="mt-1 text-xs text-black/55">Комментарий: {order.comment}</div> : null}
+
+                          <div className="mt-3 space-y-2">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 p-2">
+                                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5 ring-1 ring-black/5">
+                                  <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="40px" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-sm font-semibold">{item.title}</div>
+                                  <div className="text-xs text-black/55">
+                                    {item.qty} x {formatKgs(item.priceKgs)}
+                                  </div>
+                                </div>
+                                <div className="text-sm font-bold">{formatKgs(item.priceKgs * item.qty)}</div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${meta.badgeClassName}`}>{meta.label}</span>
-                      </div>
-
-                      <div className="mt-2 text-sm text-black/70">
-                        {order.restaurant?.name ?? "-"} - {formatKgs(order.totalKgs)} - {order.items.length} поз.
-                      </div>
-                      <div className="mt-1 text-xs text-black/55">
-                        Проход {order.location?.line ?? "-"}, контейнер {order.location?.container ?? "-"}
-                      </div>
+                      )}
                     </div>
                   );
                 })}
