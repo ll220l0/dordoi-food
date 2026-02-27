@@ -45,7 +45,7 @@ function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onD
         className="h-9 w-9 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(190,24,93,0.2)] active:translate-y-0 active:scale-95"
         aria-label="Уменьшить"
       >
-        −
+        -
       </button>
 
       <div
@@ -72,11 +72,12 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["menu", slug],
     queryFn: () => fetchMenu(slug),
-    refetchInterval: 5000
+    refetchInterval: 15000
   });
 
   const router = useRouter();
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [showUnavailable, setShowUnavailable] = useState(false);
 
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
@@ -108,9 +109,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   const items = useMemo(() => {
     if (!data) return [];
-    if (!activeCat) return data.items;
-    return data.items.filter((x) => x.categoryId === activeCat);
-  }, [data, activeCat]);
+    const byCategory = !activeCat ? data.items : data.items.filter((x) => x.categoryId === activeCat);
+    return showUnavailable ? byCategory : byCategory.filter((x) => x.isAvailable);
+  }, [data, activeCat, showUnavailable]);
 
   function addToCart(item: MenuResp["items"][number]) {
     add({ menuItemId: item.id, title: item.title, photoUrl: item.photoUrl, priceKgs: item.priceKgs });
@@ -130,6 +131,16 @@ export default function MenuScreen({ slug }: { slug: string }) {
               <Pill active={c.id === activeCat}>{c.title}</Pill>
             </button>
           ))}
+        </div>
+
+        <div className="mt-1 flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-3 py-2">
+          <div className="text-xs text-black/50">Стоп-лист скрыт по умолчанию</div>
+          <button
+            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${showUnavailable ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/70"}`}
+            onClick={() => setShowUnavailable((v) => !v)}
+          >
+            {showUnavailable ? "Скрыть стоп-лист" : "Показать стоп-лист"}
+          </button>
         </div>
 
         <div className="mt-3 space-y-3">
@@ -168,6 +179,12 @@ export default function MenuScreen({ slug }: { slug: string }) {
               );
             })
           )}
+
+          {!isLoading && items.length === 0 && (
+            <Card className="p-4">
+              <div className="text-sm text-black/60">В этой категории сейчас нет доступных блюд.</div>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -175,3 +192,4 @@ export default function MenuScreen({ slug }: { slug: string }) {
     </main>
   );
 }
+

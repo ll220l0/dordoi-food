@@ -1,11 +1,15 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const auth = await requireAdminRole(["owner", "operator", "courier"]);
+  if ("response" in auth) return auth.response;
+
   try {
     const orders = await prisma.order.findMany({
       include: { restaurant: true, items: true },
@@ -28,6 +32,9 @@ export async function GET() {
         location: o.location,
         createdAt: o.createdAt,
         updatedAt: o.updatedAt,
+        paymentConfirmedAt: o.paymentConfirmedAt,
+        deliveredAt: o.deliveredAt,
+        canceledAt: o.canceledAt,
         items: o.items.map((x) => ({
           id: x.id,
           title: x.titleSnap,
@@ -36,10 +43,13 @@ export async function GET() {
           photoUrl: x.photoSnap
         })),
         itemCount: o.items.reduce((s, x) => s + x.qty, 0)
-      }))
+      })),
+      role: auth.session.role,
+      user: auth.session.user
     });
   } catch (error: unknown) {
     const apiError = toApiError(error, "Не удалось загрузить заказы");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+

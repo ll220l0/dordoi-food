@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/adminSession";
 
@@ -13,8 +13,8 @@ export async function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get(ADMIN_SESSION_COOKIE)?.value ?? "";
-  const isValidSession = token ? await verifyAdminSessionToken(token) : false;
-  if (isValidSession) return NextResponse.next();
+  const session = token ? await verifyAdminSessionToken(token) : null;
+  if (session) return NextResponse.next();
 
   if (isAdminApi) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
   loginUrl.pathname = "/admin/login";
   loginUrl.searchParams.set("next", `${pathname}${req.nextUrl.search}`);
   return NextResponse.redirect(loginUrl);
-
 }
 
 export const config = { matcher: ["/admin/:path*", "/api/admin/:path*"] };
+

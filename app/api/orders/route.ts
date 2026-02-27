@@ -1,3 +1,4 @@
+﻿import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { buildMbankPayUrl } from "@/lib/mbankLink";
@@ -6,13 +7,36 @@ import { toDbPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 import { CreateOrderSchema } from "@/lib/validators";
 
+function normalizeIdempotencyKey(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 120);
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     const parsed = CreateOrderSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Некорректные данные запроса", details: parsed.error.flatten() }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Некорректные данные запроса", details: parsed.error.flatten() }, { status: 400 });
+    }
 
     const { restaurantSlug, items, location, paymentMethod, customerPhone, payerName, comment } = parsed.data;
+    const idempotencyKey = normalizeIdempotencyKey(parsed.data.idempotencyKey || req.headers.get("x-idempotency-key"));
+
+    if (idempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey },
+        include: { restaurant: true }
+      });
+
+      if (existing) {
+        const bankPayUrl =
+          existing.paymentMethod === "cash"
+            ? null
+            : buildMbankPayUrl({ totalKgs: existing.totalKgs, bankPhone: existing.restaurant.mbankNumber });
+        return NextResponse.json({ orderId: existing.id, bankPayUrl, created: false });
+      }
+    }
 
     const restaurant = await prisma.restaurant.findUnique({ where: { slug: restaurantSlug } });
     if (!restaurant) return NextResponse.json({ error: "Ресторан не найден" }, { status: 404 });
@@ -34,33 +58,55 @@ export async function POST(req: Request) {
     const paymentCode = makePaymentCode("BX");
     const dbPaymentMethod = toDbPaymentMethod(paymentMethod);
 
-    const order = await prisma.order.create({
-      data: {
-        restaurantId: restaurant.id,
-        status: dbPaymentMethod === "cash" ? "confirmed" : "created",
-        paymentMethod: dbPaymentMethod,
-        totalKgs,
-        customerPhone: customerPhone || null,
-        payerName: payerName?.trim() || null,
-        comment: comment || null,
-        paymentCode,
-        location,
-        items: {
-          create: orderLines.map(({ m, qty }) => ({
-            menuItemId: m.id,
-            qty,
-            priceKgs: m.priceKgs,
-            titleSnap: m.title,
-            photoSnap: m.photoUrl
-          }))
+    let order;
+    try {
+      order = await prisma.order.create({
+        data: {
+          restaurantId: restaurant.id,
+          status: dbPaymentMethod === "cash" ? "confirmed" : "created",
+          paymentMethod: dbPaymentMethod,
+          totalKgs,
+          customerPhone: customerPhone || null,
+          payerName: payerName?.trim() || null,
+          comment: comment || null,
+          idempotencyKey: idempotencyKey || null,
+          paymentConfirmedAt: dbPaymentMethod === "cash" ? new Date() : null,
+          paymentCode,
+          location,
+          items: {
+            create: orderLines.map(({ m, qty }) => ({
+              menuItemId: m.id,
+              qty,
+              priceKgs: m.priceKgs,
+              titleSnap: m.title,
+              photoSnap: m.photoUrl
+            }))
+          }
+        }
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" && idempotencyKey) {
+        const existing = await prisma.order.findUnique({
+          where: { idempotencyKey },
+          include: { restaurant: true }
+        });
+
+        if (existing) {
+          const bankPayUrl =
+            existing.paymentMethod === "cash"
+              ? null
+              : buildMbankPayUrl({ totalKgs: existing.totalKgs, bankPhone: existing.restaurant.mbankNumber });
+          return NextResponse.json({ orderId: existing.id, bankPayUrl, created: false });
         }
       }
-    });
+      throw error;
+    }
 
     const bankPayUrl = dbPaymentMethod === "cash" ? null : buildMbankPayUrl({ totalKgs, bankPhone: restaurant.mbankNumber });
-    return NextResponse.json({ orderId: order.id, bankPayUrl });
+    return NextResponse.json({ orderId: order.id, bankPayUrl, created: true });
   } catch (error: unknown) {
     const apiError = toApiError(error, "Не удалось создать заказ");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+

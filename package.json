@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "dordoi-food-web",
   "private": true,
   "version": "3.0.0",
@@ -14,7 +14,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "node prisma/seed.mjs"
+    "db:seed": "node prisma/seed.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -46,3 +47,4 @@
     "typescript": "^5.7.2"
   }
 }
+

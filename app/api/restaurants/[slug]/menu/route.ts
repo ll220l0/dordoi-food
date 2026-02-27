@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -40,3 +40,4 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     }))
   });
 }
+

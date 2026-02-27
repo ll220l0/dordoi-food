@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +39,7 @@ export async function GET(req: Request) {
         paymentMethod: toClientPaymentMethod(order.paymentMethod),
         totalKgs: order.totalKgs,
         payerName: order.payerName ?? "",
+        canceledReason: order.canceledReason ?? "",
         paymentCode: order.paymentCode,
         customerPhone: order.customerPhone ?? "",
         comment: order.comment ?? "",
@@ -64,3 +65,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+

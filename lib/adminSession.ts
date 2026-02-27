@@ -1,27 +1,65 @@
-const encoder = new TextEncoder();
+﻿const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export const ADMIN_SESSION_COOKIE = "dordoi_admin_session";
 export const ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
-type AdminSessionPayload = {
-  u: string;
+export const ADMIN_ROLES = ["owner", "operator", "courier"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+
+export type AdminSessionIdentity = {
+  user: string;
+  role: AdminRole;
   exp: number;
 };
 
-type AdminCredentials = {
-  user: string;
-  pass: string;
-  secret: string;
+type AdminSessionPayload = {
+  u: string;
+  r?: string;
+  exp: number;
 };
 
-function getAdminCredentials(): AdminCredentials | null {
-  const user = process.env.ADMIN_USER?.trim() ?? "";
-  const pass = process.env.ADMIN_PASS?.trim() ?? "";
-  if (!user || !pass) return null;
+type AdminAccount = {
+  user: string;
+  pass: string;
+  role: AdminRole;
+};
 
-  const secret = (process.env.ADMIN_SESSION_SECRET?.trim() || `${user}:${pass}:session`).slice(0, 512);
-  return { user, pass, secret };
+function isNonEmpty(value: string | undefined | null) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function getAdminAccounts(): AdminAccount[] {
+  const accounts: AdminAccount[] = [];
+
+  const ownerUser = process.env.ADMIN_USER?.trim() ?? "";
+  const ownerPass = process.env.ADMIN_PASS?.trim() ?? "";
+  if (ownerUser && ownerPass) {
+    accounts.push({ user: ownerUser, pass: ownerPass, role: "owner" });
+  }
+
+  const operatorUser = process.env.ADMIN_OPERATOR_USER?.trim() ?? "";
+  const operatorPass = process.env.ADMIN_OPERATOR_PASS?.trim() ?? "";
+  if (operatorUser && operatorPass) {
+    accounts.push({ user: operatorUser, pass: operatorPass, role: "operator" });
+  }
+
+  const courierUser = process.env.ADMIN_COURIER_USER?.trim() ?? "";
+  const courierPass = process.env.ADMIN_COURIER_PASS?.trim() ?? "";
+  if (courierUser && courierPass) {
+    accounts.push({ user: courierUser, pass: courierPass, role: "courier" });
+  }
+
+  return accounts;
+}
+
+function getSessionSecret() {
+  const explicit = process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
+  if (explicit) return explicit.slice(0, 512);
+
+  const accounts = getAdminAccounts();
+  const fallback = accounts.map((x) => `${x.user}:${x.pass}:${x.role}`).join("|") || "admin-session";
+  return fallback.slice(0, 512);
 }
 
 function toBase64Url(bytes: Uint8Array) {
@@ -93,52 +131,69 @@ async function signValue(value: string, secret: string) {
   return toBase64Url(new Uint8Array(signature));
 }
 
+export function isAdminRole(value: unknown): value is AdminRole {
+  return typeof value === "string" && (ADMIN_ROLES as readonly string[]).includes(value);
+}
+
 export function hasAdminCredentials() {
-  return Boolean(getAdminCredentials());
+  return getAdminAccounts().length > 0;
 }
 
-export function validateAdminPassword(inputUser: string, inputPass: string) {
-  const creds = getAdminCredentials();
-  if (!creds) return false;
-  return timingSafeEqual(inputUser, creds.user) && timingSafeEqual(inputPass, creds.pass);
+export function validateAdminPassword(inputUser: string, inputPass: string): Omit<AdminSessionIdentity, "exp"> | null {
+  const user = inputUser.trim();
+  if (!isNonEmpty(user) || !isNonEmpty(inputPass)) return null;
+
+  const account = getAdminAccounts().find((x) => timingSafeEqual(user, x.user) && timingSafeEqual(inputPass, x.pass));
+  if (!account) return null;
+
+  return { user: account.user, role: account.role };
 }
 
-export async function createAdminSessionToken() {
-  const creds = getAdminCredentials();
-  if (!creds) return null;
+export async function createAdminSessionToken(identity: Omit<AdminSessionIdentity, "exp">) {
+  const accounts = getAdminAccounts();
+  if (accounts.length === 0) return null;
+
+  const account = accounts.find((x) => x.user === identity.user && x.role === identity.role);
+  if (!account) return null;
 
   const payload: AdminSessionPayload = {
-    u: creds.user,
+    u: identity.user,
+    r: identity.role,
     exp: Date.now() + ADMIN_SESSION_TTL_SECONDS * 1000
   };
+
   const payloadEncoded = toBase64Url(encoder.encode(JSON.stringify(payload)));
-  const sig = await signValue(payloadEncoded, creds.secret);
+  const sig = await signValue(payloadEncoded, getSessionSecret());
   return `${payloadEncoded}.${sig}`;
 }
 
-export async function verifyAdminSessionToken(token: string) {
-  const creds = getAdminCredentials();
-  if (!creds) return false;
+export async function verifyAdminSessionToken(token: string): Promise<AdminSessionIdentity | null> {
+  const accounts = getAdminAccounts();
+  if (accounts.length === 0) return null;
 
   const [payloadEncoded, signature] = token.split(".");
-  if (!payloadEncoded || !signature) return false;
+  if (!payloadEncoded || !signature) return null;
 
-  const expectedSig = await signValue(payloadEncoded, creds.secret);
-  if (!timingSafeEqual(signature, expectedSig)) return false;
+  const expectedSig = await signValue(payloadEncoded, getSessionSecret());
+  if (!timingSafeEqual(signature, expectedSig)) return null;
 
   const decoded = fromBase64Url(payloadEncoded);
-  if (!decoded) return false;
+  if (!decoded) return null;
 
   let payload: AdminSessionPayload;
   try {
     payload = JSON.parse(decoder.decode(decoded)) as AdminSessionPayload;
   } catch {
-    return false;
+    return null;
   }
 
-  if (!payload?.u || typeof payload.exp !== "number") return false;
-  if (payload.u !== creds.user) return false;
-  if (Date.now() >= payload.exp) return false;
+  if (!payload?.u || typeof payload.exp !== "number") return null;
+  if (Date.now() >= payload.exp) return null;
 
-  return true;
+  const account = accounts.find((x) => x.user === payload.u);
+  if (!account) return null;
+
+  const role = isAdminRole(payload.r) ? payload.r : account.role;
+  return { user: payload.u, role, exp: payload.exp };
 }
+

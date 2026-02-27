@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { requireAdminRole } from "@/lib/adminAuth";
+import { logAdminAction } from "@/lib/auditLog";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminRole(["owner", "operator", "courier"]);
+  if ("response" in auth) return auth.response;
+
   const { id } = await params;
 
   const order = await prisma.order.findUnique({ where: { id } });
@@ -18,7 +23,17 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   const updated = await prisma.order.update({
     where: { id },
-    data: { status: "delivered" }
+    data: { status: "delivered", deliveredAt: new Date() }
   });
+
+  await logAdminAction({
+    orderId: id,
+    action: "order_delivered",
+    actor: auth.session.user,
+    actorRole: auth.session.role,
+    meta: { source: "admin" }
+  });
+
   return NextResponse.json({ ok: true, status: updated.status });
 }
+

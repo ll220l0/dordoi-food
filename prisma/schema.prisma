@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
   provider = "prisma-client-js"
 }
 
@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Restaurant {
-  id         String   @id @default(cuid())
-  name       String
-  slug       String   @unique
-  qrImageUrl String
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  qrImageUrl  String
   mbankNumber String?
   obankNumber String?
   bakaiNumber String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   categories Category[]
   items      MenuItem[]
@@ -71,23 +71,30 @@ enum PaymentMethod {
 }
 
 model Order {
-  id            String        @id @default(cuid())
-  restaurantId  String
-  status        OrderStatus   @default(created)
-  paymentMethod PaymentMethod @default(qr_image)
-  totalKgs      Int
-  customerPhone String?
-  payerName     String?
-  canceledReason String?
-  paymentCode   String
-  location      Json
-  comment       String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  restaurantId            String
+  status                  OrderStatus   @default(created)
+  paymentMethod           PaymentMethod @default(qr_image)
+  totalKgs                Int
+  customerPhone           String?
+  payerName               String?
+  canceledReason          String?
+  idempotencyKey          String?       @unique
+  paymentConfirmedAt      DateTime?
+  deliveredAt             DateTime?
+  canceledAt              DateTime?
+  bankWebhookStatus       String?
+  bankWebhookConfirmedAt  DateTime?
+  paymentCode             String
+  location                Json
+  comment                 String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+  restaurant Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
   items      OrderItem[]
   pushSubs   PushSubscription[]
+  auditLogs  AdminAuditLog[]
 }
 
 model OrderItem {
@@ -106,14 +113,14 @@ model OrderItem {
 }
 
 model PushSubscription {
-  id             String    @id @default(cuid())
-  orderId         String
-  endpoint        String
-  p256dh          String
-  auth            String
-  expirationTime  DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  orderId        String
+  endpoint       String
+  p256dh         String
+  auth           String
+  expirationTime DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -121,3 +128,19 @@ model PushSubscription {
   @@index([orderId])
   @@index([endpoint])
 }
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  orderId   String?
+  action    String
+  actor     String
+  actorRole String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+

@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 export const DeliveryLocationSchema = z.object({
   line: z.string().min(1).max(32),
@@ -13,7 +13,8 @@ export const CreateOrderSchema = z.object({
   payerName: z.string().trim().max(60).optional().or(z.literal("")),
   comment: z.string().max(120).optional().or(z.literal("")),
   location: DeliveryLocationSchema,
-  items: z.array(z.object({ menuItemId: z.string().min(1), qty: z.number().int().min(1).max(50) })).min(1)
+  items: z.array(z.object({ menuItemId: z.string().min(1), qty: z.number().int().min(1).max(50) })).min(1),
+  idempotencyKey: z.string().trim().min(8).max(120).optional().or(z.literal(""))
 });
 
 export const UpsertCategorySchema = z.object({
@@ -33,3 +34,4 @@ export const UpsertItemSchema = z.object({
   isAvailable: z.boolean().default(true),
   sortOrder: z.number().int().min(0).max(999).optional()
 });
+

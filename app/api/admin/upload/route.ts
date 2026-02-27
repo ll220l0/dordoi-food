@@ -1,13 +1,17 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import { requireAdminRole } from "@/lib/adminAuth";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 
 export async function POST(req: Request) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const formData = await req.formData();
   const file = formData.get("file");
 
@@ -45,3 +49,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, url: `/uploads/${fileName}` });
 }
+

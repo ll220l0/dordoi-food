@@ -102,16 +102,36 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         const response = (await res.json()) as OrderResp;
         if (!stopped) setData(response);
       } catch {
-        // Ignore transient polling failures.
+        // Ignore transient failures.
       }
     };
 
     void loadOrder();
-    const timer = window.setInterval(() => void loadOrder(), 3500);
+
+    const fallbackTimer = window.setInterval(() => {
+      void loadOrder();
+    }, 15000);
+
+    let es: EventSource | null = null;
+    if (typeof window !== "undefined" && "EventSource" in window) {
+      es = new EventSource(`/api/orders/${orderId}/stream`);
+      es.addEventListener("snapshot", (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent).data) as { order?: OrderResp | null };
+          if (!stopped && payload?.order) setData(payload.order);
+        } catch {
+          // noop
+        }
+      });
+      es.onerror = () => {
+        // Fallback timer continues to work.
+      };
+    }
 
     return () => {
       stopped = true;
-      window.clearInterval(timer);
+      window.clearInterval(fallbackTimer);
+      if (es) es.close();
     };
   }, [orderId]);
 
@@ -351,7 +371,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         {showCanceledCard && (
           <Card className="mt-4 p-6">
             <div className="flex flex-col items-center text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-2xl text-white">×</div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-2xl text-white">?</div>
               <div className="mt-3 text-lg font-bold text-rose-700">Заказ отменен</div>
               <div className="mt-1 text-sm text-black/60">Заказ обнулен. Возвращаем в меню...</div>
             </div>
@@ -376,7 +396,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <div className="relative mx-auto h-24 w-24">
               <div className="canceled-cross-ring absolute inset-0 rounded-full border-4 border-rose-300/75" />
               <div className="canceled-cross-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-rose-500 to-rose-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(225,29,72,0.8)]">
-                ×
+                ?
               </div>
             </div>
             <div className="mt-4 text-[24px] font-extrabold leading-tight text-rose-700">Заказ отменен</div>
@@ -400,7 +420,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             <div className="relative mx-auto h-24 w-24">
               <div className="approved-ring absolute inset-0 rounded-full border-4 border-emerald-300/70" />
               <div className="approved-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-3xl font-black text-white shadow-[0_14px_34px_-14px_rgba(5,150,105,0.95)]">
-                ✓
+                ?
               </div>
             </div>
 
@@ -419,3 +439,5 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     </main>
   );
 }
+
+

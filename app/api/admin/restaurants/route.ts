@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { ensureActiveRestaurant } from "@/lib/restaurant";
 
@@ -17,6 +18,9 @@ function validateBankNumber(value: string | null | undefined) {
 }
 
 export async function GET() {
+  const auth = await requireAdminRole(["owner", "operator", "courier"]);
+  if ("response" in auth) return auth.response;
+
   await ensureActiveRestaurant();
   const restaurants = await prisma.restaurant.findMany({
     where: { isActive: true },
@@ -35,6 +39,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAdminRole(["owner"]);
+  if ("response" in auth) return auth.response;
+
   const body = (await req.json().catch(() => null)) as {
     slug?: string;
     mbankNumber?: string | null;
@@ -104,3 +111,4 @@ export async function PATCH(req: Request) {
     }
   });
 }
+

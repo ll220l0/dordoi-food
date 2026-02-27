@@ -10,6 +10,8 @@ import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus } from "@/lib/orderStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
+type AdminRole = "owner" | "operator" | "courier";
+
 type OrderItem = {
   id: string;
   title: string;
@@ -30,6 +32,9 @@ type AdminOrderData = {
   location: { line?: string; container?: string; landmark?: string };
   createdAt: string;
   updatedAt: string;
+  paymentConfirmedAt?: string | null;
+  role?: AdminRole;
+  user?: string;
   restaurant: { name: string; slug: string };
   items: OrderItem[];
 };
@@ -38,6 +43,18 @@ function normalizePhone(phone: string) {
   const hasPlus = phone.trim().startsWith("+");
   const digits = phone.replace(/\D/g, "");
   return hasPlus ? `+${digits}` : digits;
+}
+
+function canConfirmByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator";
+}
+
+function canCancelByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator";
+}
+
+function canDeliverByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator" || role === "courier";
 }
 
 function canCancelOrder(status: string | undefined) {
@@ -50,6 +67,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [role, setRole] = useState<AdminRole | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { cache: "no-store" });
@@ -61,12 +79,20 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     const payload = (await res.json().catch(() => null)) as AdminOrderData | null;
     if (!payload) throw new Error("Не удалось загрузить заказ");
     setData(payload);
+    setRole(payload.role ?? null);
   }, [orderId]);
 
   useEffect(() => {
     void load().catch((error: unknown) => {
       toast.error(error instanceof Error ? error.message : "Ошибка");
     });
+
+    const focusReload = () => void load();
+    window.addEventListener("focus", focusReload);
+
+    return () => {
+      window.removeEventListener("focus", focusReload);
+    };
   }, [load]);
 
   async function confirm() {
@@ -151,6 +177,7 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           <div>
             <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Заказ #{orderId.slice(-6)}</div>
+            <div className="mt-1 text-xs text-black/55">Роль: {role ?? "-"}</div>
           </div>
           <div className="flex items-center gap-2">
             <Link className="text-sm text-black/60 underline" href="/admin/orders">
@@ -196,17 +223,17 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {(data?.status === "created" || data?.status === "pending_confirmation") && (
+            {(data?.status === "created" || data?.status === "pending_confirmation") && canConfirmByRole(role) && (
               <Button disabled={loading} onClick={() => void confirm()}>
                 Подтвердить оплату
               </Button>
             )}
-            {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && (
+            {isApprovedStatus(data?.status ?? "") && data?.status !== "delivered" && canDeliverByRole(role) && (
               <Button disabled={loading} onClick={() => void deliver()} variant="secondary">
                 Подтвердить доставку
               </Button>
             )}
-            {canCancelOrder(data?.status) && (
+            {canCancelOrder(data?.status) && canCancelByRole(role) && (
               <Button
                 disabled={loading}
                 onClick={openCancelModal}
@@ -301,3 +328,4 @@ export default function AdminOrderScreen({ orderId }: { orderId: string }) {
     </main>
   );
 }
+

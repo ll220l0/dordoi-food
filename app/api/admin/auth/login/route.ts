@@ -21,16 +21,17 @@ export async function POST(req: Request) {
   const username = body?.username?.trim() ?? "";
   const password = body?.password ?? "";
 
-  if (!validateAdminPassword(username, password)) {
+  const identity = validateAdminPassword(username, password);
+  if (!identity) {
     return NextResponse.json({ error: "Неверный логин или пароль" }, { status: 401 });
   }
 
-  const token = await createAdminSessionToken();
+  const token = await createAdminSessionToken(identity);
   if (!token) {
     return NextResponse.json({ error: "Не удалось создать сессию администратора" }, { status: 500 });
   }
 
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true, role: identity.role, user: identity.user });
   res.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: token,
@@ -42,3 +43,4 @@ export async function POST(req: Request) {
   });
   return res;
 }
+

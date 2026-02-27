@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { requireAdminRole } from "@/lib/adminAuth";
+import { logAdminAction } from "@/lib/auditLog";
 import { prisma } from "@/lib/prisma";
 
 function normalizeReason(value: unknown) {
@@ -7,6 +9,9 @@ function normalizeReason(value: unknown) {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const { id } = await params;
   const payload = (await request.json().catch(() => null)) as { reason?: unknown } | null;
   const reason = normalizeReason(payload?.reason);
@@ -34,9 +39,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     where: { id },
     data: {
       status: "canceled",
-      canceledReason: reason
+      canceledReason: reason,
+      canceledAt: new Date()
     }
+  });
+
+  await logAdminAction({
+    orderId: id,
+    action: "order_canceled",
+    actor: auth.session.user,
+    actorRole: auth.session.role,
+    meta: { reason }
   });
 
   return NextResponse.json({ ok: true, status: updated.status, canceledReason: updated.canceledReason });
 }
+

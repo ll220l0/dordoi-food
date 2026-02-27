@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +20,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       paymentMethod: toClientPaymentMethod(order.paymentMethod),
       totalKgs: order.totalKgs,
       payerName: order.payerName ?? "",
+      canceledReason: order.canceledReason ?? "",
       paymentCode: order.paymentCode,
       location: order.location,
       comment: order.comment ?? "",
@@ -40,10 +41,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         photoUrl: x.photoSnap
       })),
       createdAt: order.createdAt,
-      updatedAt: order.updatedAt
+      updatedAt: order.updatedAt,
+      paymentConfirmedAt: order.paymentConfirmedAt,
+      deliveredAt: order.deliveredAt,
+      canceledAt: order.canceledAt
     });
   } catch (error: unknown) {
     const apiError = toApiError(error, "Не удалось загрузить заказ");
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+

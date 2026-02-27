@@ -1,4 +1,4 @@
-export type OrderStatusValue =
+﻿export type OrderStatusValue =
   | "created"
   | "pending_confirmation"
   | "confirmed"
@@ -59,3 +59,4 @@ export function isApprovedStatus(status: string) {
 export function isHistoryStatus(status: string) {
   return status === "delivered" || status === "canceled";
 }
+

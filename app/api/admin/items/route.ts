@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { UpsertItemSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const body = await req.json().catch(() => null);
   const parsed = UpsertItemSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Некорректные данные запроса", details: parsed.error.flatten() }, { status: 400 });
@@ -43,3 +47,4 @@ export async function POST(req: Request) {
   });
   return NextResponse.json({ ok: true, item: created });
 }
+

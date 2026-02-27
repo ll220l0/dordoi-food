@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "Требуется slug ресторана" }, { status: 400 });
@@ -27,3 +31,4 @@ export async function GET(req: Request) {
     }))
   });
 }
+

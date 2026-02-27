@@ -1,7 +1,23 @@
 ﻿import Link from "next/link";
+import { cookies } from "next/headers";
 import { AdminLogoutButton } from "@/components/AdminLogoutButton";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/adminSession";
 
-export default function AdminHome() {
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Владелец",
+  operator: "Оператор",
+  courier: "Курьер"
+};
+
+export default async function AdminHome() {
+  const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? "";
+  const session = token ? await verifyAdminSessionToken(token) : null;
+  const roleLabel = ROLE_LABEL[session?.role ?? ""] ?? "Админ";
+
+  const isOwner = session?.role === "owner";
+  const isOperator = session?.role === "operator";
+  const isCourier = session?.role === "courier";
+
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-xl">
@@ -9,6 +25,7 @@ export default function AdminHome() {
           <div>
             <div className="text-2xl font-extrabold">Админка</div>
             <div className="mt-1 text-sm text-black/55">Панель управления.</div>
+            <div className="mt-2 inline-flex rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-black/70">Роль: {roleLabel}</div>
           </div>
           <AdminLogoutButton className="px-3 py-2 text-sm" />
         </div>
@@ -17,14 +34,27 @@ export default function AdminHome() {
           <Link className="rounded-xl bg-black py-3 text-center font-semibold text-white" href="/admin/orders">
             Заказы
           </Link>
-          <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/menu">
-            Меню
-          </Link>
-          <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/banks">
-            Реквизиты
-          </Link>
+
+          {(isOwner || isOperator) && (
+            <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/menu">
+              Меню
+            </Link>
+          )}
+
+          {isOwner && (
+            <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/banks">
+              Реквизиты
+            </Link>
+          )}
+
+          {(isOwner || isOperator) && !isCourier && (
+            <Link className="rounded-xl border border-black/10 bg-white py-3 text-center font-semibold" href="/admin/reports">
+              Отчеты
+            </Link>
+          )}
         </div>
       </div>
     </main>
   );
 }
+

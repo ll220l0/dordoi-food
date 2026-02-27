@@ -1,8 +1,10 @@
-import withPWA from "@ducanh2912/next-pwa";
+﻿import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24,
     remotePatterns: [
       { protocol: "https", hostname: "**" },
       { protocol: "http", hostname: "localhost" }
@@ -25,3 +27,4 @@ export default withPWA({
     ]
   }
 })(nextConfig);
+

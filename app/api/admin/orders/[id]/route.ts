@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { toClientPaymentMethod } from "@/lib/paymentMethod";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminRole(["owner", "operator", "courier"]);
+  if ("response" in auth) return auth.response;
+
   try {
     const { id } = await params;
     const order = await prisma.order.findUnique({
@@ -28,6 +32,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       location: order.location,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
+      paymentConfirmedAt: order.paymentConfirmedAt,
+      deliveredAt: order.deliveredAt,
+      canceledAt: order.canceledAt,
+      role: auth.session.role,
+      user: auth.session.user,
       restaurant: {
         name: order.restaurant.name,
         slug: order.restaurant.slug
@@ -45,3 +54,4 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+

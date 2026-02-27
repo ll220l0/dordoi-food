@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const { id } = await params;
 
   const ordersCount = await prisma.orderItem.count({ where: { menuItemId: id } });
@@ -35,6 +39,9 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminRole(["owner", "operator"]);
+  if ("response" in auth) return auth.response;
+
   const { id } = await params;
   const body = (await req.json().catch(() => null)) as { isAvailable?: boolean } | null;
 
@@ -49,3 +56,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true, item });
 }
+

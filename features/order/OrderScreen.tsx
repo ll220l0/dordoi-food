@@ -74,7 +74,7 @@ function StatusProgress({ status }: { status: string }) {
   if (status === "delivered") {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">v</div>
         <div className="text-sm font-semibold text-emerald-700">Спасибо за выбор. Заказ доставлен.</div>
       </div>
     );
@@ -83,7 +83,7 @@ function StatusProgress({ status }: { status: string }) {
   if (isApprovedStatus(status)) {
     return (
       <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">✓</div>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">v</div>
         <div className="text-sm font-semibold text-emerald-700">Заказ подтвержден</div>
       </div>
     );
@@ -99,10 +99,10 @@ function StatusProgress({ status }: { status: string }) {
 
 function historyStatusIcon(status: string) {
   if (status === "delivered") {
-    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">✓</span>;
+    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">v</span>;
   }
   if (status === "canceled") {
-    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">×</span>;
+    return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">x</span>;
   }
   return <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">•</span>;
 }
@@ -242,10 +242,37 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
   }, [data?.status]);
 
   useEffect(() => {
-    if (!data || orderMissing || isHistoryStatus(data.status)) return;
-    const timer = setInterval(() => void loadOrder(true), 4000);
-    return () => clearInterval(timer);
-  }, [data, orderMissing, loadOrder]);
+    if (orderMissing) return;
+
+    const fallbackTimer = setInterval(() => void loadOrder(true), 15000);
+
+    let es: EventSource | null = null;
+    if (typeof window !== "undefined" && "EventSource" in window) {
+      es = new EventSource(`/api/orders/${orderId}/stream`);
+      es.addEventListener("snapshot", (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent).data) as { order?: OrderData | null };
+          if (payload?.order) {
+            setData(payload.order);
+            setOrderMissing(false);
+          } else {
+            setData(null);
+            setOrderMissing(true);
+          }
+        } catch {
+          // ignore parse errors
+        }
+      });
+      es.onerror = () => {
+        // fallbackTimer keeps data fresh.
+      };
+    }
+
+    return () => {
+      clearInterval(fallbackTimer);
+      if (es) es.close();
+    };
+  }, [loadOrder, orderId, orderMissing]);
 
   const statusMeta = useMemo(() => getOrderStatusMeta(data?.status ?? ""), [data?.status]);
   const menuSlug = data?.restaurant?.slug ?? history[0]?.restaurant?.slug ?? "dordoi-food";
@@ -260,7 +287,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
             <div className="relative mx-auto h-24 w-24">
               <div className="delivered-check-ring absolute inset-0 rounded-full border-4 border-emerald-300/70" />
               <div className="delivered-check-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(5,150,105,0.85)]">
-                ✓
+                ?
               </div>
             </div>
             <div className="mt-4 text-[24px] font-extrabold leading-tight text-emerald-700">Заказ доставлен</div>
@@ -282,7 +309,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
             <div className="relative mx-auto h-24 w-24">
               <div className="canceled-cross-ring absolute inset-0 rounded-full border-4 border-rose-300/75" />
               <div className="canceled-cross-core absolute inset-[14px] flex items-center justify-center rounded-full bg-gradient-to-b from-rose-500 to-rose-600 text-3xl font-black text-white shadow-[0_12px_30px_-12px_rgba(225,29,72,0.8)]">
-                ×
+                ?
               </div>
             </div>
             <div className="mt-4 text-[24px] font-extrabold leading-tight text-rose-700">Заказ отменен</div>
@@ -385,12 +412,12 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
         <Card className="overflow-hidden p-0">
           <button className="flex w-full items-center justify-between px-4 py-4 text-left" onClick={() => setHistoryOpen((value) => !value)}>
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700">↺</span>
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700">?</span>
               <span className="text-sm font-semibold">История заказов</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs text-black/45">{history.length}</span>
-              <span className={`text-xs transition-transform ${historyOpen ? "rotate-180" : ""}`}>▼</span>
+              <span className={`text-xs transition-transform ${historyOpen ? "rotate-180" : ""}`}>Ў</span>
             </div>
           </button>
 
@@ -415,7 +442,7 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
                           <div className="text-xs text-black/55">{createdDate.toLocaleTimeString()}</div>
                           <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-black/45">
                             <span>{isExpanded ? "Свернуть" : "Подробнее"}</span>
-                            <span className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}>⌄</span>
+                            <span className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}>?</span>
                           </div>
                         </div>
                       </button>
@@ -462,3 +489,6 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
     </main>
   );
 }
+
+
+

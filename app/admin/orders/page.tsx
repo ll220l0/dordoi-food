@@ -11,6 +11,8 @@ import { paymentMethodLabel } from "@/lib/paymentMethod";
 import { getOrderStatusMeta, isApprovedStatus, isHistoryStatus } from "@/lib/orderStatus";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
+type AdminRole = "owner" | "operator" | "courier";
+
 type AdminOrderItem = {
   id: string;
   title: string;
@@ -33,10 +35,13 @@ type AdminOrder = {
   location: { line?: string; container?: string; landmark?: string };
   createdAt: string;
   updatedAt: string;
+  paymentConfirmedAt?: string | null;
+  deliveredAt?: string | null;
+  canceledAt?: string | null;
   items: AdminOrderItem[];
 };
 
-type AdminOrdersResponse = { orders: AdminOrder[] };
+type AdminOrdersResponse = { orders: AdminOrder[]; role?: AdminRole; user?: string };
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Не удалось получить заказы";
@@ -55,8 +60,56 @@ function getStatusTone(status: string) {
   return "border-slate-200 bg-slate-100 text-slate-700";
 }
 
+function canConfirmByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator";
+}
+
+function canCancelByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator";
+}
+
+function canDeliverByRole(role: AdminRole | null) {
+  return role === "owner" || role === "operator" || role === "courier";
+}
+
 function canCancelOrder(status: string) {
   return status === "created" || status === "pending_confirmation" || (isApprovedStatus(status) && status !== "delivered");
+}
+
+function formatDuration(ms: number) {
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) return `${hours}ч ${minutes}м`;
+  return `${minutes}м`;
+}
+
+function getSlaMeta(order: AdminOrder) {
+  if (order.status === "delivered" || order.status === "canceled") return null;
+
+  const now = Date.now();
+  const created = new Date(order.createdAt).getTime();
+
+  if (order.status === "created" || order.status === "pending_confirmation") {
+    const deadline = created + 8 * 60 * 1000;
+    const overdue = now > deadline;
+    return {
+      label: overdue ? "Оплата не подтверждена" : "Подтвердить оплату до",
+      value: new Date(deadline).toLocaleTimeString(),
+      tail: overdue ? `Просрочка ${formatDuration(now - deadline)}` : `Осталось ${formatDuration(deadline - now)}`,
+      className: overdue ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700"
+    };
+  }
+
+  const base = order.paymentConfirmedAt ? new Date(order.paymentConfirmedAt).getTime() : created;
+  const eta = base + 35 * 60 * 1000;
+  const overdue = now > eta;
+  return {
+    label: overdue ? "Доставка просрочена" : "Доставка до",
+    value: new Date(eta).toLocaleTimeString(),
+    tail: overdue ? `Просрочка ${formatDuration(now - eta)}` : `Осталось ${formatDuration(eta - now)}`,
+    className: overdue ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+  };
 }
 
 export default function AdminOrdersPage() {
@@ -65,6 +118,7 @@ export default function AdminOrdersPage() {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [currentRole, setCurrentRole] = useState<AdminRole | null>(null);
 
   const load = useCallback(async (silent = false) => {
     try {
@@ -76,6 +130,7 @@ export default function AdminOrdersPage() {
 
       const j = (await res.json()) as AdminOrdersResponse;
       setData(j);
+      setCurrentRole(j.role ?? null);
       setLoadError(null);
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -86,31 +141,35 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     void load();
-    const t = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
+
+    const fallbackTimer = window.setInterval(() => {
       void load(true);
-    }, 1000);
+    }, 20000);
+
+    let es: EventSource | null = null;
+    if (typeof window !== "undefined" && "EventSource" in window) {
+      es = new EventSource("/api/admin/orders/stream");
+      es.addEventListener("orders_meta", () => {
+        void load(true);
+      });
+    }
+
     const onFocus = () => void load(true);
     const onOnline = () => void load(true);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") void load(true);
-    };
-
     window.addEventListener("focus", onFocus);
     window.addEventListener("online", onOnline);
-    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      window.clearInterval(t);
+      window.clearInterval(fallbackTimer);
+      if (es) es.close();
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("online", onOnline);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [load]);
 
   async function confirm(id: string) {
     const res = await fetch(`/api/admin/orders/${id}/confirm`, { method: "POST" });
-    const j = (await res.json()) as { error?: string };
+    const j = (await res.json().catch(() => null)) as { error?: string } | null;
     if (!res.ok) toast.error(j?.error ?? "Ошибка");
     else toast.success("Оплата подтверждена");
     void load(true);
@@ -118,7 +177,7 @@ export default function AdminOrdersPage() {
 
   async function deliver(id: string) {
     const res = await fetch(`/api/admin/orders/${id}/deliver`, { method: "POST" });
-    const j = (await res.json()) as { error?: string };
+    const j = (await res.json().catch(() => null)) as { error?: string } | null;
     if (!res.ok) toast.error(j?.error ?? "Ошибка");
     else toast.success("Заказ доставлен");
     void load(true);
@@ -164,10 +223,7 @@ export default function AdminOrdersPage() {
   }
 
   const orders = useMemo(() => data?.orders ?? [], [data?.orders]);
-  const activeOrders = useMemo(
-    () => orders.filter((o) => !isHistoryStatus(o.status) && o.payerName.trim().length > 0),
-    [orders]
-  );
+  const activeOrders = useMemo(() => orders.filter((o) => !isHistoryStatus(o.status) && o.payerName.trim().length > 0), [orders]);
   const historyOrders = useMemo(() => orders.filter((o) => isHistoryStatus(o.status)), [orders]);
 
   function renderOrderCard(order: AdminOrder) {
@@ -177,6 +233,7 @@ export default function AdminOrdersPage() {
     const normalizedPhone = order.customerPhone ? normalizePhone(order.customerPhone) : "";
     const whatsappHref = normalizedPhone ? buildWhatsAppLink(normalizedPhone) : null;
     const phoneHref = normalizedPhone ? `tel:+${normalizedPhone.replace(/^\+/, "")}` : null;
+    const sla = getSlaMeta(order);
 
     return (
       <Card key={order.id} className="motion-fade-up overflow-hidden border border-black/10 bg-white/90 p-0 shadow-[0_14px_35px_rgba(15,23,42,0.12)]">
@@ -192,6 +249,13 @@ export default function AdminOrdersPage() {
         </div>
 
         <div className="space-y-3 px-4 py-4">
+          {sla && (
+            <div className={`rounded-2xl border px-3 py-2 text-sm ${sla.className}`}>
+              <div className="font-semibold">{sla.label}: {sla.value}</div>
+              <div className="text-xs opacity-85">{sla.tail}</div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-black/10 bg-slate-50/80 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -225,17 +289,17 @@ export default function AdminOrdersPage() {
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            {(order.status === "created" || order.status === "pending_confirmation") && (
+            {(order.status === "created" || order.status === "pending_confirmation") && canConfirmByRole(currentRole) && (
               <Button onClick={() => void confirm(order.id)} className="h-10 px-4">
                 Подтвердить оплату
               </Button>
             )}
-            {isApprovedStatus(order.status) && order.status !== "delivered" && (
+            {isApprovedStatus(order.status) && order.status !== "delivered" && canDeliverByRole(currentRole) && (
               <Button onClick={() => void deliver(order.id)} variant="secondary" className="h-10 px-4">
                 Подтвердить доставку
               </Button>
             )}
-            {canCancelOrder(order.status) && (
+            {canCancelOrder(order.status) && canCancelByRole(currentRole) && (
               <Button onClick={() => openCancelModal(order.id)} variant="secondary" className="h-10 border-rose-300 bg-rose-50 px-4 text-rose-700">
                 Отменить заказ
               </Button>
@@ -301,6 +365,7 @@ export default function AdminOrdersPage() {
           <div>
             <div className="text-xs text-black/50">Админка</div>
             <div className="text-3xl font-extrabold">Заказы</div>
+            <div className="mt-1 text-xs text-black/55">Роль: {currentRole ?? "-"}</div>
           </div>
           <div className="flex items-center gap-2">
             <Link className="text-sm text-black/60 underline" href="/admin">
@@ -311,9 +376,7 @@ export default function AdminOrdersPage() {
         </div>
 
         <div className="mt-6">
-          {loadError && (
-            <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{loadError}</div>
-          )}
+          {loadError && <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{loadError}</div>}
           <div className="mb-3 text-sm font-semibold text-black/65">Активные ({activeOrders.length})</div>
           <div className="space-y-3">{activeOrders.map((order) => renderOrderCard(order))}</div>
         </div>
@@ -326,11 +389,7 @@ export default function AdminOrdersPage() {
 
       {cancelOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            aria-label="Закрыть окно причины отмены"
-            onClick={() => closeCancelModal()}
-          />
+          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно причины отмены" onClick={() => closeCancelModal()} />
           <Card className="motion-pop relative z-10 w-full max-w-md p-4">
             <div className="text-lg font-extrabold">Причина отмены</div>
             <div className="mt-1 text-sm text-black/60">Укажите причину, она будет видна в истории заказа.</div>
@@ -355,3 +414,4 @@ export default function AdminOrdersPage() {
     </main>
   );
 }
+

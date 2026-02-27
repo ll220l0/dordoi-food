@@ -50,6 +50,11 @@ function formatKgPhone(phone: string) {
   return `996 (${local.slice(0, 3)}) ${local.slice(3, 6)} - ${local.slice(6, 9)}`;
 }
 
+function createIdempotencyKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `ord_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export default function CartScreen() {
   const restaurantSlug = useCart((state) => state.restaurantSlug);
   const lines = useCart((state) => state.lines);
@@ -68,14 +73,35 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(false);
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   useEffect(() => {
     setIsHydrated(true);
+    setIdempotencyKey(createIdempotencyKey());
     setCustomerPhone(formatKgPhone(getSavedPhone()));
     const savedLocation = getSavedLocation();
     setLine(savedLocation.line);
     setContainer(savedLocation.container);
   }, []);
+
+  const requestSignature = useMemo(
+    () =>
+      JSON.stringify({
+        restaurantSlug,
+        lines: lines.map((x) => ({ id: x.menuItemId, qty: x.qty })),
+        line: line.trim(),
+        container: container.trim(),
+        customerPhone: normalizeKgPhone(customerPhone.trim()) ?? "",
+        paymentMethod,
+        comment: comment.trim()
+      }),
+    [restaurantSlug, lines, line, container, customerPhone, paymentMethod, comment]
+  );
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    setIdempotencyKey(createIdempotencyKey());
+  }, [isHydrated, requestSignature]);
 
   const canSubmit = useMemo(() => {
     return Boolean(
@@ -152,16 +178,19 @@ export default function CartScreen() {
           line: line.trim(),
           container: container.trim()
         },
-        items: lines.map((x) => ({ menuItemId: x.menuItemId, qty: x.qty }))
+        items: lines.map((x) => ({ menuItemId: x.menuItemId, qty: x.qty })),
+        idempotencyKey
       };
 
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-idempotency-key": idempotencyKey },
         body: JSON.stringify(payload)
       });
       const j = (await res.json().catch(() => null)) as Partial<CreateOrderResponse> & { error?: string } | null;
       if (!res.ok || !j?.orderId) throw new Error(j?.error ?? "Не удалось создать заказ");
+
+      setIdempotencyKey(createIdempotencyKey());
 
       addOrderToHistory({
         orderId: j.orderId,
@@ -377,3 +406,4 @@ export default function CartScreen() {
     </main>
   );
 }
+

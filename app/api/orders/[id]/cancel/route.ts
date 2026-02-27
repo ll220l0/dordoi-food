@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +11,19 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     return NextResponse.json({ error: "Доставленный заказ нельзя отменить" }, { status: 400 });
   }
 
-  await prisma.order.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  if (order.status === "canceled") {
+    return NextResponse.json({ ok: true, status: "canceled" });
+  }
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: {
+      status: "canceled",
+      canceledAt: new Date(),
+      canceledReason: order.canceledReason ?? "Отменен клиентом"
+    }
+  });
+
+  return NextResponse.json({ ok: true, status: updated.status });
 }
+

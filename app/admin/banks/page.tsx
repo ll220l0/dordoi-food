@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -24,6 +24,7 @@ export default function AdminBanksPage() {
 
   const loadRestaurant = useCallback(async () => {
     const res = await fetch("/api/admin/restaurants", { cache: "no-store" });
+    if (!res.ok) return;
     const json = (await res.json()) as { restaurants?: Restaurant[] };
     const first = json.restaurants?.[0];
     if (!first) return;
@@ -59,8 +60,8 @@ export default function AdminBanksPage() {
           bankPassword: bankPassword.trim()
         })
       });
-      const json = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Не удалось сохранить номер");
+      const json = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(json?.error ?? "Не удалось сохранить номер");
 
       toast.success("Номер Mbank сохранен");
       setBankPassword("");
@@ -78,7 +79,7 @@ export default function AdminBanksPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-black/50">Админка</div>
-            <div className="text-3xl font-extrabold">Номера банков</div>
+            <div className="text-3xl font-extrabold">Реквизиты</div>
           </div>
           <Link className="text-sm text-black/60 underline" href="/admin">
             Назад
@@ -87,7 +88,7 @@ export default function AdminBanksPage() {
 
         <Card className="mt-5 p-4">
           <div className="text-sm font-semibold">Номер Mbank</div>
-          <div className="mt-2 text-xs text-black/55">Укажи номер в формате 996XXXXXXXXX. Сохранение защищено паролем.</div>
+          <div className="mt-2 text-xs text-black/55">Укажите номер в формате 996XXXXXXXXX. Изменение доступно только владельцу.</div>
 
           <input
             className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3 py-3"
@@ -107,10 +108,11 @@ export default function AdminBanksPage() {
           />
 
           <Button className="mt-3 w-full" disabled={!restaurantSlug || !bankPassword.trim() || saving} onClick={() => void saveNumbers()}>
-            {saving ? "Сохраняем..." : "Сохранить номер Mbank"}
+            {saving ? "Сохраняем..." : "Сохранить"}
           </Button>
         </Card>
       </div>
     </main>
   );
 }
+

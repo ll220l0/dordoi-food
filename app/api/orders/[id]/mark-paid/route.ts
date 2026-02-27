@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { toApiError } from "@/lib/apiError";
 import { prisma } from "@/lib/prisma";
 
@@ -15,11 +15,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
     if (order.paymentMethod === "cash") return NextResponse.json({ error: "Это не банковский заказ" }, { status: 400 });
+    if (order.status === "canceled" || order.status === "delivered") {
+      return NextResponse.json({ error: "Нельзя изменить статус этого заказа" }, { status: 400 });
+    }
+
+    const nextStatus = order.status === "created" ? "pending_confirmation" : order.status;
 
     const updated = await prisma.order.update({
       where: { id },
       data: {
-        status: "pending_confirmation",
+        status: nextStatus,
         ...(payerName ? { payerName: payerName.slice(0, 60) } : {})
       }
     });
@@ -29,3 +34,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: apiError.message }, { status: apiError.status });
   }
 }
+
