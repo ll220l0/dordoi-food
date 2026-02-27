@@ -126,7 +126,6 @@ $env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
 ## New operational features
 - Role-based admin accounts: `owner`, `operator`, `courier`.
 - Real-time updates over SSE for order/payment/admin order board.
-- Mbank webhook endpoint for auto payment confirmation: `/api/payments/mbank/webhook`.
 - Admin audit log API: `/api/admin/audit`.
 - Daily analytics API/page: `/api/admin/reports/daily`, `/admin/reports`.
 - Idempotent order create (`x-idempotency-key`) to prevent duplicates.
@@ -136,7 +135,6 @@ $env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
 - `ADMIN_OPERATOR_PASS`
 - `ADMIN_COURIER_USER`
 - `ADMIN_COURIER_PASS`
-- `MBANK_WEBHOOK_SECRET`
 
 ### Smoke checks
 ```bash

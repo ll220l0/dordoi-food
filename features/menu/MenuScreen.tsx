@@ -77,7 +77,6 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   const router = useRouter();
   const [activeCat, setActiveCat] = useState<string | null>(null);
-  const [showUnavailable, setShowUnavailable] = useState(false);
 
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
@@ -110,8 +109,8 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const items = useMemo(() => {
     if (!data) return [];
     const byCategory = !activeCat ? data.items : data.items.filter((x) => x.categoryId === activeCat);
-    return showUnavailable ? byCategory : byCategory.filter((x) => x.isAvailable);
-  }, [data, activeCat, showUnavailable]);
+    return byCategory.filter((x) => x.isAvailable);
+  }, [data, activeCat]);
 
   function addToCart(item: MenuResp["items"][number]) {
     add({ menuItemId: item.id, title: item.title, photoUrl: item.photoUrl, priceKgs: item.priceKgs });
@@ -131,16 +130,6 @@ export default function MenuScreen({ slug }: { slug: string }) {
               <Pill active={c.id === activeCat}>{c.title}</Pill>
             </button>
           ))}
-        </div>
-
-        <div className="mt-1 flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-3 py-2">
-          <div className="text-xs text-black/50">Стоп-лист скрыт по умолчанию</div>
-          <button
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${showUnavailable ? "border-black/20 bg-black text-white" : "border-black/10 bg-white text-black/70"}`}
-            onClick={() => setShowUnavailable((v) => !v)}
-          >
-            {showUnavailable ? "Скрыть стоп-лист" : "Показать стоп-лист"}
-          </button>
         </div>
 
         <div className="mt-3 space-y-3">
