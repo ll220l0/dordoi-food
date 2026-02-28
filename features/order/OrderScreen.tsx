@@ -312,10 +312,20 @@ export default function OrderScreen({ orderId }: { orderId: string }) {
       es = new EventSource(`/api/orders/${orderId}/stream`);
       es.addEventListener("snapshot", (event) => {
         try {
-          const payload = JSON.parse((event as MessageEvent).data) as { order?: OrderData | null };
+          const payload = JSON.parse((event as MessageEvent).data) as {
+            order?: { id: string; status: string; updatedAt: string } | null;
+          };
           if (payload?.order) {
-            setData(payload.order);
             setOrderMissing(false);
+            setData((prev) => {
+              if (!prev || prev.id !== payload.order?.id) return prev;
+              return {
+                ...prev,
+                status: payload.order.status,
+                updatedAt: payload.order.updatedAt
+              };
+            });
+            void loadOrder(true);
           } else {
             setData(null);
             setOrderMissing(true);

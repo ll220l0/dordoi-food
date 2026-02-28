@@ -135,8 +135,16 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       es = new EventSource(`/api/orders/${orderId}/stream`);
       es.addEventListener("snapshot", (event) => {
         try {
-          const payload = JSON.parse((event as MessageEvent).data) as { order?: OrderResp | null };
-          if (!stopped && payload?.order) setData(payload.order);
+          const payload = JSON.parse((event as MessageEvent).data) as {
+            order?: { id: string; status: OrderResp["status"] } | null;
+          };
+          if (!stopped && payload?.order) {
+            setData((prev) => {
+              if (!prev || prev.id !== payload.order?.id) return prev;
+              return { ...prev, status: payload.order.status };
+            });
+            void loadOrder();
+          }
         } catch {
           // noop
         }
