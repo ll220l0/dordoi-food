@@ -15,11 +15,13 @@ const ROLE_TONE: Record<string, string> = {
   courier: "border-emerald-300/70 bg-emerald-50 text-emerald-700"
 };
 
+type IconKind = "orders" | "menu" | "banks" | "reports" | "staff";
+
 type NavItem = {
   title: string;
   subtitle: string;
   href: string;
-  icon: string;
+  icon: IconKind;
   accent: string;
   visible: boolean;
   featured?: boolean;
@@ -29,6 +31,58 @@ function ChevronIcon() {
   return (
     <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" aria-hidden>
       <path d="M7 4L13 10L7 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SectionIcon({ kind }: { kind: IconKind }) {
+  if (kind === "orders") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+        <rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M9 9H15M9 13H15M9 17H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "menu") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+        <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    );
+  }
+
+  if (kind === "banks") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+        <rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M3 10H21" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M7 14H11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "reports") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+        <path d="M4 20H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <rect x="6" y="11" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="11" y="8" width="3" height="10" rx="1" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="16" y="5" width="3" height="13" rx="1" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+      <circle cx="9" cy="9" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="16.5" cy="10.5" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3.5 19C4.4 16.9 6.5 15.5 9 15.5C11.5 15.5 13.6 16.9 14.5 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M14.2 18.5C14.8 17.1 16.1 16.2 17.7 16.2C19.1 16.2 20.4 17 21 18.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -48,9 +102,9 @@ export default async function AdminHome() {
   const navItems: NavItem[] = [
     {
       title: "\u0417\u0430\u043a\u0430\u0437\u044b",
-      subtitle: "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0438\u0020\u0438\u0441\u0442\u043e\u0440\u0438\u044f",
+      subtitle: "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u044f",
       href: "/admin/orders",
-      icon: "\u25A6",
+      icon: "orders",
       accent: "from-slate-900 via-slate-800 to-black",
       visible: true,
       featured: true
@@ -59,7 +113,7 @@ export default async function AdminHome() {
       title: "\u041c\u0435\u043d\u044e",
       subtitle: "\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438 \u0438 \u0431\u043b\u044e\u0434\u0430",
       href: "/admin/menu",
-      icon: "\u25A4",
+      icon: "menu",
       accent: "from-orange-500 via-amber-500 to-yellow-500",
       visible: isOwner || isOperator
     },
@@ -67,7 +121,7 @@ export default async function AdminHome() {
       title: "\u0420\u0435\u043a\u0432\u0438\u0437\u0438\u0442\u044b",
       subtitle: "Mbank \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u043e\u043f\u043b\u0430\u0442",
       href: "/admin/banks",
-      icon: "\u25A8",
+      icon: "banks",
       accent: "from-violet-500 via-indigo-500 to-blue-500",
       visible: isOwner
     },
@@ -75,7 +129,7 @@ export default async function AdminHome() {
       title: "\u041e\u0442\u0447\u0435\u0442\u044b",
       subtitle: "\u0412\u044b\u0440\u0443\u0447\u043a\u0430, \u043a\u043e\u043d\u0432\u0435\u0440\u0441\u0438\u044f, \u0434\u0438\u043d\u0430\u043c\u0438\u043a\u0430",
       href: "/admin/reports",
-      icon: "\u25A9",
+      icon: "reports",
       accent: "from-cyan-500 via-sky-500 to-blue-500",
       visible: (isOwner || isOperator) && !isCourier
     },
@@ -83,7 +137,7 @@ export default async function AdminHome() {
       title: "\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438",
       subtitle: "\u0414\u043e\u0441\u0442\u0443\u043f\u044b \u0438 \u0440\u043e\u043b\u0438",
       href: "/admin/staff",
-      icon: "\u25A3",
+      icon: "staff",
       accent: "from-emerald-500 via-teal-500 to-cyan-500",
       visible: isOwner || isOperator
     }
@@ -148,12 +202,16 @@ export default async function AdminHome() {
               }
             >
               <div className={"pointer-events-none absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100 " + item.accent + (item.featured ? " opacity-90 group-hover:opacity-95" : "")}></div>
-              <div className={"relative flex items-center gap-3 " + (item.featured ? "text-white" : "group-hover:text-white") }>
-                <div className={
-                  "grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-base font-black transition " +
-                  (item.featured ? "bg-white/20 text-white" : "border border-slate-200 bg-white text-slate-700 group-hover:border-white/30 group-hover:bg-white/20 group-hover:text-white")
-                }>
-                  {item.icon}
+              <div className={"relative flex items-center gap-3 " + (item.featured ? "text-white" : "group-hover:text-white")}>
+                <div
+                  className={
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-2xl transition " +
+                    (item.featured
+                      ? "bg-white/20 text-white"
+                      : "border border-slate-200 bg-white text-slate-700 group-hover:border-white/30 group-hover:bg-white/20 group-hover:text-white")
+                  }
+                >
+                  <SectionIcon kind={item.icon} />
                 </div>
 
                 <div className="min-w-0 flex-1">
