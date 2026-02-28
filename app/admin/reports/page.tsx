@@ -273,21 +273,24 @@ function RevenueTrendChart({ rows }: { rows: DailyRow[] }) {
 }
 
 function ConversionDonut({ summary }: { summary: ReportResp["summary"] | null | undefined }) {
-  const total = Math.max(0, summary?.totalOrders ?? 0);
-  const delivered = Math.max(0, summary?.totalDelivered ?? 0);
-  const canceled = Math.max(0, summary?.totalCanceled ?? 0);
-  const pending = Math.max(0, total - delivered - canceled);
+  const rawTotal = Math.max(0, summary?.totalOrders ?? 0);
+  const safeDelivered = Math.max(0, summary?.totalDelivered ?? 0);
+  const safeCanceled = Math.max(0, summary?.totalCanceled ?? 0);
+  const normalizedTotal = Math.max(rawTotal, safeDelivered + safeCanceled);
+  const safePending = Math.max(0, normalizedTotal - safeDelivered - safeCanceled);
+  const totalSafe = safeDelivered + safePending + safeCanceled;
 
   const radius = 58;
   const circumference = 2 * Math.PI * radius;
-  const values = [delivered, pending, canceled];
+  const values = [safeDelivered, safePending, safeCanceled];
   const colors = ["#10b981", "#0ea5e9", "#f43f5e"];
+  const minVisibleLength = 3;
 
   const segments = values.map((value, idx) => {
-    const portion = total > 0 ? value / total : 0;
-    const length = portion * circumference;
-    const previous = values.slice(0, idx).reduce((sum, item) => sum + item, 0);
-    const offset = circumference - (previous / Math.max(1, total)) * circumference;
+    const rawLength = totalSafe > 0 ? (value / totalSafe) * circumference : 0;
+    const length = value > 0 ? Math.max(minVisibleLength, rawLength) : 0;
+    const previousRaw = values.slice(0, idx).reduce((sum, item) => sum + item, 0);
+    const offset = circumference - (previousRaw / Math.max(1, totalSafe)) * circumference;
     return {
       idx,
       value,
@@ -314,7 +317,7 @@ function ConversionDonut({ summary }: { summary: ReportResp["summary"] | null | 
                 strokeWidth="16"
                 strokeDasharray={`${Math.max(segment.length, 0)} ${circumference}`}
                 strokeDashoffset={segment.offset}
-                strokeLinecap="round"
+                strokeLinecap="butt"
                 transform="rotate(-90 75 75)"
               />
             ))}
@@ -322,7 +325,7 @@ function ConversionDonut({ summary }: { summary: ReportResp["summary"] | null | 
               всего
             </text>
             <text x="75" y="92" textAnchor="middle" className="fill-black text-[26px] font-extrabold">
-              {total}
+              {totalSafe}
             </text>
           </svg>
         </div>
@@ -331,19 +334,19 @@ function ConversionDonut({ summary }: { summary: ReportResp["summary"] | null | 
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm">
             <div className="font-semibold text-emerald-700">Доставлено</div>
             <div className="text-xs text-emerald-700/80">
-              {delivered} заказов · {total > 0 ? Math.round((delivered / total) * 100) : 0}%
+              {safeDelivered} заказов · {totalSafe > 0 ? Math.round((safeDelivered / totalSafe) * 100) : 0}%
             </div>
           </div>
           <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-sm">
             <div className="font-semibold text-sky-700">В работе</div>
             <div className="text-xs text-sky-700/80">
-              {pending} заказов · {total > 0 ? Math.round((pending / total) * 100) : 0}%
+              {safePending} заказов · {totalSafe > 0 ? Math.round((safePending / totalSafe) * 100) : 0}%
             </div>
           </div>
           <div className="rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-sm">
             <div className="font-semibold text-rose-700">Отменено</div>
             <div className="text-xs text-rose-700/80">
-              {canceled} заказов · {total > 0 ? Math.round((canceled / total) * 100) : 0}%
+              {safeCanceled} заказов · {totalSafe > 0 ? Math.round((safeCanceled / totalSafe) * 100) : 0}%
             </div>
           </div>
         </div>
