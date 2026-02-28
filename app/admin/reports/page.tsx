@@ -200,7 +200,7 @@ function RevenueTrendChart({ rows }: { rows: DailyRow[] }) {
     <Card className="overflow-hidden border border-black/10 bg-white/88 p-0 shadow-[0_26px_60px_-36px_rgba(15,23,42,0.5)] backdrop-blur">
       <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
         <div className="text-sm font-semibold text-black/80">Тренд выручки</div>
-        <div className="text-xs text-black/50">Наведите на точку</div>
+        <div className="hidden text-xs text-black/50 sm:block">Наведите на точку</div>
       </div>
 
       <div className="px-4 pb-4 pt-3">
@@ -208,7 +208,8 @@ function RevenueTrendChart({ rows }: { rows: DailyRow[] }) {
           <div className="rounded-2xl border border-black/10 bg-white/80 p-4 text-sm text-black/55">Нет данных за выбранный период.</div>
         ) : (
           <>
-            <svg viewBox={`0 0 ${chart.width} ${chart.height}`} className="h-64 w-full overflow-visible">
+            <div className="-mx-1 overflow-x-auto px-1">
+              <svg viewBox={`0 0 ${chart.width} ${chart.height}`} className="h-56 w-[720px] overflow-visible sm:h-64 sm:w-full">
               <defs>
                 <linearGradient id="reports-revenue-area" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0891b2" stopOpacity="0.33" />
@@ -242,15 +243,16 @@ function RevenueTrendChart({ rows }: { rows: DailyRow[] }) {
               })}
 
               {chart.areaPath ? <path d={chart.areaPath} fill="url(#reports-revenue-area)" /> : null}
-              {chart.linePath ? <path d={chart.linePath} fill="none" stroke="#0f172a" strokeWidth="2.8" strokeLinecap="round" /> : null}
+              {chart.linePath ? <path d={chart.linePath} fill="none" stroke="#0284c7" strokeWidth="2.35" strokeLinecap="round" /> : null}
 
               {chart.points.map((point, idx) => (
                 <g key={`point-${point.date}`} onMouseEnter={() => setActiveIndex(idx)} onFocus={() => setActiveIndex(idx)}>
-                  <circle cx={point.x} cy={point.y} r={idx === activeIndex ? 7 : 5} fill={idx === activeIndex ? "#0ea5e9" : "#0f172a"} />
+                  <circle cx={point.x} cy={point.y} r={idx === activeIndex ? 7 : 5} fill={idx === activeIndex ? "#0ea5e9" : "#7dd3fc"} />
                   {idx === activeIndex ? <circle cx={point.x} cy={point.y} r="11" fill="none" stroke="#0ea5e9" strokeOpacity="0.24" strokeWidth="6" /> : null}
                 </g>
               ))}
             </svg>
+            </div>
 
             {activePoint ? (
               <div className="mt-3 rounded-2xl border border-black/10 bg-gradient-to-r from-cyan-50/80 via-white to-sky-50/80 p-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
@@ -297,9 +299,9 @@ function ConversionDonut({ summary }: { summary: ReportResp["summary"] | null | 
   return (
     <Card className="overflow-hidden border border-black/10 bg-white/88 p-0 shadow-[0_26px_60px_-36px_rgba(15,23,42,0.5)] backdrop-blur">
       <div className="border-b border-black/10 px-4 py-3 text-sm font-semibold text-black/80">Конверсия заказов</div>
-      <div className="grid gap-2 px-4 pb-4 pt-4 sm:grid-cols-[160px_1fr] sm:items-center">
+      <div className="grid gap-3 px-4 pb-4 pt-4 sm:grid-cols-[160px_1fr] sm:items-center">
         <div className="mx-auto">
-          <svg width="150" height="150" viewBox="0 0 150 150">
+          <svg width="150" height="150" viewBox="0 0 150 150" className="h-32 w-32 sm:h-[150px] sm:w-[150px]">
             <circle cx="75" cy="75" r={radius} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth="16" />
             {segments.map((segment) => (
               <circle
@@ -454,10 +456,10 @@ export default function AdminReportsPage() {
   const avgCheckValues = daily.map((row) => row.avgCheckKgs);
 
   return (
-    <main className="min-h-screen p-5">
+    <main className="min-h-screen p-3 sm:p-5">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-[28px] border border-white/60 bg-gradient-to-br from-white/95 via-white/88 to-slate-100/70 p-5 shadow-[0_30px_80px_-52px_rgba(15,23,42,0.62)] backdrop-blur">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="rounded-[24px] border border-white/60 bg-gradient-to-br from-white/95 via-white/88 to-slate-100/70 p-3 shadow-[0_30px_80px_-52px_rgba(15,23,42,0.62)] backdrop-blur sm:rounded-[28px] sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
             <div>
               <div className="text-xs uppercase tracking-[0.14em] text-black/45">Админка</div>
               <div className="mt-1 text-3xl font-extrabold text-black/90">Отчеты</div>
@@ -470,11 +472,11 @@ export default function AdminReportsPage() {
             </div>
           </div>
 
-          <div className="mt-4 inline-flex gap-2 rounded-2xl border border-black/10 bg-white p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="mt-4 inline-flex flex-wrap gap-2 rounded-2xl border border-black/10 bg-white p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             {[7, 14, 30].map((value) => (
               <button
                 key={value}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${days === value ? "bg-black text-white" : "text-black/70"}`}
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition sm:px-3 sm:py-2 sm:text-sm ${days === value ? "bg-black text-white" : "text-black/70"}`}
                 onClick={() => setDays(value)}
               >
                 {value} дней
@@ -482,12 +484,12 @@ export default function AdminReportsPage() {
             ))}
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard
               label="Выручка"
               value={formatKgs(summary?.totalRevenueKgs ?? 0)}
               values={revenueValues}
-              stroke="#0f172a"
+              stroke="#0284c7"
               fill="#0891b2"
               accent="bg-cyan-300/30"
             />
@@ -527,7 +529,7 @@ export default function AdminReportsPage() {
 
             <Card className="overflow-hidden border border-black/10 bg-white/88 p-0 shadow-[0_26px_60px_-36px_rgba(15,23,42,0.5)] backdrop-blur">
               <div className="border-b border-black/10 px-4 py-3 text-sm font-semibold text-black/80">Журнал действий</div>
-              <div className="max-h-[26rem] overflow-auto px-4 pb-4 pt-3">
+              <div className="max-h-[20rem] overflow-auto px-4 pb-4 pt-3 sm:max-h-[26rem]">
                 <div className="space-y-2">
                   {audit.map((row) => (
                     <div key={row.id} className="rounded-xl border border-black/10 bg-white/88 px-3 py-2 text-sm">
