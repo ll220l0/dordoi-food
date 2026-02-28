@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "AdminUserRole" AS ENUM ('owner', 'operator', 'courier');
 
 -- CreateTable
