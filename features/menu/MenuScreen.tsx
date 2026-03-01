@@ -38,18 +38,18 @@ function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onD
   }, [qty]);
 
   return (
-    <div className="inline-flex items-center rounded-full border border-black/10 bg-white/95 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.15)] backdrop-blur-sm">
+    <div className="inline-flex h-10 min-w-[154px] items-center justify-between rounded-full border border-black/10 bg-white/95 px-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.15)] backdrop-blur-sm">
       <button
         type="button"
         onClick={onDec}
-        className="h-9 w-9 rounded-full border border-rose-200 bg-rose-50 text-lg font-bold leading-none text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(225,29,72,0.22)] active:translate-y-0 active:scale-95"
+        className="h-8 w-8 rounded-full border border-rose-200 bg-rose-50 text-lg font-bold leading-none text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(225,29,72,0.22)] active:translate-y-0 active:scale-95"
         aria-label="Уменьшить"
       >
         -
       </button>
 
       <div
-        className={`min-w-[2.9rem] px-2 text-center text-base font-extrabold text-slate-900 transition-transform duration-200 ${
+        className={`min-w-[2.9rem] flex-1 px-2 text-center text-base font-extrabold text-slate-900 transition-transform duration-200 ${
           isPopping ? "scale-110" : "scale-100"
         }`}
       >
@@ -59,7 +59,7 @@ function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onD
       <button
         type="button"
         onClick={onInc}
-        className="h-9 w-9 rounded-full border border-orange-300 bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-bold leading-none text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(249,115,22,0.35)] active:translate-y-0 active:scale-95"
+        className="h-8 w-8 rounded-full border border-orange-300 bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-bold leading-none text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(249,115,22,0.35)] active:translate-y-0 active:scale-95"
         aria-label="Увеличить"
       >
         +
@@ -185,9 +185,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
                         {item.description}
                       </div>
 
-                      <div className="mt-3 flex justify-end">
+                      <div className="mt-3 flex min-h-10 items-center justify-end">
                         {!item.isAvailable ? (
-                          <span className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-500">
+                          <span className="inline-flex h-10 min-w-[154px] items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-500">
                             Нет в наличии
                           </span>
                         ) : qty > 0 ? (
@@ -195,7 +195,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
                         ) : (
                           <Button
                             onClick={() => addToCart(item)}
-                            className="h-10 rounded-full px-5 text-base font-bold !bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,0.2)] hover:shadow-[0_10px_22px_rgba(15,23,42,0.24)]"
+                            className="h-10 min-w-[154px] rounded-full px-5 text-base font-bold !bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,0.2)] hover:shadow-[0_10px_22px_rgba(15,23,42,0.24)]"
                             variant="primary"
                           >
                             + Добавить
