@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -140,6 +140,7 @@ export default function AdminStaffPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [role, setRole] = useState<AdminRole>("operator");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -215,6 +216,7 @@ export default function AdminStaffPage() {
     setUsername("");
     setPassword("");
     setPasswordConfirm("");
+    setShowPasswords(false);
     setRole("operator");
     setFirstName("");
     setLastName("");
@@ -477,9 +479,19 @@ export default function AdminStaffPage() {
                 onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
               />
 
+              <div className="sm:col-span-2 flex justify-end">
+                <button
+                  type="button"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                  onClick={() => setShowPasswords((prev) => !prev)}
+                >
+                  {showPasswords ? "Скрыть пароли" : "Показать пароли"}
+                </button>
+              </div>
+
               <input
                 className="rounded-2xl border border-slate-200 bg-white/92 px-4 py-3 text-[16px] text-slate-900 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition focus:border-slate-300 focus:outline-none"
-                type="password"
+                type={showPasswords ? "text" : "password"}
                 placeholder="Пароль"
                 autoComplete="new-password"
                 value={password}
@@ -487,7 +499,7 @@ export default function AdminStaffPage() {
               />
               <input
                 className="rounded-2xl border border-slate-200 bg-white/92 px-4 py-3 text-[16px] text-slate-900 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition focus:border-slate-300 focus:outline-none"
-                type="password"
+                type={showPasswords ? "text" : "password"}
                 placeholder="Подтвердите пароль"
                 autoComplete="new-password"
                 value={passwordConfirm}
@@ -568,3 +580,5 @@ export default function AdminStaffPage() {
     </main>
   );
 }
+
+
