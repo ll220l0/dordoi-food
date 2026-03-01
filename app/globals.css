@@ -533,3 +533,32 @@ main {
     transition: none;
   }
 }
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-edge-fade-left,
+.menu-edge-fade-right {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  z-index: 1;
+}
+
+.menu-edge-fade-left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(241, 245, 249, 0.95), rgba(241, 245, 249, 0));
+}
+
+.menu-edge-fade-right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(241, 245, 249, 0.95), rgba(241, 245, 249, 0));
+}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import clsx from "clsx";
 import Link from "next/link";
@@ -48,6 +48,7 @@ export function ClientNav({ menuHref, orderHref }: Props) {
 
   useEffect(() => {
     if (orderHref) return;
+
     const syncOrderHref = () => {
       const pendingPayOrderId = getPendingPayOrderId();
       const activeOrderId = getActiveOrderId();
@@ -100,7 +101,7 @@ export function ClientNav({ menuHref, orderHref }: Props) {
         const j = (await res.json()) as { status?: string };
         if (!stopped) setActiveOrderStatus(j.status ?? null);
       } catch {
-        // Ignore transient request errors.
+        // transient network error ignored
       }
     };
 
@@ -118,20 +119,24 @@ export function ClientNav({ menuHref, orderHref }: Props) {
 
   const itemClassName = (active: boolean) =>
     clsx(
-      "relative rounded-full px-4 py-2 text-sm font-semibold transition",
-      active ? "bg-black text-white" : "border border-black/10 bg-white/70 text-black/60"
+      "relative inline-flex min-w-[6.4rem] items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
+      active
+        ? "bg-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.3)]"
+        : "border border-white/85 bg-white/70 text-slate-600 hover:bg-white/90"
     );
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
-      <div className="mx-auto flex w-full max-w-md flex-wrap items-center justify-center gap-2 rounded-3xl border border-white/70 bg-white/75 p-2 shadow-[0_16px_44px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-md flex-wrap items-center justify-center gap-2 rounded-[28px] border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.9),rgba(248,250,252,0.72))] p-2 shadow-[0_18px_42px_rgba(15,23,42,0.18)] backdrop-blur-2xl">
         <Link href={menuHref} className={itemClassName(pathname.startsWith("/r/"))}>
           Меню
         </Link>
 
         <Link href="/cart" className={itemClassName(pathname === "/cart")}>
           Корзина
-          {cartCount > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500" />}
+          {cartCount > 0 && (
+            <span aria-hidden="true" className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full bg-orange-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)]" />
+          )}
         </Link>
 
         <Link
@@ -139,7 +144,12 @@ export function ClientNav({ menuHref, orderHref }: Props) {
           className={itemClassName(pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/"))}
         >
           Заказ
-          {hasActiveOrder && <span aria-hidden="true" className={clsx("absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full", orderDotClassName)} />}
+          {hasActiveOrder && (
+            <span
+              aria-hidden="true"
+              className={clsx("absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.9)]", orderDotClassName)}
+            />
+          )}
         </Link>
       </div>
     </div>
