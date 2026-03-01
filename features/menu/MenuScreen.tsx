@@ -131,10 +131,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Меню</div>
           <div className="mt-1 text-[2.1rem] font-extrabold leading-none tracking-tight text-slate-900">{data?.restaurant?.name ?? "..."}</div>
 
-          <div className="relative mt-3">
-            <div className="menu-edge-fade-left" aria-hidden="true" />
-            <div className="menu-edge-fade-right" aria-hidden="true" />
-            <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pr-1">
+          <div className="relative mt-3">            <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pr-1">
               {(data?.categories ?? []).map((category) => {
                 const isActive = category.id === activeCat;
                 return (
@@ -143,10 +140,10 @@ export default function MenuScreen({ slug }: { slug: string }) {
                     type="button"
                     aria-pressed={isActive}
                     onClick={() => setActiveCat(category.id)}
-                    className={`shrink-0 snap-start rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                    className={`shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-semibold leading-none transition-all duration-300 ${
                       isActive
-                        ? "bg-black text-white shadow-[0_10px_24px_rgba(15,23,42,0.28)] ring-1 ring-white/20"
-                        : "border border-white/85 bg-white/90 text-slate-600 hover:bg-white"
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.28)] ring-1 ring-white/30"
+                        : "border border-white/90 bg-white/88 text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:bg-white"
                     }`}
                   >
                     {category.title}
@@ -179,7 +176,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
                         <div className="min-w-0 pr-1 text-lg font-bold leading-snug text-slate-900" style={clamp2Style()}>
                           {item.title}
                         </div>
-                        <div className="shrink-0 rounded-full border border-amber-200/90 bg-amber-50 px-3 py-1 text-sm font-extrabold text-amber-900 shadow-[0_6px_16px_rgba(245,158,11,0.2)]">
+                        <div className="shrink-0 rounded-2xl border border-amber-300/70 bg-gradient-to-b from-amber-500 to-orange-500 px-3 py-1.5 text-sm font-extrabold tracking-tight text-white shadow-[0_8px_20px_rgba(245,158,11,0.35)]">
                           {formatKgs(item.priceKgs)}
                         </div>
                       </div>
@@ -198,7 +195,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
                         ) : (
                           <Button
                             onClick={() => addToCart(item)}
-                            className="h-10 rounded-full !bg-gradient-to-r !from-orange-500 !to-amber-500 px-5 text-base font-bold text-white shadow-[0_12px_26px_rgba(249,115,22,0.34)] hover:shadow-[0_16px_30px_rgba(245,158,11,0.36)]"
+                            className="h-10 rounded-full !bg-gradient-to-r !from-amber-500 !to-orange-500 px-5 text-base font-bold text-white shadow-[0_8px_18px_rgba(249,115,22,0.28)] hover:shadow-[0_10px_22px_rgba(245,158,11,0.32)]"
                             variant="primary"
                           >
                             + Добавить
