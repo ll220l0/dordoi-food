@@ -1,8 +1,6 @@
 ﻿import crypto from "crypto";
 
-const DEFAULT_API_BASE = "https://api.freedompay.kg";
-const DEFAULT_CURRENCY = "417";
-
+const DEFAULT_API_BASE = "https://api.freedompay.kz";
 type RawParams = Record<string, string | number | boolean | null | undefined>;
 
 function toStringValue(value: unknown) {
@@ -15,7 +13,8 @@ export function buildFreedomPayConfig() {
   const merchantId = process.env.FREEDOMPAY_MERCHANT_ID?.trim() ?? "";
   const secretKey = process.env.FREEDOMPAY_SECRET_KEY?.trim() ?? "";
   const apiBase = (process.env.FREEDOMPAY_API_BASE?.trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
-  const currency = (process.env.FREEDOMPAY_CURRENCY?.trim() || DEFAULT_CURRENCY).toUpperCase();
+  const currencyRaw = process.env.FREEDOMPAY_CURRENCY?.trim() ?? "";
+  const currency = currencyRaw ? currencyRaw.toUpperCase() : "";
   const testMode = (process.env.FREEDOMPAY_TEST_MODE?.trim() ?? "") === "1";
 
   return {

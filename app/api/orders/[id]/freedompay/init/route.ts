@@ -59,7 +59,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       pg_merchant_id: config.merchantId,
       pg_order_id: order.id,
       pg_amount: formatFreedomPayAmount(order.totalKgs),
-      pg_currency: config.currency,
       pg_description: formatDescription(order.id),
       pg_salt: salt,
       pg_result_url: `${origin}/api/payments/freedompay/result`,
@@ -67,6 +66,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       pg_failure_url: `${origin}/pay/${order.id}`,
       pg_request_method: "POST"
     };
+
+    if (config.currency) {
+      requestParams.pg_currency = config.currency;
+    }
 
     if (config.testMode) {
       requestParams.pg_testing_mode = "1";

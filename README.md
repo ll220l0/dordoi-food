@@ -66,8 +66,8 @@ git push -u origin main
    - `FREEDOMPAY_MERCHANT_ID` (Freedom Pay project ID)
    - `FREEDOMPAY_SECRET_KEY` (Freedom Pay secret key for incoming payments)
    - `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional, payouts key)
-   - `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
-   - `FREEDOMPAY_CURRENCY` (default: `417` for KGS)
+   - `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kz`)
+   - `FREEDOMPAY_CURRENCY` (optional, leave empty to use project currency in Freedom Pay cabinet)
    - `FREEDOMPAY_TEST_MODE` (`1` for sandbox, `0` for production)
    - `APP_BASE_URL` (public app URL for Freedom Pay callbacks)
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
@@ -97,8 +97,8 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `FREEDOMPAY_MERCHANT_ID`
 - `FREEDOMPAY_SECRET_KEY`
 - `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional)
-- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
-- `FREEDOMPAY_CURRENCY` (default: `417`)
+- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kz`)
+- `FREEDOMPAY_CURRENCY` (optional, leave empty to use project currency in Freedom Pay cabinet)
 - `FREEDOMPAY_TEST_MODE` (`1` sandbox, `0` prod)
 - `APP_BASE_URL` (for Freedom Pay callback URLs)
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
@@ -152,8 +152,8 @@ $env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
 - `FREEDOMPAY_MERCHANT_ID`
 - `FREEDOMPAY_SECRET_KEY`
 - `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional)
-- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
-- `FREEDOMPAY_CURRENCY` (default: `417`)
+- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kz`)
+- `FREEDOMPAY_CURRENCY` (optional, leave empty to use project currency in Freedom Pay cabinet)
 - `FREEDOMPAY_TEST_MODE` (`1` sandbox, `0` prod)
 - `APP_BASE_URL` (public origin used for callback/success/failure URLs)
 - `ORDER_PAYMENT_TIMEOUT_MINUTES` (auto-cancel timeout for unpaid bank orders, default `8`)
