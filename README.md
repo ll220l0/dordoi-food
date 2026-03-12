@@ -63,6 +63,13 @@ git push -u origin main
    - `ADMIN_BANK_PASS` (optional, separate password for bank numbers changes in admin menu)
    - `NEXT_PUBLIC_APP_NAME`
    - `NEXT_PUBLIC_MBANK_PAY_URL` (optional, overrides default bank deeplink template)
+   - `FREEDOMPAY_MERCHANT_ID` (Freedom Pay project ID)
+   - `FREEDOMPAY_SECRET_KEY` (Freedom Pay secret key for incoming payments)
+   - `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional, payouts key)
+   - `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
+   - `FREEDOMPAY_CURRENCY` (default: `417` for KGS)
+   - `FREEDOMPAY_TEST_MODE` (`1` for sandbox, `0` for production)
+   - `APP_BASE_URL` (public app URL for Freedom Pay callbacks)
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
    - `VAPID_PRIVATE_KEY` (for Web Push)
    - `VAPID_SUBJECT` (for Web Push, e.g. `mailto:admin@example.com`)
@@ -87,6 +94,13 @@ If you see `Application error: a server-side exception has occurred`, usually DB
 - `ADMIN_BANK_PASS` (optional)
 - `NEXT_PUBLIC_APP_NAME`
 - `NEXT_PUBLIC_MBANK_PAY_URL` (optional)
+- `FREEDOMPAY_MERCHANT_ID`
+- `FREEDOMPAY_SECRET_KEY`
+- `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional)
+- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
+- `FREEDOMPAY_CURRENCY` (default: `417`)
+- `FREEDOMPAY_TEST_MODE` (`1` sandbox, `0` prod)
+- `APP_BASE_URL` (for Freedom Pay callback URLs)
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (for Web Push)
 - `VAPID_PRIVATE_KEY` (for Web Push)
 - `VAPID_SUBJECT` (for Web Push)
@@ -135,6 +149,13 @@ $env:DATABASE_URL="postgresql://..."; npx prisma migrate deploy
 - `ADMIN_OPERATOR_PASS`
 - `ADMIN_COURIER_USER`
 - `ADMIN_COURIER_PASS`
+- `FREEDOMPAY_MERCHANT_ID`
+- `FREEDOMPAY_SECRET_KEY`
+- `FREEDOMPAY_PAYOUT_SECRET_KEY` (optional)
+- `FREEDOMPAY_API_BASE` (default: `https://api.freedompay.kg`)
+- `FREEDOMPAY_CURRENCY` (default: `417`)
+- `FREEDOMPAY_TEST_MODE` (`1` sandbox, `0` prod)
+- `APP_BASE_URL` (public origin used for callback/success/failure URLs)
 - `ORDER_PAYMENT_TIMEOUT_MINUTES` (auto-cancel timeout for unpaid bank orders, default `8`)
 - `ORDER_CREATE_LIMIT_PER_MINUTE` (soft throttle cap, default `20`)
 - `ORDER_CREATE_THROTTLE_DELAY_MS` (soft-throttle delay before recheck, default `450`)

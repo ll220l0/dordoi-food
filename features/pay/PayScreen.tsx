@@ -77,6 +77,7 @@ function IconCross({ className = "h-5 w-5" }: { className?: string }) {
 export default function PayScreen({ orderId }: { orderId: string }) {
   const [data, setData] = useState<OrderResp | null>(null);
   const [loading, setLoading] = useState(false);
+  const [gatewayLoading, setGatewayLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [navigatingToOrder, setNavigatingToOrder] = useState(false);
   const [payerName, setPayerName] = useState("");
@@ -255,17 +256,42 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     }, 120);
   }
 
-  function goToBankPayment() {
-    if (!resolvedBankUrl) {
-      toast.error("Ссылка оплаты Mbank не настроена");
-      return;
-    }
+  async function goToBankPayment() {
     if (!data || effectiveTotalKgs <= 0) {
       toast.error("Сумма заказа еще загружается");
       return;
     }
 
-    window.location.assign(resolvedBankUrl);
+    if (gatewayLoading) return;
+
+    setGatewayLoading(true);
+    try {
+      const payer = payerName.trim();
+      const res = await fetch(`/api/orders/${orderId}/freedompay/init`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ payerName: payer })
+      });
+
+      const j = (await res.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
+      if (res.ok && j?.redirectUrl) {
+        if (payer.length >= 2) setSavedPayerName(payer);
+        window.location.assign(j.redirectUrl);
+        return;
+      }
+
+      if (resolvedBankUrl) {
+        toast.error("Freedom Pay временно недоступен. Открываем оплату Mbank");
+        window.location.assign(resolvedBankUrl);
+        return;
+      }
+
+      throw new Error(j?.error ?? "Не удалось открыть оплату");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setGatewayLoading(false);
+    }
   }
 
   async function markPaid() {
@@ -343,31 +369,26 @@ export default function PayScreen({ orderId }: { orderId: string }) {
               onChange={(e) => setPayerName(e.target.value)}
             />
 
-            <div className="mt-3 text-xs text-black/55">Банк: Mbank</div>
+            <div className="mt-3 text-xs text-black/55">Платежная система: Freedom Pay</div>
 
             <div className="mt-4 space-y-2">
               <Button
                 variant="ghost"
-                onClick={goToBankPayment}
-                disabled={!resolvedBankUrl || !data || effectiveTotalKgs <= 0 || cancelling}
+                onClick={() => void goToBankPayment()}
+                disabled={!data || effectiveTotalKgs <= 0 || cancelling || gatewayLoading}
                 className="h-12 w-full border border-white/50 bg-gradient-to-r from-[#05A6B9] via-[#17C6C6] to-[#62E6CC] py-0 text-white shadow-[0_12px_28px_rgba(5,166,185,0.38)]"
-                aria-label="Перейти к Mbank"
+                aria-label="Перейти к оплате"
               >
-                <div className="flex items-center justify-center">
-                  <Image
-                    src="/mbank-logo-white.svg"
-                    alt="Mbank"
-                    width={132}
-                    height={32}
-                    className="h-7 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.22)]"
-                    priority
-                  />
-                </div>
+                {gatewayLoading ? (
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                ) : (
+                  <span className="text-base font-extrabold tracking-wide text-white">К оплате</span>
+                )}
               </Button>
-              <Button onClick={() => void markPaid()} disabled={loading || cancelling} className="h-12 w-full py-0">
+              <Button onClick={() => void markPaid()} disabled={loading || cancelling || gatewayLoading} className="h-12 w-full py-0">
                 {loading ? "Отправляем..." : "Я оплатил(а)"}
               </Button>
-              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || cancelling} className="h-12 w-full py-0 text-rose-700">
+              <Button variant="secondary" onClick={() => void cancelOrder()} disabled={loading || cancelling || gatewayLoading} className="h-12 w-full py-0 text-rose-700">
                 {cancelling ? "Отменяем..." : "Отменить заказ"}
               </Button>
             </div>
