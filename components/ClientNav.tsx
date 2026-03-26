@@ -18,22 +18,14 @@ function extractOrderId(href: string) {
   return match?.[1] ?? null;
 }
 
-function getOrderDotClassName(status: string | null) {
+function getOrderDotColor(status: string | null) {
   switch (status) {
-    case "confirmed":
-      return "bg-emerald-500";
-    case "cooking":
-      return "bg-indigo-500";
-    case "delivering":
-      return "bg-sky-500";
-    case "canceled":
-      return "bg-rose-500";
-    case "delivered":
-      return "bg-green-500";
-    case "created":
-    case "pending_confirmation":
-    default:
-      return "bg-amber-500";
+    case "confirmed":    return "bg-emerald-500";
+    case "cooking":     return "bg-indigo-500";
+    case "delivering":  return "bg-sky-500";
+    case "canceled":    return "bg-rose-500";
+    case "delivered":   return "bg-green-500";
+    default:            return "bg-amber-500";
   }
 }
 
@@ -54,7 +46,13 @@ export function ClientNav({ menuHref, orderHref }: Props) {
       const activeOrderId = getActiveOrderId();
       const lastOrderId = getLastOrderId();
       setFallbackOrderHref(
-        pendingPayOrderId ? `/pay/${pendingPayOrderId}` : activeOrderId ? `/order/${activeOrderId}` : lastOrderId ? `/order/${lastOrderId}` : "/order"
+        pendingPayOrderId
+          ? `/pay/${pendingPayOrderId}`
+          : activeOrderId
+            ? `/order/${activeOrderId}`
+            : lastOrderId
+              ? `/order/${lastOrderId}`
+              : "/order"
       );
     };
 
@@ -115,39 +113,69 @@ export function ClientNav({ menuHref, orderHref }: Props) {
   }, [pathname, resolvedOrderHref]);
 
   const hasActiveOrder = activeOrderStatus ? !isHistoryStatus(activeOrderStatus) : false;
-  const orderDotClassName = getOrderDotClassName(activeOrderStatus);
+  const orderDotColor = getOrderDotColor(activeOrderStatus);
 
-  const itemClassName = (active: boolean) =>
+  const isMenu = pathname.startsWith("/r/");
+  const isCart = pathname === "/cart";
+  const isOrder = pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/");
+
+  const itemClass = (active: boolean) =>
     clsx(
-      "relative inline-flex min-w-[6.4rem] items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300",
+      "relative inline-flex min-w-[5.8rem] items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
       active
-        ? "bg-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.3)]"
-        : "border border-white/85 bg-white/70 text-slate-600 hover:bg-white/90"
+        ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-[0_10px_24px_rgba(249,115,22,0.36),0_1px_0_rgba(255,255,255,0.22)_inset] border border-orange-400/20"
+        : "border border-white/80 bg-white/65 text-slate-600 hover:bg-white/85 hover:shadow-[0_4px_14px_rgba(15,23,42,0.08)]"
     );
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
-      <div className="mx-auto flex w-full max-w-md flex-wrap items-center justify-center gap-2 rounded-[28px] border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.9),rgba(248,250,252,0.72))] p-2 shadow-[0_18px_42px_rgba(15,23,42,0.18)] backdrop-blur-2xl">
-        <Link href={menuHref} className={itemClassName(pathname.startsWith("/r/"))}>
+    <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2">
+      <div className="relative mx-auto flex w-full max-w-md items-center justify-center gap-2 overflow-hidden rounded-[30px] border border-white/90 bg-white/78 p-2 shadow-[0_22px_50px_rgba(15,23,42,0.20),0_1.5px_0_rgba(255,255,255,0.95)_inset,0_0_0_0.5px_rgba(255,255,255,0.55)_inset] backdrop-blur-3xl">
+        {/* Specular top highlight */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
+
+        {/* Menu */}
+        <Link href={menuHref} className={itemClass(isMenu)}>
+          <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="none" aria-hidden="true">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
           Меню
         </Link>
 
-        <Link href="/cart" className={itemClassName(pathname === "/cart")}>
+        {/* Cart */}
+        <Link href="/cart" className={itemClass(isCart)}>
+          <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="none" aria-hidden="true">
+            <path d="M2 3h2l2.4 9h8l1.6-6H5.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="8.5" cy="16" r="1.1" fill="currentColor" />
+            <circle cx="13.5" cy="16" r="1.1" fill="currentColor" />
+          </svg>
           Корзина
           {cartCount > 0 && (
-            <span aria-hidden="true" className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full bg-orange-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)]" />
+            <span
+              aria-label={`${cartCount} товаров`}
+              className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-orange-500 to-amber-400 text-[10px] font-extrabold text-white shadow-[0_3px_8px_rgba(249,115,22,0.4)]"
+            >
+              {cartCount > 9 ? "9+" : cartCount}
+            </span>
           )}
         </Link>
 
+        {/* Order */}
         <Link
           href={resolvedOrderHref}
-          className={itemClassName(pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/"))}
+          className={itemClass(isOrder)}
         >
+          <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="none" aria-hidden="true">
+            <rect x="3" y="2" width="14" height="16" rx="3" stroke="currentColor" strokeWidth="1.7" />
+            <path d="M7 7h6M7 10.5h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
           Заказ
           {hasActiveOrder && (
             <span
               aria-hidden="true"
-              className={clsx("absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.9)]", orderDotClassName)}
+              className={clsx(
+                "absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.2)]",
+                orderDotColor
+              )}
             />
           )}
         </Link>

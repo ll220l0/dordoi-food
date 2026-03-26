@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Button, Card, Photo } from "@/components/ui";
@@ -33,24 +34,24 @@ function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onD
 
   useEffect(() => {
     setIsPopping(true);
-    const timer = window.setTimeout(() => setIsPopping(false), 180);
+    const timer = window.setTimeout(() => setIsPopping(false), 200);
     return () => window.clearTimeout(timer);
   }, [qty]);
 
   return (
-    <div className="inline-flex h-10 min-w-[154px] items-center justify-between rounded-full border border-black/10 bg-white/95 px-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.15)] backdrop-blur-sm">
+    <div className="inline-flex h-11 min-w-[160px] items-center justify-between rounded-full border border-white/85 bg-white/90 px-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.13),0_1px_0_rgba(255,255,255,0.95)_inset] backdrop-blur-sm">
       <button
         type="button"
         onClick={onDec}
-        className="h-8 w-8 rounded-full border border-rose-200 bg-rose-50 text-lg font-bold leading-none text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(225,29,72,0.22)] active:translate-y-0 active:scale-95"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-200/80 bg-gradient-to-b from-rose-50 to-rose-100/80 text-lg font-bold leading-none text-rose-600 shadow-[0_3px_10px_rgba(225,29,72,0.15)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(225,29,72,0.22)] active:translate-y-0 active:scale-90"
         aria-label="Уменьшить"
       >
-        -
+        −
       </button>
 
       <div
-        className={`min-w-[2.9rem] flex-1 px-2 text-center text-base font-extrabold text-slate-900 transition-transform duration-200 ${
-          isPopping ? "scale-110" : "scale-100"
+        className={`min-w-[2.4rem] flex-1 px-2 text-center text-[15px] font-extrabold text-slate-900 transition-transform duration-200 ${
+          isPopping ? "scale-115" : "scale-100"
         }`}
       >
         {qty}
@@ -59,7 +60,7 @@ function QtyStepper({ qty, onInc, onDec }: { qty: number; onInc: () => void; onD
       <button
         type="button"
         onClick={onInc}
-        className="h-8 w-8 rounded-full border border-orange-300 bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-bold leading-none text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(249,115,22,0.35)] active:translate-y-0 active:scale-95"
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 text-lg font-bold leading-none text-white shadow-[0_4px_12px_rgba(249,115,22,0.38)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(249,115,22,0.45)] active:translate-y-0 active:scale-90"
         aria-label="Увеличить"
       >
         +
@@ -77,8 +78,24 @@ function clamp2Style(): CSSProperties {
   };
 }
 
+function SkeletonCard({ delay = 0 }: { delay?: number }) {
+  return (
+    <Card className="overflow-hidden p-4" style={{ animationDelay: `${delay}ms` }}>
+      <div className="flex gap-4">
+        <div className="h-[96px] w-[96px] shrink-0 rounded-[22px] skeleton" />
+        <div className="flex-1 space-y-2.5 pt-1">
+          <div className="h-4 w-[72%] rounded-full skeleton" />
+          <div className="h-3 w-[55%] rounded-full skeleton" />
+          <div className="h-3 w-[40%] rounded-full skeleton" />
+          <div className="mt-4 h-11 w-[160px] rounded-full skeleton" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function MenuScreen({ slug }: { slug: string }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["menu", slug],
     queryFn: () => fetchMenu(slug),
     refetchInterval: 15000
@@ -86,6 +103,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   const router = useRouter();
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const catBarRef = useRef<HTMLDivElement>(null);
 
   const setRestaurant = useCart((state) => state.setRestaurant);
   const add = useCart((state) => state.add);
@@ -94,6 +112,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const lines = useCart((state) => state.lines);
 
   const effectiveSlug = data?.restaurant?.slug ?? slug;
+
+  const cartCount = useMemo(() => lines.reduce((sum, l) => sum + l.qty, 0), [lines]);
+  const cartTotal = useMemo(() => lines.reduce((sum, l) => sum + l.qty * l.priceKgs, 0), [lines]);
 
   useEffect(() => {
     setRestaurant(effectiveSlug);
@@ -124,79 +145,134 @@ export default function MenuScreen({ slug }: { slug: string }) {
     add({ menuItemId: item.id, title: item.title, photoUrl: item.photoUrl, priceKgs: item.priceKgs });
   }
 
-  return (
-    <main className="min-h-screen px-4 pb-44 pt-5 sm:px-5">
-      <div className="mx-auto max-w-md">
-        <section className="sticky top-2 z-30 rounded-3xl border border-white/80 bg-white/70 p-3 shadow-[0_16px_38px_rgba(15,23,42,0.12)] backdrop-blur-xl">
-          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Меню</div>
-          <div className="mt-1 text-[2.1rem] font-extrabold leading-none tracking-tight text-slate-900">{data?.restaurant?.name ?? "..."}</div>
+  function scrollCatIntoView(id: string) {
+    const bar = catBarRef.current;
+    if (!bar) return;
+    const btn = bar.querySelector<HTMLElement>(`[data-catid="${id}"]`);
+    if (btn) btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }
 
-          <div className="relative mt-3">            <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 pr-1">
-              {(data?.categories ?? []).map((category) => {
-                const isActive = category.id === activeCat;
-                return (
-                  <button
-                    key={category.id}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => setActiveCat(category.id)}
-                    className={`shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-semibold leading-none transition-all duration-300 ${
-                      isActive
-                        ? "bg-slate-900 text-white shadow-[0_6px_14px_rgba(15,23,42,0.2)] ring-1 ring-white/20"
-                        : "border border-white/90 bg-white/88 text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:bg-white"
-                    }`}
-                  >
-                    {category.title}
-                  </button>
-                );
-              })}
+  function handleCatClick(id: string) {
+    setActiveCat(id);
+    scrollCatIntoView(id);
+  }
+
+  return (
+    <main className="min-h-screen px-4 pb-52 pt-4 sm:px-5">
+      <div className="mx-auto max-w-md">
+
+        {/* ── Header Island ── */}
+        <section className="sticky top-2 z-30 overflow-hidden rounded-[28px] border border-white/85 bg-white/70 p-4 shadow-[0_18px_44px_rgba(15,23,42,0.14),0_1.5px_0_rgba(255,255,255,0.95)_inset,0_0_0_0.5px_rgba(255,255,255,0.55)_inset] backdrop-blur-2xl">
+
+          {/* Specular shimmer stripe */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-500/80">Меню</div>
+              <div className="mt-0.5 text-[1.9rem] font-extrabold leading-none tracking-tight text-slate-900">
+                {data?.restaurant?.name ?? (isLoading ? <span className="inline-block h-8 w-48 rounded-xl skeleton" /> : "—")}
+              </div>
+            </div>
+            {cartCount > 0 && (
+              <div className="shrink-0 rounded-full border border-orange-300/40 bg-gradient-to-r from-orange-500 to-amber-400 px-3 py-1 text-xs font-bold text-white shadow-[0_4px_12px_rgba(249,115,22,0.3)]">
+                {cartCount} шт
+              </div>
+            )}
+          </div>
+
+          {/* Category pills */}
+          <div className="relative mt-3.5" ref={catBarRef}>
+            <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
+              {isLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-9 w-20 shrink-0 rounded-full skeleton" />
+                  ))
+                : (data?.categories ?? []).map((cat) => {
+                    const isActive = cat.id === activeCat;
+                    return (
+                      <button
+                        key={cat.id}
+                        data-catid={cat.id}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => handleCatClick(cat.id)}
+                        className={`shrink-0 snap-start rounded-full px-4 py-2 text-sm font-semibold leading-none transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                          isActive
+                            ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-[0_6px_16px_rgba(249,115,22,0.32),0_1px_0_rgba(255,255,255,0.2)_inset] border border-orange-400/20"
+                            : "border border-black/8 bg-white/80 text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:bg-white hover:shadow-[0_4px_12px_rgba(15,23,42,0.09)]"
+                        }`}
+                      >
+                        {cat.title}
+                      </button>
+                    );
+                  })}
             </div>
           </div>
         </section>
 
-        <div className="mt-4 space-y-3">
+        {/* ── Menu Items ── */}
+        <div className="mt-3.5 space-y-3">
           {isLoading ? (
-            <div className="px-2 text-sm text-slate-500">Загрузка...</div>
+            Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} delay={i * 60} />)
+          ) : isError ? (
+            <Card className="p-6 text-center">
+              <div className="text-2xl">😔</div>
+              <div className="mt-2 font-semibold text-slate-700">Не удалось загрузить меню</div>
+              <div className="mt-1 text-sm text-slate-500">Проверьте соединение и обновите страницу</div>
+            </Card>
+          ) : items.length === 0 ? (
+            <Card className="p-6 text-center">
+              <div className="text-2xl">🍽</div>
+              <div className="mt-2 text-sm font-medium text-slate-500">В этой категории пока нет блюд</div>
+            </Card>
           ) : (
             items.map((item, index) => {
               const qty = qtyByItemId.get(item.id) ?? 0;
-              const animationDelay = `${Math.min(index * 55, 330)}ms`;
+              const animDelay = `${Math.min(index * 50, 300)}ms`;
 
               return (
                 <Card
                   key={item.id}
-                  className="motion-fade-up overflow-hidden p-3.5 transition-transform duration-300 hover:-translate-y-0.5 sm:p-4"
-                  style={{ animationDelay }}
+                  className="motion-fade-up overflow-hidden p-4 hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(15,23,42,0.17),0_1.5px_0_rgba(255,255,255,0.95)_inset]"
+                  style={{ animationDelay: animDelay }}
                 >
-                  <div className="flex gap-3.5">
-                    <Photo src={item.photoUrl} alt={item.title} className="h-[84px] w-[84px] rounded-[22px]" sizes="84px" />
+                  <div className="flex gap-4">
+                    <Photo
+                      src={item.photoUrl}
+                      alt={item.title}
+                      className="h-[96px] w-[96px] rounded-[22px] shadow-[0_8px_20px_rgba(15,23,42,0.12)]"
+                      sizes="96px"
+                    />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 pr-1 text-lg font-bold leading-snug text-slate-900" style={clamp2Style()}>
+                        <div className="min-w-0 text-[15px] font-bold leading-snug text-slate-900" style={clamp2Style()}>
                           {item.title}
                         </div>
-                        <div className="shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-extrabold tracking-tight text-amber-800 shadow-[0_3px_10px_rgba(245,158,11,0.12)]">
+                        <div className="shrink-0 rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50 to-amber-100/60 px-2.5 py-1.5 text-[13px] font-extrabold tracking-tight text-amber-700 shadow-[0_3px_10px_rgba(245,158,11,0.14)]">
                           {formatKgs(item.priceKgs)}
                         </div>
                       </div>
 
-                      <div className="mt-1 text-sm leading-snug text-slate-500" style={clamp2Style()}>
-                        {item.description}
-                      </div>
+                      {item.description ? (
+                        <div className="mt-1 text-[13px] leading-snug text-slate-400" style={clamp2Style()}>
+                          {item.description}
+                        </div>
+                      ) : null}
 
-                      <div className="mt-3 flex min-h-10 items-center justify-end">
+                      <div className="mt-3 flex min-h-[44px] items-center justify-end">
                         {!item.isAvailable ? (
-                          <span className="inline-flex h-10 min-w-[154px] items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-500">
+                          <span className="inline-flex h-11 min-w-[160px] items-center justify-center rounded-full border border-slate-200/80 bg-slate-100/80 px-4 text-[13px] font-semibold text-slate-400">
                             Нет в наличии
                           </span>
                         ) : qty > 0 ? (
                           <QtyStepper qty={qty} onDec={() => dec(item.id)} onInc={() => inc(item.id)} />
                         ) : (
                           <Button
+                            variant="food"
                             onClick={() => addToCart(item)}
-                            className="h-10 min-w-[154px] rounded-full px-5 text-base font-bold !bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,0.2)] hover:shadow-[0_10px_22px_rgba(15,23,42,0.24)]"
-                            variant="primary"
+                            className="h-11 min-w-[160px] rounded-full px-5 text-[14px] font-bold"
                           >
                             + Добавить
                           </Button>
@@ -208,17 +284,30 @@ export default function MenuScreen({ slug }: { slug: string }) {
               );
             })
           )}
-
-          {!isLoading && items.length === 0 && (
-            <Card className="p-4">
-              <div className="text-sm text-slate-600">В этой категории сейчас нет доступных блюд.</div>
-            </Card>
-          )}
         </div>
       </div>
+
+      {/* ── Floating Cart FAB ── */}
+      {cartCount > 0 && (
+        <div className="cart-fab-enter fixed bottom-[80px] left-1/2 z-30 w-full max-w-xs -translate-x-1/2 px-4">
+          <Link
+            href="/cart"
+            className="flex h-14 w-full items-center justify-between gap-3 rounded-full border border-orange-400/25 bg-gradient-to-r from-orange-500 to-amber-400 px-2 pr-5 shadow-[0_16px_40px_rgba(249,115,22,0.42),0_1.5px_0_rgba(255,255,255,0.25)_inset] transition-all duration-300 hover:shadow-[0_22px_50px_rgba(249,115,22,0.50)] active:scale-[0.97]"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-[15px] font-extrabold text-white shadow-inner">
+              {cartCount}
+            </span>
+            <span className="flex-1 text-center text-[15px] font-extrabold tracking-tight text-white">
+              Перейти в корзину
+            </span>
+            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[13px] font-bold text-white">
+              {formatKgs(cartTotal)}
+            </span>
+          </Link>
+        </div>
+      )}
 
       <ClientNav menuHref={`/r/${effectiveSlug}`} />
     </main>
   );
 }
-
