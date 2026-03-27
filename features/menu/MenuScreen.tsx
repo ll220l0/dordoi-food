@@ -36,7 +36,7 @@ function clamp2(): CSSProperties {
     display: "-webkit-box",
     WebkitLineClamp: 2,
     WebkitBoxOrient: "vertical",
-    overflow: "hidden"
+    overflow: "hidden",
   };
 }
 
@@ -90,7 +90,7 @@ function ItemModal({
   onClose,
   onAdd,
   onInc,
-  onDec
+  onDec,
 }: {
   item: MenuItem;
   qty: number;
@@ -112,8 +112,16 @@ function ItemModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
-      <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <button
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        aria-label="Закрыть"
+        onClick={onClose}
+      />
       <div
         className="relative z-10 w-full max-w-md overflow-hidden rounded-t-3xl bg-white"
         style={{ animation: "modal-slide-up 280ms cubic-bezier(0.22,1,0.36,1)" }}
@@ -178,7 +186,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["menu", slug],
     queryFn: () => fetchMenu(slug),
-    refetchInterval: 15000
+    refetchInterval: 15000,
   });
 
   const router = useRouter();
@@ -196,7 +204,10 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
   const effectiveSlug = data?.restaurant?.slug ?? slug;
   const cartCount = useMemo(() => lines.reduce((sum, line) => sum + line.qty, 0), [lines]);
-  const cartTotal = useMemo(() => lines.reduce((sum, line) => sum + line.qty * line.priceKgs, 0), [lines]);
+  const cartTotal = useMemo(
+    () => lines.reduce((sum, line) => sum + line.qty * line.priceKgs, 0),
+    [lines],
+  );
 
   useEffect(() => {
     setRestaurant(effectiveSlug);
@@ -229,7 +240,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
     const query = searchQuery.trim().toLowerCase();
     if (query) {
       return data.items.filter(
-        (item) => item.title.toLowerCase().includes(query) || (item.description ?? "").toLowerCase().includes(query)
+        (item) =>
+          item.title.toLowerCase().includes(query) ||
+          (item.description ?? "").toLowerCase().includes(query),
       );
     }
     return activeCat ? data.items.filter((item) => item.categoryId === activeCat) : data.items;
@@ -240,7 +253,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
       menuItemId: item.id,
       title: item.title,
       photoUrl: item.photoUrl,
-      priceKgs: item.priceKgs
+      priceKgs: item.priceKgs,
     });
   }
 
@@ -254,17 +267,28 @@ export default function MenuScreen({ slug }: { slug: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-4">
+    <main className="min-h-screen bg-transparent px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-4">
       <div className="mx-auto max-w-md">
         {/* Scrollable header */}
         <div className="pb-3 pt-2">
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
-            {isLoading ? <span className="inline-block h-3 w-12 rounded bg-gray-100 skeleton" /> : "Каталог"}
+            {isLoading ? (
+              <span className="inline-block h-3 w-12 rounded bg-gray-100 skeleton" />
+            ) : (
+              "Каталог"
+            )}
           </div>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-gray-900">
-            {data?.restaurant?.name ?? (isLoading ? <span className="inline-block h-9 w-48 rounded-xl bg-gray-100 skeleton" /> : "Ресторан")}
+            {data?.restaurant?.name ??
+              (isLoading ? (
+                <span className="inline-block h-9 w-48 rounded-xl bg-gray-100 skeleton" />
+              ) : (
+                "Ресторан"
+              ))}
           </h1>
-          <p className="mt-1.5 text-sm text-gray-500">Свежие блюда с доставкой по контейнерам Дордоя.</p>
+          <p className="mt-1.5 text-sm text-gray-500">
+            Свежие блюда с доставкой по контейнерам Дордоя.
+          </p>
         </div>
 
         {/* Sticky search + categories */}
@@ -276,9 +300,18 @@ export default function MenuScreen({ slug }: { slug: string }) {
           }`}
         >
           <div className="relative">
-            <svg viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none">
+            <svg
+              viewBox="0 0 20 20"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              fill="none"
+            >
               <circle cx="8.5" cy="8.5" r="5" stroke="currentColor" strokeWidth="1.7" />
-              <path d="M12.5 12.5L16 16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              <path
+                d="M12.5 12.5L16 16"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
             </svg>
             <input
               type="search"
@@ -288,9 +321,17 @@ export default function MenuScreen({ slug }: { slug: string }) {
               className="w-full rounded-[14px] border border-gray-200 bg-white px-10 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 focus:outline-none"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900">
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900"
+              >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
-                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path
+                    d="M6 6l8 8M14 6l-8 8"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             )}
@@ -301,7 +342,10 @@ export default function MenuScreen({ slug }: { slug: string }) {
               <div className="no-scrollbar flex snap-x gap-2 overflow-x-auto pb-0.5">
                 {isLoading
                   ? Array.from({ length: 4 }).map((_, index) => (
-                      <div key={index} className="h-10 w-20 shrink-0 rounded-full bg-gray-100 skeleton" />
+                      <div
+                        key={index}
+                        className="h-10 w-20 shrink-0 rounded-full bg-gray-100 skeleton"
+                      />
                     ))
                   : (data?.categories ?? []).map((category) => {
                       const active = category.id === activeCat;
@@ -330,18 +374,24 @@ export default function MenuScreen({ slug }: { slug: string }) {
         {/* Food items list */}
         <div className="mt-3 space-y-3">
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => <SkeletonItem key={index} delay={index * 60} />)
+            Array.from({ length: 5 }).map((_, index) => (
+              <SkeletonItem key={index} delay={index * 60} />
+            ))
           ) : isError ? (
             <div className="mt-8 rounded-2xl bg-white px-6 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06),0_6px_16px_rgba(0,0,0,0.04)]">
               <div className="text-4xl text-gray-400">:(</div>
               <div className="mt-3 font-bold text-gray-900">Не удалось загрузить меню</div>
-              <div className="mt-1 text-sm text-gray-500">Проверьте соединение и обновите страницу</div>
+              <div className="mt-1 text-sm text-gray-500">
+                Проверьте соединение и обновите страницу
+              </div>
             </div>
           ) : items.length === 0 ? (
             <div className="mt-8 rounded-2xl bg-white px-6 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06),0_6px_16px_rgba(0,0,0,0.04)]">
               <div className="text-4xl text-gray-400">{searchQuery ? "?" : ":)"}</div>
               <div className="mt-3 text-sm font-semibold text-gray-500">
-                {searchQuery ? `По запросу "${searchQuery}" ничего не найдено` : "В этой категории пока нет блюд"}
+                {searchQuery
+                  ? `По запросу "${searchQuery}" ничего не найдено`
+                  : "В этой категории пока нет блюд"}
               </div>
             </div>
           ) : (
@@ -353,24 +403,47 @@ export default function MenuScreen({ slug }: { slug: string }) {
                   className="motion-fade-up flex gap-4 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_6px_16px_rgba(0,0,0,0.04)] transition-transform duration-200 hover:-translate-y-0.5"
                   style={{ animationDelay: `${Math.min(index * 45, 280)}ms` }}
                 >
-                  <button type="button" onClick={() => setSelectedItem(item)} className="shrink-0 focus:outline-none" aria-label={`Подробнее: ${item.title}`}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(item)}
+                    className="shrink-0 focus:outline-none"
+                    aria-label={`Подробнее: ${item.title}`}
+                  >
                     <div className="relative h-[100px] w-[100px] overflow-hidden rounded-xl bg-gray-100 transition-transform duration-200 active:scale-95">
-                      <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="100px" />
+                      <Image
+                        src={item.photoUrl}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                        sizes="100px"
+                      />
                       {!item.isAvailable && (
                         <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur">
-                          <span className="px-2 text-center text-[10px] font-bold leading-tight text-gray-500">НЕТ В НАЛИЧИИ</span>
+                          <span className="px-2 text-center text-[10px] font-bold leading-tight text-gray-500">
+                            НЕТ В НАЛИЧИИ
+                          </span>
                         </div>
                       )}
                     </div>
                   </button>
 
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <button type="button" onClick={() => setSelectedItem(item)} className="min-w-0 text-left focus:outline-none">
-                      <div className="text-[15px] font-bold leading-snug text-gray-900" style={{ ...clamp2(), WebkitLineClamp: 1 }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedItem(item)}
+                      className="min-w-0 text-left focus:outline-none"
+                    >
+                      <div
+                        className="text-[15px] font-bold leading-snug text-gray-900"
+                        style={{ ...clamp2(), WebkitLineClamp: 1 }}
+                      >
                         {item.title}
                       </div>
                       {item.description ? (
-                        <div className="mt-1 text-[13px] leading-snug text-gray-500" style={clamp2()}>
+                        <div
+                          className="mt-1 text-[13px] leading-snug text-gray-500"
+                          style={clamp2()}
+                        >
                           {item.description}
                         </div>
                       ) : null}
@@ -382,7 +455,11 @@ export default function MenuScreen({ slug }: { slug: string }) {
                       </div>
                       {item.isAvailable &&
                         (qty > 0 ? (
-                          <QtyStepper qty={qty} onDec={() => dec(item.id)} onInc={() => inc(item.id)} />
+                          <QtyStepper
+                            qty={qty}
+                            onDec={() => dec(item.id)}
+                            onInc={() => inc(item.id)}
+                          />
                         ) : (
                           <button
                             type="button"
@@ -403,7 +480,7 @@ export default function MenuScreen({ slug }: { slug: string }) {
 
         {/* Cart FAB */}
         {cartCount > 0 && (
-          <div className="cart-fab-enter fixed bottom-[calc(60px+env(safe-area-inset-bottom))] left-0 right-0 z-30 px-4">
+          <div className="cart-fab-enter fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 z-30 px-4">
             <div className="mx-auto max-w-md">
               <Link
                 href="/cart"

@@ -39,7 +39,20 @@ function IconMenu({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
       <path
-        d="M4 6h16M4 12h16M4 18h16"
+        d="M4 11.5h16"
+        stroke="currentColor"
+        strokeWidth={active ? "2.2" : "1.8"}
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 11.5a5.5 5.5 0 0 1 11 0v.5h-11z"
+        stroke="currentColor"
+        strokeWidth={active ? "2.2" : "1.8"}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 6.5V5m3.5 1V3.8M15 6.5V5"
         stroke="currentColor"
         strokeWidth={active ? "2.2" : "1.8"}
         strokeLinecap="round"
@@ -78,9 +91,10 @@ function IconOrder({ hasDot, dotColor }: { hasDot: boolean; dotColor: string }) 
   return (
     <div className="relative">
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
-        <rect x="4" y="2" width="16" height="20" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M8 4.5h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.7" />
         <path
-          d="M8 7h8M8 11h6M8 15h4"
+          d="M8 8h8M8 12h8M8 16h5"
           stroke="currentColor"
           strokeWidth="1.7"
           strokeLinecap="round"
@@ -191,44 +205,52 @@ export function ClientNav({ menuHref, orderHref }: Props) {
   return (
     <nav
       aria-label="Основная навигация"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/80 bg-white/95 backdrop-blur-lg pb-[env(safe-area-inset-bottom)]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]"
     >
-      <div className="mx-auto flex max-w-md items-center justify-around">
-        <Link
-          href={menuHref}
-          aria-current={isMenu ? "page" : undefined}
-          className={clsx(
-            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
-            isMenu ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
-          )}
-        >
-          <IconMenu active={isMenu} />
-          <span className="text-[10px] font-semibold">Меню</span>
-        </Link>
+      <div className="pointer-events-auto mx-auto max-w-md">
+        <div className="grid grid-cols-3 items-center rounded-[22px] border border-gray-200/80 bg-white/95 p-2 shadow-elevated backdrop-blur-lg">
+          <Link
+            href={menuHref}
+            aria-current={isMenu ? "page" : undefined}
+            className={clsx(
+              "flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[16px] transition-all duration-150",
+              isMenu
+                ? "bg-orange-50 text-orange-500 shadow-soft"
+                : "text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+            )}
+          >
+            <IconMenu active={isMenu} />
+            <span className="text-[10px] font-semibold leading-none">Меню</span>
+          </Link>
 
-        <Link
-          href="/cart"
-          aria-current={isCart ? "page" : undefined}
-          className={clsx(
-            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
-            isCart ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
-          )}
-        >
-          <IconCart count={cartCount} active={isCart} />
-          <span className="text-[10px] font-semibold">Корзина</span>
-        </Link>
+          <Link
+            href="/cart"
+            aria-current={isCart ? "page" : undefined}
+            className={clsx(
+              "flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[16px] transition-all duration-150",
+              isCart
+                ? "bg-orange-50 text-orange-500 shadow-soft"
+                : "text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+            )}
+          >
+            <IconCart count={cartCount} active={isCart} />
+            <span className="text-[10px] font-semibold leading-none">Корзина</span>
+          </Link>
 
-        <Link
-          href={resolvedOrderHref}
-          aria-current={isOrder ? "page" : undefined}
-          className={clsx(
-            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
-            isOrder ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
-          )}
-        >
-          <IconOrder hasDot={hasActiveOrder} dotColor={orderDotColor} />
-          <span className="text-[10px] font-semibold">Заказ</span>
-        </Link>
+          <Link
+            href={resolvedOrderHref}
+            aria-current={isOrder ? "page" : undefined}
+            className={clsx(
+              "flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[16px] transition-all duration-150",
+              isOrder
+                ? "bg-orange-50 text-orange-500 shadow-soft"
+                : "text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+            )}
+          >
+            <IconOrder hasDot={hasActiveOrder} dotColor={orderDotColor} />
+            <span className="text-[10px] font-semibold leading-none">Заказ</span>
+          </Link>
+        </div>
       </div>
     </nav>
   );

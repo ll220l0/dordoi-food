@@ -12,7 +12,7 @@ import {
   removeOrderFromHistory,
   setActiveOrderId,
   setPendingPayOrderId,
-  setSavedPayerName
+  setSavedPayerName,
 } from "@/lib/clientPrefs";
 import { useCart } from "@/lib/cartStore";
 import { buildMbankPayUrl, normalizeMbankNumber } from "@/lib/mbankLink";
@@ -21,14 +21,26 @@ import { isHistoryStatus } from "@/lib/orderStatus";
 
 type OrderResp = {
   id: string;
-  status: "created" | "pending_confirmation" | "confirmed" | "cooking" | "delivering" | "delivered" | "canceled";
+  status:
+    | "created"
+    | "pending_confirmation"
+    | "confirmed"
+    | "cooking"
+    | "delivering"
+    | "delivered"
+    | "canceled";
   totalKgs: number;
   payerName?: string;
   restaurant: { name: string; slug: string; mbankNumber?: string };
   items?: Array<{ qty: number; priceKgs: number }>;
 };
 
-const CONFIRMED_STATUSES = new Set<OrderResp["status"]>(["confirmed", "cooking", "delivering", "delivered"]);
+const CONFIRMED_STATUSES = new Set<OrderResp["status"]>([
+  "confirmed",
+  "cooking",
+  "delivering",
+  "delivered",
+]);
 const card = "rounded-2xl bg-white shadow-card";
 
 function getErrorMessage(error: unknown) {
@@ -39,14 +51,23 @@ function getEffectiveTotalKgs(order: OrderResp | null, fallbackTotalKgs = 0) {
   if (!order) return fallbackTotalKgs;
   const apiTotal = Number(order.totalKgs);
   if (Number.isFinite(apiTotal) && apiTotal > 0) return Math.round(apiTotal);
-  const computed = (order.items ?? []).reduce((sum, line) => sum + Math.max(0, Math.round(line.qty)) * Math.max(0, Math.round(line.priceKgs)), 0);
+  const computed = (order.items ?? []).reduce(
+    (sum, line) => sum + Math.max(0, Math.round(line.qty)) * Math.max(0, Math.round(line.priceKgs)),
+    0,
+  );
   return computed > 0 ? computed : fallbackTotalKgs;
 }
 
 function Check({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M5 12.5L9.5 17L19 7.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M5 12.5L9.5 17L19 7.5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -54,7 +75,12 @@ function Check({ className = "h-5 w-5" }: { className?: string }) {
 function Cross({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path
+        d="M7 7L17 17M17 7L7 17"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -79,9 +105,21 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     return Number.isFinite(Number(value)) && Number(value) > 0 ? Math.round(Number(value)) : 0;
   }, [orderId]);
 
-  const effectiveTotalKgs = useMemo(() => getEffectiveTotalKgs(data, historyTotalKgs), [data, historyTotalKgs]);
-  const mbankNumber = useMemo(() => normalizeMbankNumber(data?.restaurant?.mbankNumber), [data?.restaurant?.mbankNumber]);
-  const resolvedBankUrl = useMemo(() => (effectiveTotalKgs > 0 ? buildMbankPayUrl({ totalKgs: effectiveTotalKgs, bankPhone: mbankNumber }) : null), [effectiveTotalKgs, mbankNumber]);
+  const effectiveTotalKgs = useMemo(
+    () => getEffectiveTotalKgs(data, historyTotalKgs),
+    [data, historyTotalKgs],
+  );
+  const mbankNumber = useMemo(
+    () => normalizeMbankNumber(data?.restaurant?.mbankNumber),
+    [data?.restaurant?.mbankNumber],
+  );
+  const resolvedBankUrl = useMemo(
+    () =>
+      effectiveTotalKgs > 0
+        ? buildMbankPayUrl({ totalKgs: effectiveTotalKgs, bankPhone: mbankNumber })
+        : null,
+    [effectiveTotalKgs, mbankNumber],
+  );
   const isApproved = data ? CONFIRMED_STATUSES.has(data.status) : false;
   const isCanceled = data?.status === "canceled";
 
@@ -109,9 +147,15 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       eventSource = new EventSource(`/api/orders/${orderId}/stream`);
       eventSource.addEventListener("snapshot", (event) => {
         try {
-          const payload = JSON.parse((event as MessageEvent).data) as { order?: { id: string; status: OrderResp["status"] } | null };
+          const payload = JSON.parse((event as MessageEvent).data) as {
+            order?: { id: string; status: OrderResp["status"] } | null;
+          };
           if (!stopped && payload?.order) {
-            setData((prev) => (prev && prev.id === payload.order?.id ? { ...prev, status: payload.order.status } : prev));
+            setData((prev) =>
+              prev && prev.id === payload.order?.id
+                ? { ...prev, status: payload.order.status }
+                : prev,
+            );
             void loadOrder();
           }
         } catch {
@@ -153,7 +197,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
     const prevStatus = prevStatusRef.current;
     prevStatusRef.current = status;
     if (status !== "canceled" || cancelInitiatedByClientRef.current) return;
-    const canceledAfterPayment = prevStatus === "pending_confirmation" || (!!prevStatus && CONFIRMED_STATUSES.has(prevStatus));
+    const canceledAfterPayment =
+      prevStatus === "pending_confirmation" || (!!prevStatus && CONFIRMED_STATUSES.has(prevStatus));
     if (!canceledAfterPayment) return;
     setWaitingForAdmin(false);
     setShowApprovedCheck(false);
@@ -168,7 +213,8 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
   useEffect(() => {
     if (!data) return;
-    if (CONFIRMED_STATUSES.has(data.status) || data.status === "canceled") clearPendingPayOrderId(orderId);
+    if (CONFIRMED_STATUSES.has(data.status) || data.status === "canceled")
+      clearPendingPayOrderId(orderId);
   }, [data, orderId]);
 
   useEffect(() => {
@@ -205,7 +251,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       const response = await fetch(`/api/orders/${orderId}/mark-paid`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ payerName: payer })
+        body: JSON.stringify({ payerName: payer }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error ?? "Ошибка");
@@ -246,13 +292,24 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const showWaitingCard = waitingForAdmin && !isApproved && !showCanceledCard;
   const showPayCard = !showWaitingCard && !isApproved && !showCanceledCard;
 
+  useEffect(() => {
+    if (!showCanceledCard || !cancelInitiatedByClientRef.current) return;
+    const target = data?.restaurant?.slug ? `/r/${data.restaurant.slug}` : "/";
+    const timer = window.setTimeout(() => router.replace(target), 1400);
+    return () => window.clearTimeout(timer);
+  }, [data?.restaurant?.slug, router, showCanceledCard]);
+
   return (
-    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+    <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md">
         {/* Header */}
         <div className={`${card} px-5 py-5`}>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Оплата</div>
-          <h1 className="mt-1 text-3xl font-extrabold text-gray-900">{data?.restaurant?.name ?? "Банковский перевод"}</h1>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+            Оплата
+          </div>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-900">
+            {data?.restaurant?.name ?? "Банковский перевод"}
+          </h1>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -260,7 +317,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
           {showPayCard && (
             <div className={`${card} overflow-hidden`}>
               <div className="border-b border-gray-100 px-5 py-5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">К оплате</div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+                  К оплате
+                </div>
                 <div className="mt-2 text-[3rem] font-extrabold leading-none tracking-tight text-gray-900">
                   {effectiveTotalKgs > 0 ? formatKgs(effectiveTotalKgs) : "-"}
                 </div>
@@ -268,14 +327,18 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
               <div className="space-y-3 px-5 py-5">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Имя отправителя перевода</label>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+                    Имя отправителя перевода
+                  </label>
                   <input
                     className="w-full rounded-[14px] border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/15"
                     placeholder="Как вас зовут?"
                     value={payerName}
                     onChange={(event) => setPayerName(event.target.value)}
                   />
-                  <p className="mt-1.5 text-xs text-gray-500">Укажите имя, которое будет видно в переводе.</p>
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    Укажите имя, которое будет видно в переводе.
+                  </p>
                 </div>
 
                 {resolvedBankUrl ? (
@@ -322,7 +385,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                   </div>
                 </div>
                 <div className="mt-4 text-lg font-bold text-gray-900">Проверяем оплату</div>
-                <div className="mt-1 text-sm text-gray-500">Ожидаем подтверждения администратора...</div>
+                <div className="mt-1 text-sm text-gray-500">
+                  Ожидаем подтверждения администратора...
+                </div>
               </div>
             </div>
           )}
@@ -362,18 +427,26 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm px-6">
           <div className={`${card} px-8 py-6`}>
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-            <div className="mt-3 text-center text-sm font-semibold text-gray-900">Переходим к заказу...</div>
+            <div className="mt-3 text-center text-sm font-semibold text-gray-900">
+              Переходим к заказу...
+            </div>
           </div>
         </div>
       )}
 
       {/* Admin canceled FX overlay */}
-      {showAdminCanceledFx && <div className="canceled-overlay pointer-events-none fixed inset-0 z-50" />}
+      {showAdminCanceledFx && (
+        <div className="canceled-overlay pointer-events-none fixed inset-0 z-50" />
+      )}
 
       {/* Cancel confirm modal */}
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть" onClick={() => setShowCancelConfirm(false)} />
+          <button
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            aria-label="Закрыть"
+            onClick={() => setShowCancelConfirm(false)}
+          />
           <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-elevated">
             <div className="text-lg font-bold text-gray-900">Отменить заказ?</div>
             <div className="mt-2 text-sm text-gray-500">Это действие нельзя отменить.</div>
@@ -399,7 +472,9 @@ export default function PayScreen({ orderId }: { orderId: string }) {
       )}
 
       {/* Approved FX overlay */}
-      {isApproved && showApprovedCheck && <div className="approved-overlay pointer-events-none fixed inset-0 z-50" />}
+      {isApproved && showApprovedCheck && (
+        <div className="approved-overlay pointer-events-none fixed inset-0 z-50" />
+      )}
     </main>
   );
 }

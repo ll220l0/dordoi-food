@@ -17,7 +17,7 @@ import {
   setActiveOrderId,
   setPendingPayOrderId,
   setSavedLocation,
-  setSavedPhone
+  setSavedPhone,
 } from "@/lib/clientPrefs";
 import { formatKgs } from "@/lib/money";
 
@@ -54,6 +54,22 @@ function createIdempotencyKey() {
 const inputClass =
   "w-full rounded-[14px] bg-gray-50 border border-gray-200 px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition";
 
+function CartIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M3 4h2.2l1.2 7.2a2 2 0 0 0 2 1.68h7.9a2 2 0 0 0 1.92-1.43L20 6H7.1"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="18.5" r="1.4" fill="currentColor" />
+      <circle cx="17" cy="18.5" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function CartScreen() {
   const restaurantSlug = useCart((state) => state.restaurantSlug);
   const lines = useCart((state) => state.lines);
@@ -73,7 +89,9 @@ export default function CartScreen() {
   const [redirectingTo, setRedirectingTo] = useState<"pay" | "order" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState("");
-  const [savedAddresses, setSavedAddresses] = useState<Array<{ line: string; container: string }>>([]);
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ line: string; container: string }>>(
+    [],
+  );
   const submitLockRef = useRef(false);
 
   useEffect(() => {
@@ -95,9 +113,9 @@ export default function CartScreen() {
         container: container.trim(),
         customerPhone: normalizeKgPhone(customerPhone.trim()) ?? "",
         paymentMethod,
-        comment: comment.trim()
+        comment: comment.trim(),
       }),
-    [restaurantSlug, lines, line, container, customerPhone, paymentMethod, comment]
+    [restaurantSlug, lines, line, container, customerPhone, paymentMethod, comment],
   );
 
   useEffect(() => {
@@ -109,14 +127,14 @@ export default function CartScreen() {
     () =>
       Boolean(
         isHydrated &&
-          restaurantSlug &&
-          lines.length > 0 &&
-          line.trim().length > 0 &&
-          container.trim().length > 0 &&
-          normalizeKgPhone(customerPhone) &&
-          !loading
+        restaurantSlug &&
+        lines.length > 0 &&
+        line.trim().length > 0 &&
+        container.trim().length > 0 &&
+        normalizeKgPhone(customerPhone) &&
+        !loading,
       ),
-    [container, customerPhone, isHydrated, line, lines.length, loading, restaurantSlug]
+    [container, customerPhone, isHydrated, line, lines.length, loading, restaurantSlug],
   );
 
   const lastOrderSuggestion = useMemo(() => {
@@ -129,7 +147,7 @@ export default function CartScreen() {
         title: item.title,
         photoUrl: item.photoUrl,
         priceKgs: item.priceKgs,
-        qty: item.qty
+        qty: item.qty,
       }))
       .filter((item) => item.menuItemId.length > 0 && item.qty > 0);
     if (normalizedLines.length === 0) return null;
@@ -140,7 +158,7 @@ export default function CartScreen() {
 
   if (!isHydrated) {
     return (
-      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+      <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md space-y-3">
           <div className="h-10 w-32 rounded-xl skeleton" />
           <div className="h-24 rounded-2xl skeleton" />
@@ -176,16 +194,16 @@ export default function CartScreen() {
         comment: comment.trim(),
         location: { line: line.trim(), container: container.trim() },
         items: lines.map((item) => ({ menuItemId: item.menuItemId, qty: item.qty })),
-        idempotencyKey
+        idempotencyKey,
       };
 
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-idempotency-key": idempotencyKey
+          "x-idempotency-key": idempotencyKey,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const payloadJson = (await response.json().catch(() => null)) as
         | (Partial<CreateOrderResponse> & { error?: string })
@@ -201,7 +219,7 @@ export default function CartScreen() {
         customerPhone: phone,
         totalKgs: total,
         createdAt: new Date().toISOString(),
-        lines
+        lines,
       });
       setActiveOrderId(payloadJson.orderId);
       setSavedPhone(phone);
@@ -215,7 +233,8 @@ export default function CartScreen() {
         clearPendingPayOrderId();
       }
 
-      const nextUrl = paymentMethod === "bank" ? `/pay/${payloadJson.orderId}` : `/order/${payloadJson.orderId}`;
+      const nextUrl =
+        paymentMethod === "bank" ? `/pay/${payloadJson.orderId}` : `/order/${payloadJson.orderId}`;
       setRedirectingTo(paymentMethod === "bank" ? "pay" : "order");
       window.setTimeout(() => {
         window.location.assign(nextUrl);
@@ -240,16 +259,22 @@ export default function CartScreen() {
     }
 
     return (
-      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+      <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Корзина</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+            Корзина
+          </div>
           <h1 className="mt-1 text-3xl font-extrabold text-gray-900">Пусто</h1>
 
           <div className="mt-6 space-y-3">
             <div className="bg-white rounded-2xl shadow-card p-6 text-center">
-              <div className="text-4xl text-gray-400">+</div>
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                <CartIcon className="h-7 w-7" />
+              </div>
               <div className="mt-3 font-bold text-gray-900">В корзине пока ничего нет</div>
-              <div className="mt-1 text-sm text-gray-500">Выберите блюда из меню и вернитесь сюда</div>
+              <div className="mt-1 text-sm text-gray-500">
+                Выберите блюда из меню и вернитесь сюда
+              </div>
               <Link
                 href={menuHref}
                 className="mt-5 block rounded-[14px] bg-orange-500 py-3.5 text-center text-[15px] font-bold text-white shadow-glow"
@@ -261,24 +286,39 @@ export default function CartScreen() {
             {lastOrderSuggestion && (
               <div className="bg-white rounded-2xl shadow-card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Повторить прошлый заказ</div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+                    Повторить прошлый заказ
+                  </div>
                   <div className="rounded-full bg-orange-50 px-3 py-1 text-sm font-bold text-orange-500">
                     {formatKgs(lastOrderSuggestion.totalKgs)}
                   </div>
                 </div>
                 <div className="space-y-2 px-5 py-4">
                   {lastOrderSuggestion.lines.map((item) => (
-                    <div key={`${item.menuItemId}-${item.title}`} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-2.5">
+                    <div
+                      key={`${item.menuItemId}-${item.title}`}
+                      className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-2.5"
+                    >
                       <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                        <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="44px" />
+                        <Image
+                          src={item.photoUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                          sizes="44px"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-gray-900">{item.title}</div>
+                        <div className="truncate text-sm font-semibold text-gray-900">
+                          {item.title}
+                        </div>
                         <div className="text-xs text-gray-500">
                           {item.qty} x {formatKgs(item.priceKgs)}
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-orange-500">{formatKgs(item.priceKgs * item.qty)}</div>
+                      <div className="text-sm font-bold text-orange-500">
+                        {formatKgs(item.priceKgs * item.qty)}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -301,21 +341,28 @@ export default function CartScreen() {
   }
 
   return (
-    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+    <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md space-y-4">
         {/* 1. Header card */}
         <div className="bg-white rounded-2xl shadow-card px-5 py-5">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Оформление</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+            Оформление
+          </div>
           <div className="mt-1 flex items-end justify-between gap-2">
             <div>
               <h1 className="text-3xl font-extrabold leading-none text-gray-900">Корзина</h1>
-              <p className="mt-2 text-sm text-gray-500">Проверьте состав заказа и адрес доставки.</p>
+              <p className="mt-2 text-sm text-gray-500">
+                Проверьте состав заказа и адрес доставки.
+              </p>
             </div>
             <div className="flex items-center gap-2 pb-1">
               <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">
                 {count} шт
               </span>
-              <Link href={menuHref} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 hover:text-gray-900 transition">
+              <Link
+                href={menuHref}
+                className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 hover:text-gray-900 transition"
+              >
                 В меню
               </Link>
             </div>
@@ -325,13 +372,24 @@ export default function CartScreen() {
         {/* 2. Cart items */}
         <div className="space-y-2.5">
           {lines.map((lineItem) => (
-            <div key={lineItem.menuItemId} className="bg-white rounded-2xl shadow-card p-4 flex gap-3.5">
+            <div
+              key={lineItem.menuItemId}
+              className="bg-white rounded-2xl shadow-card p-4 flex gap-3.5"
+            >
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                <Image src={lineItem.photoUrl} alt={lineItem.title} fill className="object-cover" sizes="64px" />
+                <Image
+                  src={lineItem.photoUrl}
+                  alt={lineItem.title}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="text-[14px] font-semibold leading-snug text-gray-900">{lineItem.title}</div>
+                  <div className="text-[14px] font-semibold leading-snug text-gray-900">
+                    {lineItem.title}
+                  </div>
                   <div className="shrink-0 text-[14px] font-bold text-orange-500">
                     {formatKgs(lineItem.priceKgs * lineItem.qty)}
                   </div>
@@ -341,11 +399,21 @@ export default function CartScreen() {
                     {formatKgs(lineItem.priceKgs)} x {lineItem.qty}
                   </div>
                   <div className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200 px-1 py-1">
-                    <button type="button" onClick={() => dec(lineItem.menuItemId)} className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:text-red-500 transition">
+                    <button
+                      type="button"
+                      onClick={() => dec(lineItem.menuItemId)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:text-red-500 transition"
+                    >
                       -
                     </button>
-                    <span className="min-w-[1.5rem] text-center text-[13px] font-bold text-gray-900">{lineItem.qty}</span>
-                    <button type="button" onClick={() => inc(lineItem.menuItemId)} className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white active:scale-90 transition">
+                    <span className="min-w-[1.5rem] text-center text-[13px] font-bold text-gray-900">
+                      {lineItem.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => inc(lineItem.menuItemId)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white active:scale-90 transition"
+                    >
                       +
                     </button>
                   </div>
@@ -358,7 +426,9 @@ export default function CartScreen() {
         {/* 3. Delivery section */}
         <div className="bg-white rounded-2xl shadow-card overflow-hidden">
           <div className="border-b border-gray-100 px-5 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Куда доставить</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+              Куда доставить
+            </div>
           </div>
           <div className="space-y-3 px-5 py-4">
             {savedAddresses.length > 0 && (
@@ -388,11 +458,23 @@ export default function CartScreen() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="mb-1 block text-[11px] font-semibold text-gray-500">Проход</label>
-                <input className={inputClass} placeholder="Напр. 12" value={line} onChange={(event) => setLine(event.target.value)} />
+                <input
+                  className={inputClass}
+                  placeholder="Напр. 12"
+                  value={line}
+                  onChange={(event) => setLine(event.target.value)}
+                />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-gray-500">Контейнер</label>
-                <input className={inputClass} placeholder="Напр. А-15" value={container} onChange={(event) => setContainer(event.target.value)} />
+                <label className="mb-1 block text-[11px] font-semibold text-gray-500">
+                  Контейнер
+                </label>
+                <input
+                  className={inputClass}
+                  placeholder="Напр. А-15"
+                  value={container}
+                  onChange={(event) => setContainer(event.target.value)}
+                />
               </div>
             </div>
 
@@ -413,7 +495,9 @@ export default function CartScreen() {
         {/* 4. Comment section */}
         <div className="bg-white rounded-2xl shadow-card overflow-hidden">
           <div className="border-b border-gray-100 px-5 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Комментарий</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+              Комментарий
+            </div>
           </div>
           <div className="px-5 py-4">
             <textarea
@@ -429,7 +513,9 @@ export default function CartScreen() {
         {/* 5. Payment method */}
         <div className="bg-white rounded-2xl shadow-card overflow-hidden">
           <div className="border-b border-gray-100 px-5 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Способ оплаты</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+              Способ оплаты
+            </div>
           </div>
           <div className="flex gap-2 px-5 py-4">
             {(["bank", "cash"] as const).map((method) => {
@@ -445,7 +531,9 @@ export default function CartScreen() {
                       : "bg-gray-50 border-gray-200 hover:bg-white"
                   }`}
                 >
-                  <div className={`text-[15px] font-bold ${active ? "text-orange-600" : "text-gray-900"}`}>
+                  <div
+                    className={`text-[15px] font-bold ${active ? "text-orange-600" : "text-gray-900"}`}
+                  >
                     {method === "bank" ? "Банком" : "Наличными"}
                   </div>
                   <div className="mt-0.5 text-[11px] text-gray-500">
@@ -469,7 +557,11 @@ export default function CartScreen() {
               disabled={!canSubmit}
               className="w-full rounded-[14px] bg-orange-500 py-4 text-[15px] font-bold text-white shadow-glow transition-all duration-200 hover:bg-orange-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
             >
-              {loading ? "Создаём заказ..." : paymentMethod === "bank" ? "К оплате" : "Оформить заказ"}
+              {loading
+                ? "Создаём заказ..."
+                : paymentMethod === "bank"
+                  ? "К оплате"
+                  : "Оформить заказ"}
             </button>
             <button
               onClick={() => {

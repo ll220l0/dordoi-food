@@ -12,6 +12,26 @@ import {
   getPendingPayOrderId,
 } from "@/lib/clientPrefs";
 
+function ReceiptIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M8 4.5h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M6 3.5h12v17l-2.2-1.4-1.8 1.4-2-1.4-2 1.4-1.8-1.4L6 20.5v-17z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 9h6M9 12.5h6M9 16h4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function OrderHubPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -52,7 +72,7 @@ export default function OrderHubPage() {
 
   if (!ready && hasOrder) {
     return (
-      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+      <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md">
           <Card className="px-5 py-5 text-center">
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
@@ -64,7 +84,7 @@ export default function OrderHubPage() {
   }
 
   return (
-    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
+    <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md space-y-4">
         <Card className="px-5 py-5">
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
@@ -77,7 +97,9 @@ export default function OrderHubPage() {
         </Card>
 
         <Card className="p-6 text-center">
-          <div className="text-2xl text-gray-400">+</div>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+            <ReceiptIcon className="h-7 w-7" />
+          </div>
           <div className="mt-3 font-semibold text-gray-900">Оформите новый заказ в меню</div>
           <div className="mt-1 text-sm text-gray-500">
             История прошлых заказов появится после первой покупки.
