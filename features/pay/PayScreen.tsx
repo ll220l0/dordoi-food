@@ -29,7 +29,7 @@ type OrderResp = {
 };
 
 const CONFIRMED_STATUSES = new Set<OrderResp["status"]>(["confirmed", "cooking", "delivering", "delivered"]);
-const card = "rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]";
+const card = "rounded-2xl bg-white shadow-card";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Ошибка";
@@ -247,45 +247,47 @@ export default function PayScreen({ orderId }: { orderId: string }) {
   const showPayCard = !showWaitingCard && !isApproved && !showCanceledCard;
 
   return (
-    <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
+    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md">
-        <div className="rounded-[32px] border border-[#efdec5] bg-[linear-gradient(180deg,rgba(255,253,249,0.98),rgba(255,246,232,0.94))] px-5 py-5 shadow-[0_24px_60px_-42px_rgba(180,83,9,0.28)]">
-          <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-orange-500">Оплата</div>
-          <h1 className="mt-1 text-[2.45rem] font-black leading-none tracking-[-0.04em] text-[#2f2419]">{data?.restaurant?.name ?? "Банковский перевод"}</h1>
+        {/* Header */}
+        <div className={`${card} px-5 py-5`}>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Оплата</div>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-900">{data?.restaurant?.name ?? "Банковский перевод"}</h1>
         </div>
 
         <div className="mt-4 space-y-3">
+          {/* Pay card */}
           {showPayCard && (
             <div className={`${card} overflow-hidden`}>
-              <div className="border-b border-[#f1e4d0] px-5 py-5">
+              <div className="border-b border-gray-100 px-5 py-5">
                 <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">К оплате</div>
-                <div className="mt-2 text-[3rem] font-black leading-none tracking-[-0.04em] text-[#2f2419]">
+                <div className="mt-2 text-[3rem] font-extrabold leading-none tracking-tight text-gray-900">
                   {effectiveTotalKgs > 0 ? formatKgs(effectiveTotalKgs) : "-"}
                 </div>
               </div>
 
               <div className="space-y-3 px-5 py-5">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-[#8c7557]">Имя отправителя перевода</label>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Имя отправителя перевода</label>
                   <input
-                    className="w-full rounded-[20px] border border-[#eadcc6] bg-white px-4 py-3 text-sm text-[#2f2419] placeholder:text-[#af8d67]"
+                    className="w-full rounded-[14px] border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 transition focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/15"
                     placeholder="Как вас зовут?"
                     value={payerName}
                     onChange={(event) => setPayerName(event.target.value)}
                   />
-                  <p className="mt-1.5 text-xs text-[#8c7557]">Укажите имя, которое будет видно в переводе.</p>
+                  <p className="mt-1.5 text-xs text-gray-500">Укажите имя, которое будет видно в переводе.</p>
                 </div>
 
                 {resolvedBankUrl ? (
                   <a
                     href={resolvedBankUrl}
-                    className="flex h-14 w-full items-center justify-center gap-3 rounded-[22px] bg-emerald-600 text-base font-black tracking-wide text-white shadow-[0_18px_34px_-24px_rgba(5,150,105,0.75)] transition-all duration-200 hover:bg-emerald-500 active:scale-[0.98]"
+                    className="flex h-14 w-full items-center justify-center gap-3 rounded-[14px] bg-emerald-500 text-base font-bold text-white shadow-[0_8px_24px_-8px_rgba(34,197,94,0.4)] transition-all duration-200 hover:bg-emerald-600 active:scale-[0.98]"
                     aria-label="Перейти к оплате в банке"
                   >
                     Оплатить в банке
                   </a>
                 ) : (
-                  <div className="flex h-14 w-full items-center justify-center rounded-[22px] border border-[#eadcc6] bg-[#fff8ee] text-sm font-semibold text-[#8c7557]">
+                  <div className="flex h-14 w-full items-center justify-center rounded-[14px] border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-500">
                     Банковский номер не настроен
                   </div>
                 )}
@@ -293,7 +295,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 <button
                   onClick={() => void markPaid()}
                   disabled={loading || cancelling}
-                  className="w-full rounded-[22px] border border-[#eadcc6] bg-white py-3.5 text-sm font-bold text-[#3b2f21] transition-all duration-200 hover:bg-[#fff8ee] disabled:opacity-50"
+                  className="w-full rounded-[14px] border border-gray-200 bg-white py-3.5 font-semibold text-gray-700 transition-all duration-200 hover:bg-gray-50 disabled:opacity-50"
                 >
                   {loading ? "Отправляем..." : "Я оплатил(а)"}
                 </button>
@@ -301,7 +303,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                 <button
                   onClick={() => setShowCancelConfirm(true)}
                   disabled={loading || cancelling}
-                  className="w-full rounded-[22px] py-3 text-sm font-semibold text-red-600 transition-all duration-200 hover:text-red-700 disabled:opacity-40"
+                  className="w-full py-3 text-sm font-semibold text-red-500 transition-all duration-200 hover:text-red-600 disabled:opacity-40"
                 >
                   {cancelling ? "Отменяем..." : "Отменить заказ"}
                 </button>
@@ -309,6 +311,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
             </div>
           )}
 
+          {/* Waiting card */}
           {showWaitingCard && (
             <div className={`${card} p-6`}>
               <div className="flex flex-col items-center text-center">
@@ -318,32 +321,34 @@ export default function PayScreen({ orderId }: { orderId: string }) {
                     <div className="h-7 w-7 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
                   </div>
                 </div>
-                <div className="mt-4 text-lg font-black text-[#2f2419]">Проверяем оплату</div>
-                <div className="mt-1 text-sm text-[#7d6a54]">Ожидаем подтверждения администратора...</div>
+                <div className="mt-4 text-lg font-bold text-gray-900">Проверяем оплату</div>
+                <div className="mt-1 text-sm text-gray-500">Ожидаем подтверждения администратора...</div>
               </div>
             </div>
           )}
 
+          {/* Approved card */}
           {isApproved && (
-            <div className={`${card} border-emerald-200 p-6`}>
+            <div className={`${card} border border-emerald-200 p-6`}>
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_12px_24px_-16px_rgba(5,150,105,0.75)]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_8px_24px_-8px_rgba(34,197,94,0.4)]">
                   <Check className="h-7 w-7" />
                 </div>
-                <div className="mt-4 text-lg font-black text-emerald-700">Оплата подтверждена</div>
-                <div className="mt-1 text-sm text-[#7d6a54]">Переходим к заказу...</div>
+                <div className="mt-4 text-lg font-bold text-emerald-600">Оплата подтверждена</div>
+                <div className="mt-1 text-sm text-gray-500">Переходим к заказу...</div>
               </div>
             </div>
           )}
 
+          {/* Canceled card */}
           {showCanceledCard && (
-            <div className={`${card} border-red-200 p-6`}>
+            <div className={`${card} border border-red-200 p-6`}>
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-[0_12px_24px_-16px_rgba(239,68,68,0.75)]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-[0_8px_24px_-8px_rgba(239,68,68,0.4)]">
                   <Cross className="h-7 w-7" />
                 </div>
-                <div className="mt-4 text-lg font-black text-red-700">Заказ отменен</div>
-                <div className="mt-1 text-sm text-[#7d6a54]">Возвращаем в меню...</div>
+                <div className="mt-4 text-lg font-bold text-red-600">Заказ отменен</div>
+                <div className="mt-1 text-sm text-gray-500">Возвращаем в меню...</div>
               </div>
             </div>
           )}
@@ -352,29 +357,35 @@ export default function PayScreen({ orderId }: { orderId: string }) {
 
       <ClientNav menuHref={menuHref} orderHref={`/pay/${orderId}`} />
 
+      {/* Navigating overlay */}
       {navigatingToOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2a1704]/28 px-6">
-          <div className="rounded-[28px] border border-[#ecdcc5] bg-white px-8 py-6 shadow-[0_30px_70px_-36px_rgba(120,53,15,0.4)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm px-6">
+          <div className={`${card} px-8 py-6`}>
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-            <div className="mt-3 text-center text-sm font-semibold text-[#3b2f21]">Переходим к заказу...</div>
+            <div className="mt-3 text-center text-sm font-semibold text-gray-900">Переходим к заказу...</div>
           </div>
         </div>
       )}
 
+      {/* Admin canceled FX overlay */}
       {showAdminCanceledFx && <div className="canceled-overlay pointer-events-none fixed inset-0 z-50" />}
 
+      {/* Cancel confirm modal */}
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-          <button className="absolute inset-0 bg-[#2a1704]/28" aria-label="Закрыть" onClick={() => setShowCancelConfirm(false)} />
-          <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white p-6 shadow-[0_30px_70px_-36px_rgba(120,53,15,0.4)]">
-            <div className="text-lg font-black text-[#2f2419]">Отменить заказ?</div>
-            <div className="mt-2 text-sm text-[#7d6a54]">Это действие нельзя отменить.</div>
+          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть" onClick={() => setShowCancelConfirm(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-elevated">
+            <div className="text-lg font-bold text-gray-900">Отменить заказ?</div>
+            <div className="mt-2 text-sm text-gray-500">Это действие нельзя отменить.</div>
             <div className="mt-5 flex gap-3">
-              <button className="flex-1 rounded-[22px] border border-[#eadcc6] bg-[#fff8ee] py-3 text-sm font-semibold text-[#3b2f21]" onClick={() => setShowCancelConfirm(false)}>
+              <button
+                className="flex-1 rounded-[14px] border border-gray-200 bg-white py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                onClick={() => setShowCancelConfirm(false)}
+              >
                 Назад
               </button>
               <button
-                className="flex-1 rounded-[22px] bg-red-500 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(239,68,68,0.75)]"
+                className="flex-1 rounded-[14px] bg-red-500 py-3 text-sm font-bold text-white shadow-[0_8px_24px_-8px_rgba(239,68,68,0.4)] transition hover:bg-red-600"
                 onClick={() => {
                   setShowCancelConfirm(false);
                   void cancelOrder();
@@ -387,6 +398,7 @@ export default function PayScreen({ orderId }: { orderId: string }) {
         </div>
       )}
 
+      {/* Approved FX overlay */}
       {isApproved && showApprovedCheck && <div className="approved-overlay pointer-events-none fixed inset-0 z-50" />}
     </main>
   );

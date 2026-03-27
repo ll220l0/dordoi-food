@@ -52,7 +52,11 @@ async function resizeImage(file: File) {
     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, target, target);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => (result ? resolve(result) : reject(new Error("Не удалось сжать изображение"))), "image/webp", 0.9);
+      canvas.toBlob(
+        (result) => (result ? resolve(result) : reject(new Error("Не удалось сжать изображение"))),
+        "image/webp",
+        0.9,
+      );
     });
 
     return new File([blob], `${Date.now()}.webp`, { type: "image/webp" });
@@ -80,10 +84,14 @@ export default function AdminMenuPage() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemAvail, setItemAvail] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+  }>({
     open: false,
     message: "",
-    onConfirm: () => {}
+    onConfirm: () => {},
   });
 
   const loadRestaurants = useCallback(async () => {
@@ -96,7 +104,9 @@ export default function AdminMenuPage() {
   }, []);
 
   const loadMenu = useCallback(async (slug: string) => {
-    const res = await fetch(`/api/admin/menu?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+    const res = await fetch(`/api/admin/menu?slug=${encodeURIComponent(slug)}`, {
+      cache: "no-store",
+    });
     const j = (await res.json()) as { categories?: Category[]; items?: Item[] };
     const nextCategories = j.categories ?? [];
     setCategories(nextCategories);
@@ -144,10 +154,10 @@ export default function AdminMenuPage() {
       categories
         .map((category) => ({
           category,
-          items: filteredItems.filter((item) => item.categoryId === category.id)
+          items: filteredItems.filter((item) => item.categoryId === category.id),
         }))
         .filter((entry) => (filterCategoryId === "all" ? entry.items.length > 0 : true)),
-    [categories, filteredItems, filterCategoryId]
+    [categories, filteredItems, filterCategoryId],
   );
 
   function resetItemForm() {
@@ -189,8 +199,8 @@ export default function AdminMenuPage() {
         body: JSON.stringify({
           restaurantSlug,
           title: catTitle.trim(),
-          sortOrder: categories.length + 1
-        })
+          sortOrder: categories.length + 1,
+        }),
       });
       const j = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(j.error ?? "Ошибка");
@@ -214,7 +224,7 @@ export default function AdminMenuPage() {
         if (!res.ok) toast.error(j.error ?? "Ошибка");
         else toast.success("Удалено");
         await loadMenu(restaurantSlug);
-      }
+      },
     });
   }
 
@@ -237,13 +247,13 @@ export default function AdminMenuPage() {
         description: itemDesc.trim(),
         photoUrl: itemPhoto,
         priceKgs: Number(itemPrice),
-        isAvailable: Boolean(itemAvail)
+        isAvailable: Boolean(itemAvail),
       };
 
       const res = await fetch("/api/admin/items", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const j = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(j.error ?? "Ошибка");
@@ -258,16 +268,20 @@ export default function AdminMenuPage() {
   }
 
   async function toggleAvailability(id: string, isAvailable: boolean) {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, isAvailable } : item)));
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, isAvailable } : item)),
+    );
 
     const res = await fetch(`/api/admin/items/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ isAvailable })
+      body: JSON.stringify({ isAvailable }),
     });
 
     if (!res.ok) {
-      setItems((current) => current.map((item) => (item.id === id ? { ...item, isAvailable: !isAvailable } : item)));
+      setItems((current) =>
+        current.map((item) => (item.id === id ? { ...item, isAvailable: !isAvailable } : item)),
+      );
       toast.error("Не удалось обновить наличие");
     }
   }
@@ -283,7 +297,7 @@ export default function AdminMenuPage() {
         if (!res.ok) toast.error(j.error ?? "Ошибка");
         else toast.success("Удалено");
         await loadMenu(restaurantSlug);
-      }
+      },
     });
   }
 
@@ -306,10 +320,10 @@ export default function AdminMenuPage() {
     setItemModalOpen(true);
   }
 
-  function closeItemModal() {
+  const closeItemModal = useCallback(() => {
     if (uploadingPhoto) return;
     setItemModalOpen(false);
-  }
+  }, [uploadingPhoto]);
 
   useEffect(() => {
     if (!itemModalOpen) return;
@@ -327,7 +341,7 @@ export default function AdminMenuPage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [itemModalOpen, uploadingPhoto]);
+  }, [closeItemModal, itemModalOpen]);
 
   return (
     <main className="min-h-screen p-5">
@@ -345,7 +359,11 @@ export default function AdminMenuPage() {
         <div className="mt-5 space-y-4">
           <Card className="p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button className="h-10 w-full px-4 sm:w-auto" onClick={openCreateItemModal} disabled={categories.length === 0}>
+              <Button
+                className="h-10 w-full px-4 sm:w-auto"
+                onClick={openCreateItemModal}
+                disabled={categories.length === 0}
+              >
                 + Новое блюдо
               </Button>
               <button
@@ -361,14 +379,26 @@ export default function AdminMenuPage() {
                   }`}
                 >
                   <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
-                    <path d="M5.5 7.5L10 12.5L14.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M5.5 7.5L10 12.5L14.5 7.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </span>
               </button>
               <div className="flex w-full flex-wrap items-center gap-2 text-xs sm:ml-auto sm:w-auto">
-                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Категорий: {categories.length}</span>
-                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">Блюд: {items.length}</span>
-                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">В выдаче: {filteredItems.length}</span>
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">
+                  Категорий: {categories.length}
+                </span>
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">
+                  Блюд: {items.length}
+                </span>
+                <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-black/65">
+                  В выдаче: {filteredItems.length}
+                </span>
               </div>
             </div>
 
@@ -403,7 +433,9 @@ export default function AdminMenuPage() {
                   type="button"
                   onClick={() => setAvailabilityFilter("available")}
                   className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                    availabilityFilter === "available" ? "bg-emerald-600 text-white" : "text-black/65"
+                    availabilityFilter === "available"
+                      ? "bg-emerald-600 text-white"
+                      : "text-black/65"
                   } flex-1`}
                 >
                   В наличии
@@ -425,12 +457,20 @@ export default function AdminMenuPage() {
             <Card className="p-4">
               <div className="space-y-2">
                 {categories.map((category) => (
-                  <div key={category.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm">
+                  <div
+                    key={category.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                  >
                     <div className="min-w-0 flex items-center gap-2">
                       <span className="break-words font-semibold">{category.title}</span>
-                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-black/60">{categoryItemCount.get(category.id) ?? 0} блюд</span>
+                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-black/60">
+                        {categoryItemCount.get(category.id) ?? 0} блюд
+                      </span>
                     </div>
-                    <button className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700" onClick={() => void deleteCategory(category.id)}>
+                    <button
+                      className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700"
+                      onClick={() => void deleteCategory(category.id)}
+                    >
                       Удалить
                     </button>
                   </div>
@@ -443,7 +483,11 @@ export default function AdminMenuPage() {
                   value={catTitle}
                   onChange={(e) => setCatTitle(e.target.value)}
                 />
-                <Button className="h-11 w-full px-4 sm:w-auto" onClick={() => void createCategory()} disabled={!catTitle.trim() || !restaurantSlug}>
+                <Button
+                  className="h-11 w-full px-4 sm:w-auto"
+                  onClick={() => void createCategory()}
+                  disabled={!catTitle.trim() || !restaurantSlug}
+                >
                   Создать категорию
                 </Button>
               </div>
@@ -454,7 +498,10 @@ export default function AdminMenuPage() {
             <div className="flex items-center justify-between">
               <div className="text-sm text-black/50">Превью клиентского меню</div>
               {searchQuery.trim().length > 0 && (
-                <button className="text-xs text-black/55 underline" onClick={() => setSearchQuery("")}>
+                <button
+                  className="text-xs text-black/55 underline"
+                  onClick={() => setSearchQuery("")}
+                >
                   Очистить поиск
                 </button>
               )}
@@ -469,20 +516,31 @@ export default function AdminMenuPage() {
                   <section key={category.id}>
                     <div className="flex items-center justify-between">
                       <div className="text-xl font-bold">{category.title}</div>
-                      <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-xs font-semibold text-black/60">{categoryItems.length} шт.</span>
+                      <span className="rounded-full border border-black/10 bg-white px-2 py-1 text-xs font-semibold text-black/60">
+                        {categoryItems.length} шт.
+                      </span>
                     </div>
                     <div className="mt-3 space-y-3">
                       {categoryItems.map((item) => (
-                        <div key={item.id} className="rounded-2xl border border-black/10 bg-white p-3 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-black/10 bg-white p-3 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+                        >
                           <div className="flex gap-3">
                             <Photo src={item.photoUrl} alt={item.title} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-[15px] font-semibold leading-snug break-words">{item.title}</div>
-                                  <div className="mt-1 text-sm text-black/55 break-words">{item.description}</div>
+                                  <div className="text-[15px] font-semibold leading-snug break-words">
+                                    {item.title}
+                                  </div>
+                                  <div className="mt-1 text-sm text-black/55 break-words">
+                                    {item.description}
+                                  </div>
                                 </div>
-                                <div className="shrink-0 whitespace-nowrap text-right text-[15px] font-extrabold">{formatKgs(item.priceKgs)}</div>
+                                <div className="shrink-0 whitespace-nowrap text-right text-[15px] font-extrabold">
+                                  {formatKgs(item.priceKgs)}
+                                </div>
                               </div>
 
                               <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -492,7 +550,9 @@ export default function AdminMenuPage() {
                                     type="button"
                                     role="switch"
                                     aria-checked={item.isAvailable}
-                                    onClick={() => void toggleAvailability(item.id, !item.isAvailable)}
+                                    onClick={() =>
+                                      void toggleAvailability(item.id, !item.isAvailable)
+                                    }
                                     className={`relative h-7 w-12 rounded-full transition ${item.isAvailable ? "bg-emerald-500" : "bg-slate-300"}`}
                                   >
                                     <span
@@ -501,7 +561,9 @@ export default function AdminMenuPage() {
                                       }`}
                                     />
                                   </button>
-                                  <span className={`font-semibold ${item.isAvailable ? "text-emerald-700" : "text-rose-700"}`}>
+                                  <span
+                                    className={`font-semibold ${item.isAvailable ? "text-emerald-700" : "text-rose-700"}`}
+                                  >
                                     {item.isAvailable ? "В наличии" : "Скрыто"}
                                   </span>
                                 </label>
@@ -536,21 +598,35 @@ export default function AdminMenuPage() {
 
       {itemModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
-          <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-label="Закрыть окно блюда" onClick={closeItemModal} />
+          <button
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            aria-label="Закрыть окно блюда"
+            onClick={closeItemModal}
+          />
 
           <Card className="motion-pop relative z-10 w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div className="text-lg font-extrabold">{itemId ? "Редактирование блюда" : "Новое блюдо"}</div>
-                <div className="mt-1 text-xs text-black/55">Заполните поля и сразу проверьте предпросмотр справа.</div>
+                <div className="text-lg font-extrabold">
+                  {itemId ? "Редактирование блюда" : "Новое блюдо"}
+                </div>
+                <div className="mt-1 text-xs text-black/55">
+                  Заполните поля и сразу проверьте предпросмотр справа.
+                </div>
               </div>
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 {itemId && (
-                  <button className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none" onClick={resetItemForm}>
+                  <button
+                    className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none"
+                    onClick={resetItemForm}
+                  >
                     Сброс
                   </button>
                 )}
-                <button className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none" onClick={closeItemModal}>
+                <button
+                  className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/70 sm:flex-none"
+                  onClick={closeItemModal}
+                >
                   Закрыть
                 </button>
               </div>
@@ -590,10 +666,14 @@ export default function AdminMenuPage() {
                     value={itemPrice}
                     onChange={(e) => setItemPrice(e.target.value.replace(/[^\d]/g, ""))}
                   />
-                  <div className="shrink-0 rounded-xl border border-black/10 bg-white px-3 py-3 text-sm font-semibold text-black/70">сом</div>
+                  <div className="shrink-0 rounded-xl border border-black/10 bg-white px-3 py-3 text-sm font-semibold text-black/70">
+                    сом
+                  </div>
                 </div>
                 <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-white/80 bg-gradient-to-b from-white to-slate-50 p-3 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:shadow-[0_14px_28px_rgba(15,23,42,0.14)]">
-                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">+ Фото</span>
+                  <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">
+                    + Фото
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -613,18 +693,32 @@ export default function AdminMenuPage() {
                     onClick={() => setItemAvail((prev) => !prev)}
                     className={`relative h-7 w-12 rounded-full transition ${itemAvail ? "bg-emerald-500" : "bg-slate-300"}`}
                   >
-                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${itemAvail ? "left-[1.35rem]" : "left-0.5"}`} />
+                    <span
+                      className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${itemAvail ? "left-[1.35rem]" : "left-0.5"}`}
+                    />
                   </button>
-                  <span className={`font-semibold ${itemAvail ? "text-emerald-700" : "text-rose-700"}`}>{itemAvail ? "В наличии" : "Скрыто"}</span>
+                  <span
+                    className={`font-semibold ${itemAvail ? "text-emerald-700" : "text-rose-700"}`}
+                  >
+                    {itemAvail ? "В наличии" : "Скрыто"}
+                  </span>
                 </label>
               </div>
 
               <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-black/50">Предпросмотр</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-black/50">
+                  Предпросмотр
+                </div>
                 <div className="rounded-2xl border border-black/10 bg-white p-3">
                   {itemPhoto ? (
                     <div className="relative h-36 overflow-hidden rounded-xl border border-black/10 bg-black/5">
-                      <Image src={itemPhoto} alt="Предпросмотр" fill className="object-cover" sizes="240px" />
+                      <Image
+                        src={itemPhoto}
+                        alt="Предпросмотр"
+                        fill
+                        className="object-cover"
+                        sizes="240px"
+                      />
                     </div>
                   ) : (
                     <div className="flex h-36 items-center justify-center rounded-xl border border-dashed border-black/20 bg-black/5 text-xs text-black/45">
@@ -632,24 +726,46 @@ export default function AdminMenuPage() {
                     </div>
                   )}
                   <div className="mt-2">
-                    <div className="text-sm font-semibold break-words">{itemTitle || "Название блюда"}</div>
-                    <div className="mt-1 text-xs text-black/55 break-words">{itemDesc || "Короткое описание блюда"}</div>
-                    <div className="mt-2 text-sm font-extrabold">{formatKgs(Number(itemPrice) || 0)}</div>
+                    <div className="text-sm font-semibold break-words">
+                      {itemTitle || "Название блюда"}
+                    </div>
+                    <div className="mt-1 text-xs text-black/55 break-words">
+                      {itemDesc || "Короткое описание блюда"}
+                    </div>
+                    <div className="mt-2 text-sm font-extrabold">
+                      {formatKgs(Number(itemPrice) || 0)}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <Button className="flex-1" variant="secondary" onClick={closeItemModal} disabled={uploadingPhoto}>
+              <Button
+                className="flex-1"
+                variant="secondary"
+                onClick={closeItemModal}
+                disabled={uploadingPhoto}
+              >
                 Отмена
               </Button>
               <Button
                 className="flex-1"
-                disabled={!restaurantSlug || !itemCategoryId || !itemTitle.trim() || !itemPhoto || !itemPrice.trim() || uploadingPhoto}
+                disabled={
+                  !restaurantSlug ||
+                  !itemCategoryId ||
+                  !itemTitle.trim() ||
+                  !itemPhoto ||
+                  !itemPrice.trim() ||
+                  uploadingPhoto
+                }
                 onClick={() => void upsertItem()}
               >
-                {uploadingPhoto ? "Загружаем фото..." : itemId ? "Сохранить блюдо" : "Создать блюдо"}
+                {uploadingPhoto
+                  ? "Загружаем фото..."
+                  : itemId
+                    ? "Сохранить блюдо"
+                    : "Создать блюдо"}
               </Button>
             </div>
           </Card>
@@ -658,12 +774,20 @@ export default function AdminMenuPage() {
 
       {confirmDialog.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-          <button className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-label="Закрыть" onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))} />
+          <button
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            aria-label="Закрыть"
+            onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+          />
           <div className="relative z-10 w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
             <div className="text-lg font-bold">Подтвердите удаление</div>
             <div className="mt-2 text-sm text-black/65">{confirmDialog.message}</div>
             <div className="mt-5 flex gap-3">
-              <Button variant="secondary" className="flex-1 h-11 py-0" onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}>
+              <Button
+                variant="secondary"
+                className="flex-1 h-11 py-0"
+                onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+              >
                 Отмена
               </Button>
               <Button
@@ -682,6 +806,3 @@ export default function AdminMenuPage() {
     </main>
   );
 }
-
-
-

@@ -52,7 +52,7 @@ function createIdempotencyKey() {
 }
 
 const inputClass =
-  "w-full rounded-[20px] border border-[#eadcc6] bg-white px-4 py-3 text-sm text-[#2f2419] placeholder:text-[#af8d67]";
+  "w-full rounded-[14px] bg-gray-50 border border-gray-200 px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition";
 
 export default function CartScreen() {
   const restaurantSlug = useCart((state) => state.restaurantSlug);
@@ -140,10 +140,10 @@ export default function CartScreen() {
 
   if (!isHydrated) {
     return (
-      <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
+      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md space-y-3">
           <div className="h-10 w-32 rounded-xl skeleton" />
-          <div className="h-24 rounded-[26px] skeleton" />
+          <div className="h-24 rounded-2xl skeleton" />
         </div>
       </main>
     );
@@ -240,52 +240,52 @@ export default function CartScreen() {
     }
 
     return (
-      <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
+      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md">
-          <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-orange-500">Корзина</div>
-          <h1 className="mt-1 text-[2.45rem] font-black tracking-[-0.04em] text-[#2f2419]">Пусто</h1>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Корзина</div>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-900">Пусто</h1>
 
           <div className="mt-6 space-y-3">
-            <div className="rounded-[30px] border border-[#ecdcc5] bg-white/92 p-6 text-center shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-              <div className="text-4xl">+</div>
-              <div className="mt-3 font-bold text-[#2f2419]">В корзине пока ничего нет</div>
-              <div className="mt-1 text-sm text-[#7d6a54]">Выберите блюда из меню и вернитесь сюда</div>
+            <div className="bg-white rounded-2xl shadow-card p-6 text-center">
+              <div className="text-4xl text-gray-400">+</div>
+              <div className="mt-3 font-bold text-gray-900">В корзине пока ничего нет</div>
+              <div className="mt-1 text-sm text-gray-500">Выберите блюда из меню и вернитесь сюда</div>
               <Link
                 href={menuHref}
-                className="mt-5 block rounded-[22px] bg-orange-500 py-3.5 text-center text-[15px] font-bold text-white shadow-[0_18px_34px_-24px_rgba(249,115,22,0.7)]"
+                className="mt-5 block rounded-[14px] bg-orange-500 py-3.5 text-center text-[15px] font-bold text-white shadow-glow"
               >
                 Перейти в меню
               </Link>
             </div>
 
             {lastOrderSuggestion && (
-              <div className="overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-                <div className="flex items-center justify-between border-b border-[#f1e4d0] px-5 py-4">
+              <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                   <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Повторить прошлый заказ</div>
-                  <div className="rounded-full bg-[#fff0d6] px-3 py-1 text-sm font-black text-[#b45309]">
+                  <div className="rounded-full bg-orange-50 px-3 py-1 text-sm font-bold text-orange-500">
                     {formatKgs(lastOrderSuggestion.totalKgs)}
                   </div>
                 </div>
                 <div className="space-y-2 px-5 py-4">
                   {lastOrderSuggestion.lines.map((item) => (
-                    <div key={`${item.menuItemId}-${item.title}`} className="flex items-center gap-3 rounded-[20px] border border-[#f0e1ca] bg-[#fff8ee] p-2.5">
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[14px] bg-[#f6ead7]">
+                    <div key={`${item.menuItemId}-${item.title}`} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-2.5">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                         <Image src={item.photoUrl} alt={item.title} fill className="object-cover" sizes="44px" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-[#2f2419]">{item.title}</div>
-                        <div className="text-xs text-[#8c7557]">
+                        <div className="truncate text-sm font-semibold text-gray-900">{item.title}</div>
+                        <div className="text-xs text-gray-500">
                           {item.qty} x {formatKgs(item.priceKgs)}
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-[#b45309]">{formatKgs(item.priceKgs * item.qty)}</div>
+                      <div className="text-sm font-bold text-orange-500">{formatKgs(item.priceKgs * item.qty)}</div>
                     </div>
                   ))}
                 </div>
                 <div className="px-5 pb-5">
                   <button
                     onClick={repeatLastOrder}
-                    className="w-full rounded-[22px] bg-orange-500 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(249,115,22,0.7)] active:scale-[0.98]"
+                    className="w-full rounded-[14px] bg-orange-500 py-3 text-sm font-bold text-white shadow-glow active:scale-[0.98]"
                   >
                     Повторить заказ
                   </button>
@@ -301,49 +301,51 @@ export default function CartScreen() {
   }
 
   return (
-    <main className="min-h-screen px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-5">
+    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md space-y-4">
-        <div className="rounded-[32px] border border-[#efdec5] bg-[linear-gradient(180deg,rgba(255,253,249,0.98),rgba(255,246,232,0.94))] px-5 py-5 shadow-[0_24px_60px_-42px_rgba(180,83,9,0.28)]">
-          <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-orange-500">Оформление</div>
+        {/* 1. Header card */}
+        <div className="bg-white rounded-2xl shadow-card px-5 py-5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Оформление</div>
           <div className="mt-1 flex items-end justify-between gap-2">
             <div>
-              <h1 className="text-[2.45rem] font-black leading-none tracking-[-0.04em] text-[#2f2419]">Корзина</h1>
-              <p className="mt-2 text-sm text-[#7d6a54]">Проверьте состав заказа и адрес доставки.</p>
+              <h1 className="text-3xl font-extrabold leading-none text-gray-900">Корзина</h1>
+              <p className="mt-2 text-sm text-gray-500">Проверьте состав заказа и адрес доставки.</p>
             </div>
             <div className="flex items-center gap-2 pb-1">
               <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">
                 {count} шт
               </span>
-              <Link href={menuHref} className="rounded-full border border-[#eadcc6] bg-white px-3 py-1 text-xs font-semibold text-[#7d6a54] hover:text-[#2f2419]">
+              <Link href={menuHref} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 hover:text-gray-900 transition">
                 В меню
               </Link>
             </div>
           </div>
         </div>
 
+        {/* 2. Cart items */}
         <div className="space-y-2.5">
           {lines.map((lineItem) => (
-            <div key={lineItem.menuItemId} className="flex gap-3.5 rounded-[28px] border border-[#ecdcc5] bg-white/92 p-4 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] bg-[#f6ead7]">
+            <div key={lineItem.menuItemId} className="bg-white rounded-2xl shadow-card p-4 flex gap-3.5">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                 <Image src={lineItem.photoUrl} alt={lineItem.title} fill className="object-cover" sizes="64px" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="text-[14px] font-semibold leading-snug text-[#2f2419]">{lineItem.title}</div>
-                  <div className="shrink-0 rounded-full bg-[#fff0d6] px-3 py-1 text-[14px] font-black text-[#b45309]">
+                  <div className="text-[14px] font-semibold leading-snug text-gray-900">{lineItem.title}</div>
+                  <div className="shrink-0 text-[14px] font-bold text-orange-500">
                     {formatKgs(lineItem.priceKgs * lineItem.qty)}
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-[12px] text-[#8c7557]">
+                  <div className="text-[12px] text-gray-400">
                     {formatKgs(lineItem.priceKgs)} x {lineItem.qty}
                   </div>
-                  <div className="flex items-center gap-1 rounded-full border border-[#eadcc6] bg-[#fff8ee] px-1 py-1">
-                    <button type="button" onClick={() => dec(lineItem.menuItemId)} className="flex h-6 w-6 items-center justify-center rounded-full text-[#9a7a55] hover:text-red-500">
+                  <div className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200 px-1 py-1">
+                    <button type="button" onClick={() => dec(lineItem.menuItemId)} className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:text-red-500 transition">
                       -
                     </button>
-                    <span className="min-w-[1.5rem] text-center text-[13px] font-bold text-[#2f2419]">{lineItem.qty}</span>
-                    <button type="button" onClick={() => inc(lineItem.menuItemId)} className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white active:scale-90">
+                    <span className="min-w-[1.5rem] text-center text-[13px] font-bold text-gray-900">{lineItem.qty}</span>
+                    <button type="button" onClick={() => inc(lineItem.menuItemId)} className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white active:scale-90 transition">
                       +
                     </button>
                   </div>
@@ -353,8 +355,9 @@ export default function CartScreen() {
           ))}
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-          <div className="border-b border-[#f1e4d0] px-5 py-4">
+        {/* 3. Delivery section */}
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+          <div className="border-b border-gray-100 px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Куда доставить</div>
           </div>
           <div className="space-y-3 px-5 py-4">
@@ -368,10 +371,10 @@ export default function CartScreen() {
                       setLine(address.line);
                       setContainer(address.container);
                     }}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
                       address.line === line && address.container === container
-                        ? "border-orange-500 bg-orange-500 text-white shadow-[0_14px_28px_-22px_rgba(249,115,22,0.7)]"
-                        : "border-[#eadcc6] bg-[#fff8ee] text-[#7d6a54] hover:text-[#2f2419]"
+                        ? "bg-orange-500 text-white"
+                        : "bg-gray-50 text-gray-600 border border-gray-200 hover:text-gray-900"
                     }`}
                   >
                     {address.line ? `Пр. ${address.line}` : ""}
@@ -384,17 +387,17 @@ export default function CartScreen() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#8c7557]">Проход</label>
+                <label className="mb-1 block text-[11px] font-semibold text-gray-500">Проход</label>
                 <input className={inputClass} placeholder="Напр. 12" value={line} onChange={(event) => setLine(event.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#8c7557]">Контейнер</label>
+                <label className="mb-1 block text-[11px] font-semibold text-gray-500">Контейнер</label>
                 <input className={inputClass} placeholder="Напр. А-15" value={container} onChange={(event) => setContainer(event.target.value)} />
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-[11px] font-semibold text-[#8c7557]">Телефон</label>
+              <label className="mb-1 block text-[11px] font-semibold text-gray-500">Телефон</label>
               <input
                 className={inputClass}
                 placeholder="996 (___) ___ - ___"
@@ -407,8 +410,9 @@ export default function CartScreen() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-          <div className="border-b border-[#f1e4d0] px-5 py-4">
+        {/* 4. Comment section */}
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+          <div className="border-b border-gray-100 px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Комментарий</div>
           </div>
           <div className="px-5 py-4">
@@ -422,8 +426,9 @@ export default function CartScreen() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-          <div className="border-b border-[#f1e4d0] px-5 py-4">
+        {/* 5. Payment method */}
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+          <div className="border-b border-gray-100 px-5 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">Способ оплаты</div>
           </div>
           <div className="flex gap-2 px-5 py-4">
@@ -434,16 +439,16 @@ export default function CartScreen() {
                   key={method}
                   type="button"
                   onClick={() => setPaymentMethod(method)}
-                  className={`flex flex-1 flex-col items-start rounded-[22px] border p-3 text-left transition-all duration-200 ${
+                  className={`flex flex-1 flex-col items-start rounded-[14px] border p-3 text-left transition-all duration-200 ${
                     active
-                      ? "border-orange-300 bg-orange-50 shadow-[0_18px_32px_-24px_rgba(249,115,22,0.45)]"
-                      : "border-[#eadcc6] bg-[#fff8ee] hover:bg-white"
+                      ? "bg-orange-50 border-orange-200"
+                      : "bg-gray-50 border-gray-200 hover:bg-white"
                   }`}
                 >
-                  <div className={`text-[15px] font-black ${active ? "text-orange-600" : "text-[#3b2f21]"}`}>
+                  <div className={`text-[15px] font-bold ${active ? "text-orange-600" : "text-gray-900"}`}>
                     {method === "bank" ? "Банком" : "Наличными"}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-[#8c7557]">
+                  <div className="mt-0.5 text-[11px] text-gray-500">
                     {method === "bank" ? "MBank, O!Bank, Bakai" : "Курьеру при доставке"}
                   </div>
                 </button>
@@ -452,16 +457,17 @@ export default function CartScreen() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-[#ecdcc5] bg-white/92 shadow-[0_24px_50px_-34px_rgba(180,83,9,0.22)]">
-          <div className="flex items-center justify-between border-b border-[#f1e4d0] px-5 py-4">
-            <div className="text-sm text-[#8c7557]">{count} позиций</div>
-            <div className="text-[1.65rem] font-black tracking-tight text-[#2f2419]">{formatKgs(total)}</div>
+        {/* 6. Total + CTA */}
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="text-sm text-gray-500">{count} позиций</div>
+            <div className="text-2xl font-extrabold text-gray-900">{formatKgs(total)}</div>
           </div>
           <div className="space-y-2 px-5 py-4">
             <button
               onClick={() => void submitOrder()}
               disabled={!canSubmit}
-              className="w-full rounded-[22px] bg-orange-500 py-4 text-[15px] font-black text-white shadow-[0_18px_34px_-24px_rgba(249,115,22,0.7)] transition-all duration-200 hover:bg-orange-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
+              className="w-full rounded-[14px] bg-orange-500 py-4 text-[15px] font-bold text-white shadow-glow transition-all duration-200 hover:bg-orange-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
             >
               {loading ? "Создаём заказ..." : paymentMethod === "bank" ? "К оплате" : "Оформить заказ"}
             </button>
@@ -472,7 +478,7 @@ export default function CartScreen() {
                 toast.success("Корзина очищена");
               }}
               disabled={loading}
-              className="w-full rounded-[22px] border border-[#eadcc6] bg-[#fff8ee] py-3 text-sm font-semibold text-[#7d6a54] transition-all hover:text-[#2f2419] disabled:opacity-40"
+              className="w-full rounded-[14px] bg-gray-50 py-3 text-sm font-semibold text-gray-500 transition-all hover:text-gray-900 disabled:opacity-40"
             >
               Очистить корзину
             </button>
@@ -482,11 +488,12 @@ export default function CartScreen() {
 
       <ClientNav menuHref={menuHref} />
 
+      {/* 7. Redirecting overlay */}
       {redirectingTo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2a1704]/28 px-6">
-          <div className="rounded-[28px] border border-[#ecdcc5] bg-white px-8 py-6 shadow-[0_30px_70px_-36px_rgba(120,53,15,0.4)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm px-6">
+          <div className="bg-white rounded-2xl shadow-card px-8 py-6">
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-            <div className="mt-3 text-center text-sm font-semibold text-[#3b2f21]">
+            <div className="mt-3 text-center text-sm font-semibold text-gray-900">
               {redirectingTo === "pay" ? "Открываем оплату..." : "Переходим к заказу..."}
             </div>
           </div>

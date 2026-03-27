@@ -5,7 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import { ClientNav } from "@/components/ClientNav";
-import { getActiveOrderId, getLastOrderId, getOrderHistory, getPendingPayOrderId } from "@/lib/clientPrefs";
+import {
+  getActiveOrderId,
+  getLastOrderId,
+  getOrderHistory,
+  getPendingPayOrderId,
+} from "@/lib/clientPrefs";
 
 export default function OrderHubPage() {
   const router = useRouter();
@@ -47,10 +52,11 @@ export default function OrderHubPage() {
 
   if (!ready && hasOrder) {
     return (
-      <main className="min-h-screen p-5 pb-40">
+      <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto max-w-md">
-          <Card className="p-4">
-            <div className="text-sm text-black/60">Открываем заказ...</div>
+          <Card className="px-5 py-5 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+            <div className="mt-3 text-sm font-semibold text-gray-900">Открываем заказ...</div>
           </Card>
         </div>
       </main>
@@ -58,17 +64,30 @@ export default function OrderHubPage() {
   }
 
   return (
-    <main className="min-h-screen p-5 pb-40">
+    <main className="min-h-screen px-4 pb-[calc(64px+env(safe-area-inset-bottom))] pt-5">
       <div className="mx-auto max-w-md space-y-4">
-        <div className="text-3xl font-extrabold">Заказ</div>
-        <Card className="p-4">
-          <div className="text-sm text-black/60">Активный заказ</div>
-          <div className="mt-2 text-sm text-black/70">Нет активных заказов.</div>
-          <div className="mt-3">
-            <Link href={navMenuHref} className="block rounded-xl bg-black py-3 text-center font-semibold text-white">
-              В меню
-            </Link>
+        <Card className="px-5 py-5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-500">
+            Заказ
           </div>
+          <h1 className="mt-1 text-3xl font-extrabold text-gray-900">Нет активных заказов</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Когда появится новый заказ, его статус будет доступен здесь.
+          </p>
+        </Card>
+
+        <Card className="p-6 text-center">
+          <div className="text-2xl text-gray-400">+</div>
+          <div className="mt-3 font-semibold text-gray-900">Оформите новый заказ в меню</div>
+          <div className="mt-1 text-sm text-gray-500">
+            История прошлых заказов появится после первой покупки.
+          </div>
+          <Link
+            href={navMenuHref}
+            className="mt-5 block rounded-[14px] bg-orange-500 py-3.5 text-center text-sm font-bold text-white shadow-glow transition hover:bg-orange-600"
+          >
+            Перейти в меню
+          </Link>
         </Card>
       </div>
 

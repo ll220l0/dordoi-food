@@ -35,32 +35,37 @@ function getOrderDotColor(status: string | null) {
   }
 }
 
-function IconMenu() {
+function IconMenu({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 22 22" className="h-[22px] w-[22px]" fill="none" aria-hidden="true">
-      <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
+      <path
+        d="M4 6h16M4 12h16M4 18h16"
+        stroke="currentColor"
+        strokeWidth={active ? "2.2" : "1.8"}
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function IconCart({ count }: { count: number }) {
+function IconCart({ count, active }: { count: number; active: boolean }) {
   return (
     <div className="relative">
-      <svg viewBox="0 0 22 22" className="h-[22px] w-[22px]" fill="none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
         <path
-          d="M2 3.5h2.5l2.2 8.5h9l1.8-6.5H6.5"
+          d="M3 4h2.2l1.2 7.2a2 2 0 0 0 2 1.68h7.9a2 2 0 0 0 1.92-1.43L20 6H7.1"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth={active ? "2" : "1.7"}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx="9" cy="17.5" r="1.3" fill="currentColor" />
-        <circle cx="14.5" cy="17.5" r="1.3" fill="currentColor" />
+        <circle cx="10" cy="18.5" r="1.4" fill="currentColor" />
+        <circle cx="17" cy="18.5" r="1.4" fill="currentColor" />
       </svg>
       {count > 0 && (
         <span
           aria-label={`${count} товаров`}
-          className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white"
+          className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white"
         >
           {count > 9 ? "9+" : count}
         </span>
@@ -72,14 +77,22 @@ function IconCart({ count }: { count: number }) {
 function IconOrder({ hasDot, dotColor }: { hasDot: boolean; dotColor: string }) {
   return (
     <div className="relative">
-      <svg viewBox="0 0 22 22" className="h-[22px] w-[22px]" fill="none" aria-hidden="true">
-        <rect x="3.5" y="2" width="15" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M7.5 8h7M7.5 12h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
+        <rect x="4" y="2" width="16" height="20" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path
+          d="M8 7h8M8 11h6M8 15h4"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
       </svg>
       {hasDot && (
         <span
           aria-hidden="true"
-          className={clsx("absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-white", dotColor)}
+          className={clsx(
+            "absolute -right-1 -top-1 h-3 w-3 rounded-full ring-2 ring-[#F5F5F7]",
+            dotColor,
+          )}
         />
       )}
     </div>
@@ -110,7 +123,7 @@ export function ClientNav({ menuHref, orderHref }: Props) {
             ? `/order/${activeOrderId}`
             : lastOrderId
               ? `/order/${lastOrderId}`
-              : "/order"
+              : "/order",
       );
     };
 
@@ -172,36 +185,51 @@ export function ClientNav({ menuHref, orderHref }: Props) {
 
   const isMenu = pathname.startsWith("/r/");
   const isCart = pathname === "/cart";
-  const isOrder = pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/");
-
-  const tabClass = (active: boolean) =>
-    clsx(
-      "relative flex flex-col items-center gap-0.5 rounded-[18px] px-5 py-2.5 transition-all duration-200",
-      active
-        ? "bg-[#fff4df] text-orange-500 shadow-[0_14px_30px_-24px_rgba(249,115,22,0.55)]"
-        : "text-[#8e7c66] hover:bg-[#fff8ef] hover:text-[#2f2419]"
-    );
+  const isOrder =
+    pathname === "/order" || pathname.startsWith("/order/") || pathname.startsWith("/pay/");
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-      <div className="mx-auto max-w-md rounded-[26px] border border-[#ecd9bc] bg-white/92 px-2 py-2 shadow-[0_26px_60px_-34px_rgba(190,120,43,0.38)] backdrop-blur">
-        <div className="flex items-center justify-around">
-          <Link href={menuHref} className={tabClass(isMenu)}>
-            <IconMenu />
-            <span className="text-[10px] font-semibold tracking-wide">Меню</span>
-          </Link>
+    <nav
+      aria-label="Основная навигация"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/80 bg-white/95 backdrop-blur-lg pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="mx-auto flex max-w-md items-center justify-around">
+        <Link
+          href={menuHref}
+          aria-current={isMenu ? "page" : undefined}
+          className={clsx(
+            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
+            isMenu ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
+          )}
+        >
+          <IconMenu active={isMenu} />
+          <span className="text-[10px] font-semibold">Меню</span>
+        </Link>
 
-          <Link href="/cart" className={tabClass(isCart)}>
-            <IconCart count={cartCount} />
-            <span className="text-[10px] font-semibold tracking-wide">Корзина</span>
-          </Link>
+        <Link
+          href="/cart"
+          aria-current={isCart ? "page" : undefined}
+          className={clsx(
+            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
+            isCart ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
+          )}
+        >
+          <IconCart count={cartCount} active={isCart} />
+          <span className="text-[10px] font-semibold">Корзина</span>
+        </Link>
 
-          <Link href={resolvedOrderHref} className={tabClass(isOrder)}>
-            <IconOrder hasDot={hasActiveOrder} dotColor={orderDotColor} />
-            <span className="text-[10px] font-semibold tracking-wide">Заказ</span>
-          </Link>
-        </div>
+        <Link
+          href={resolvedOrderHref}
+          aria-current={isOrder ? "page" : undefined}
+          className={clsx(
+            "flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors duration-150",
+            isOrder ? "text-orange-500" : "text-gray-400 hover:text-gray-600",
+          )}
+        >
+          <IconOrder hasDot={hasActiveOrder} dotColor={orderDotColor} />
+          <span className="text-[10px] font-semibold">Заказ</span>
+        </Link>
       </div>
-    </div>
+    </nav>
   );
 }
