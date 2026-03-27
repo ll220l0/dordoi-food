@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdminRole } from "@/lib/adminAuth";
-import { listAdminAccounts, type AdminRole } from "@/lib/adminSession";
+import type { AdminRole } from "@/lib/adminSession";
 import {
   createDatabaseAdminUser,
   ensureDefaultDatabaseAdminUser,
   isUniqueViolation,
-  listAdminProfilesByUsernames,
   listDatabaseAdminUsers,
   validateManagedAdminInput,
 } from "@/lib/adminUsers";
@@ -44,27 +43,6 @@ export async function GET() {
 
   await ensureDefaultDatabaseAdminUser();
 
-  const envAccounts = listAdminAccounts();
-  const envProfiles = await listAdminProfilesByUsernames(
-    envAccounts.map((account) => account.user),
-  );
-
-  const envStaff: StaffMember[] = envAccounts.map((account) => {
-    const profile = envProfiles.get(account.user);
-    return {
-      id: `env:${account.user}`,
-      user: account.user,
-      role: account.role,
-      source: "env",
-      readonly: true,
-      createdAt: null,
-      firstName: profile?.firstName ?? "",
-      lastName: profile?.lastName ?? "",
-      phone: profile?.phone ?? "",
-      avatarUrl: profile?.avatarUrl ?? null,
-    };
-  });
-
   const dbStaffRaw = await listDatabaseAdminUsers();
   const dbStaff: StaffMember[] = dbStaffRaw.map((account) => ({
     id: account.id,
@@ -79,7 +57,7 @@ export async function GET() {
     avatarUrl: account.avatarUrl,
   }));
 
-  const combinedStaff = sortStaff([...envStaff, ...dbStaff]);
+  const combinedStaff = sortStaff(dbStaff);
   const visibleStaff =
     auth.session.role === "courier"
       ? combinedStaff.filter((member) => member.user === auth.session.user)
@@ -123,14 +101,6 @@ export async function POST(req: Request) {
   });
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
-  }
-
-  const reservedByEnv = listAdminAccounts().some((x) => x.user === validation.user);
-  if (reservedByEnv) {
-    return NextResponse.json(
-      { error: "\u041b\u043e\u0433\u0438\u043d \u0443\u0436\u0435 \u0437\u0430\u043d\u044f\u0442" },
-      { status: 409 },
-    );
   }
 
   try {

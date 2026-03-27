@@ -19,52 +19,14 @@ type AdminSessionPayload = {
   exp: number;
 };
 
-type AdminAccount = {
-  user: string;
-  pass: string;
-  role: AdminRole;
-};
-
-export type AdminAccountPublic = {
-  user: string;
-  role: AdminRole;
-};
-
 function isNonEmpty(value: string | undefined | null) {
   return Boolean(value && value.trim().length > 0);
-}
-
-function getAdminAccounts(): AdminAccount[] {
-  const accounts: AdminAccount[] = [];
-
-  const ownerUser = process.env.ADMIN_USER?.trim() ?? "";
-  const ownerPass = process.env.ADMIN_PASS?.trim() ?? "";
-  if (ownerUser && ownerPass) {
-    accounts.push({ user: ownerUser, pass: ownerPass, role: "owner" });
-  }
-
-  const operatorUser = process.env.ADMIN_OPERATOR_USER?.trim() ?? "";
-  const operatorPass = process.env.ADMIN_OPERATOR_PASS?.trim() ?? "";
-  if (operatorUser && operatorPass) {
-    accounts.push({ user: operatorUser, pass: operatorPass, role: "operator" });
-  }
-
-  const courierUser = process.env.ADMIN_COURIER_USER?.trim() ?? "";
-  const courierPass = process.env.ADMIN_COURIER_PASS?.trim() ?? "";
-  if (courierUser && courierPass) {
-    accounts.push({ user: courierUser, pass: courierPass, role: "courier" });
-  }
-
-  return accounts;
 }
 
 function getSessionSecret() {
   const explicit = process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
   if (explicit) return explicit.slice(0, 512);
-
-  const accounts = getAdminAccounts();
-  const fallback = accounts.map((x) => `${x.user}:${x.pass}:${x.role}`).join("|") || "admin-session";
-  return fallback.slice(0, 512);
+  return "admin-session";
 }
 
 function toBase64Url(bytes: Uint8Array) {
@@ -131,7 +93,13 @@ function timingSafeEqual(a: string, b: string) {
 }
 
 async function signValue(value: string, secret: string) {
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
   return toBase64Url(new Uint8Array(signature));
 }
@@ -140,34 +108,13 @@ export function isAdminRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (ADMIN_ROLES as readonly string[]).includes(value);
 }
 
-export function hasAdminCredentials() {
-  return getAdminAccounts().length > 0;
-}
-
-export function listAdminAccounts(): AdminAccountPublic[] {
-  return getAdminAccounts().map((account) => ({
-    user: account.user,
-    role: account.role
-  }));
-}
-
-export function validateAdminPassword(inputUser: string, inputPass: string): Omit<AdminSessionIdentity, "exp"> | null {
-  const user = inputUser.trim();
-  if (!isNonEmpty(user) || !isNonEmpty(inputPass)) return null;
-
-  const account = getAdminAccounts().find((x) => timingSafeEqual(user, x.user) && timingSafeEqual(inputPass, x.pass));
-  if (!account) return null;
-
-  return { user: account.user, role: account.role };
-}
-
 export async function createAdminSessionToken(identity: Omit<AdminSessionIdentity, "exp">) {
   if (!isNonEmpty(identity.user) || !isAdminRole(identity.role)) return null;
 
   const payload: AdminSessionPayload = {
     u: identity.user,
     r: identity.role,
-    exp: Date.now() + ADMIN_SESSION_TTL_SECONDS * 1000
+    exp: Date.now() + ADMIN_SESSION_TTL_SECONDS * 1000,
   };
 
   const payloadEncoded = toBase64Url(encoder.encode(JSON.stringify(payload)));
@@ -200,4 +147,3 @@ export async function verifyAdminSessionToken(token: string): Promise<AdminSessi
 
   return { user: payload.u, role: payload.r, exp: payload.exp };
 }
-

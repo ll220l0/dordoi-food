@@ -24,11 +24,20 @@ type MenuResp = {
 };
 
 type MenuItem = MenuResp["items"][number];
+const preloadedImages = new Set<string>();
 
 async function fetchMenu(slug: string): Promise<MenuResp> {
   const response = await fetch(`/api/restaurants/${slug}/menu`, { cache: "no-store" });
   if (!response.ok) throw new Error("Не удалось загрузить меню");
   return response.json();
+}
+
+function warmImage(src: string) {
+  if (typeof window === "undefined" || !src || preloadedImages.has(src)) return;
+  preloadedImages.add(src);
+  const image = new window.Image();
+  image.decoding = "async";
+  image.src = src;
 }
 
 function clamp2(): CSSProperties {
@@ -99,6 +108,8 @@ function ItemModal({
   onInc: () => void;
   onDec: () => void;
 }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -110,6 +121,11 @@ function ItemModal({
       document.body.style.overflow = "";
     };
   }, [onClose]);
+
+  useEffect(() => {
+    setImageLoaded(false);
+    warmImage(item.photoUrl);
+  }, [item.photoUrl]);
 
   return (
     <div
@@ -130,8 +146,17 @@ function ItemModal({
           <div className="h-1 w-10 rounded-full bg-gray-300" />
         </div>
         <div className="relative mx-4 mt-2 h-56 overflow-hidden rounded-2xl bg-gray-100">
+          {!imageLoaded ? <div className="absolute inset-0 skeleton bg-gray-200" /> : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.photoUrl} alt={item.title} className="h-full w-full object-cover" />
+          <img
+            src={item.photoUrl}
+            alt={item.title}
+            className={`h-full w-full object-cover transition-opacity duration-200 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={() => setImageLoaded(true)}
+          />
           {!item.isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70 backdrop-blur">
               <span className="rounded-full border border-gray-200 bg-white/95 px-4 py-2 text-sm font-semibold text-gray-500">
@@ -485,6 +510,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
                         <button
                           type="button"
                           onClick={() => setSelectedItem(item)}
+                          onMouseEnter={() => warmImage(item.photoUrl)}
+                          onTouchStart={() => warmImage(item.photoUrl)}
+                          onFocus={() => warmImage(item.photoUrl)}
                           className="shrink-0 focus:outline-none"
                           aria-label={`Подробнее: ${item.title}`}
                         >
@@ -510,6 +538,9 @@ export default function MenuScreen({ slug }: { slug: string }) {
                           <button
                             type="button"
                             onClick={() => setSelectedItem(item)}
+                            onMouseEnter={() => warmImage(item.photoUrl)}
+                            onTouchStart={() => warmImage(item.photoUrl)}
+                            onFocus={() => warmImage(item.photoUrl)}
                             className="min-w-0 text-left focus:outline-none"
                           >
                             <div

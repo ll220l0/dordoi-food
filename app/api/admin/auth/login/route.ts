@@ -3,8 +3,6 @@ import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_TTL_SECONDS,
   createAdminSessionToken,
-  hasAdminCredentials,
-  validateAdminPassword,
 } from "@/lib/adminSession";
 import {
   authenticateDatabaseAdminUser,
@@ -29,11 +27,10 @@ export async function POST(req: Request) {
   }
 
   const dbIdentity = await authenticateDatabaseAdminUser(username, password);
-  const envIdentity = dbIdentity ? null : validateAdminPassword(username, password);
-  const identity = dbIdentity ?? envIdentity;
+  const identity = dbIdentity;
 
   if (!identity) {
-    if (!hasAdminCredentials() && !(await hasDatabaseAdminUsers())) {
+    if (!(await hasDatabaseAdminUsers())) {
       return NextResponse.json(
         { error: "Учетные данные администратора не настроены" },
         { status: 500 },

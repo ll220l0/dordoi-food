@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { AdminUserRole, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole, listAdminAccounts, type AdminRole } from "@/lib/adminSession";
+import { isAdminRole, type AdminRole } from "@/lib/adminSession";
 
 export type StaffProfileFields = {
   firstName: string;
@@ -368,7 +368,6 @@ export async function updateDatabaseAdminUserRole(userId: string, role: AdminRol
   const currentRole = fromDbRole(existing.role);
   if (currentRole !== role) {
     if (currentRole === "owner" && role !== "owner") {
-      const envOwners = listAdminAccounts().filter((x) => x.role === "owner").length;
       const dbOwners = await prisma.adminUser.count({
         where: {
           id: { not: userId },
@@ -377,7 +376,7 @@ export async function updateDatabaseAdminUserRole(userId: string, role: AdminRol
         },
       });
 
-      if (envOwners + dbOwners < 1) {
+      if (dbOwners < 1) {
         throw new Error(
           "\u041d\u0435\u043b\u044c\u0437\u044f \u0441\u043d\u044f\u0442\u044c \u0440\u043e\u043b\u044c \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430 \u0443 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430",
         );
