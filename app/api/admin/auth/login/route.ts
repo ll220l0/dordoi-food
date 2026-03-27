@@ -4,9 +4,13 @@ import {
   ADMIN_SESSION_TTL_SECONDS,
   createAdminSessionToken,
   hasAdminCredentials,
-  validateAdminPassword
+  validateAdminPassword,
 } from "@/lib/adminSession";
-import { authenticateDatabaseAdminUser, hasDatabaseAdminUsers } from "@/lib/adminUsers";
+import {
+  authenticateDatabaseAdminUser,
+  ensureDefaultDatabaseAdminUser,
+  hasDatabaseAdminUsers,
+} from "@/lib/adminUsers";
 
 type LoginBody = {
   username?: string;
@@ -14,6 +18,8 @@ type LoginBody = {
 };
 
 export async function POST(req: Request) {
+  await ensureDefaultDatabaseAdminUser();
+
   const body = (await req.json().catch(() => null)) as LoginBody | null;
   const username = body?.username?.trim() ?? "";
   const password = body?.password ?? "";
@@ -28,14 +34,20 @@ export async function POST(req: Request) {
 
   if (!identity) {
     if (!hasAdminCredentials() && !(await hasDatabaseAdminUsers())) {
-      return NextResponse.json({ error: "Учетные данные администратора не настроены" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Учетные данные администратора не настроены" },
+        { status: 500 },
+      );
     }
     return NextResponse.json({ error: "Неверный логин или пароль" }, { status: 401 });
   }
 
   const token = await createAdminSessionToken(identity);
   if (!token) {
-    return NextResponse.json({ error: "Не удалось создать сессию администратора" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Не удалось создать сессию администратора" },
+      { status: 500 },
+    );
   }
 
   const res = NextResponse.json({ ok: true, role: identity.role, user: identity.user });
@@ -46,7 +58,7 @@ export async function POST(req: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: ADMIN_SESSION_TTL_SECONDS
+    maxAge: ADMIN_SESSION_TTL_SECONDS,
   });
   return res;
 }

@@ -113,7 +113,7 @@ function ItemModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -123,7 +123,7 @@ function ItemModal({
         onClick={onClose}
       />
       <div
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-t-3xl bg-white"
+        className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-white"
         style={{ animation: "modal-slide-up 280ms cubic-bezier(0.22,1,0.36,1)" }}
       >
         <div className="flex justify-center pt-3 pb-1">

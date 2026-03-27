@@ -20,6 +20,11 @@ export type ManagedAdminUser = {
 const PASSWORD_SALT_BYTES = 16;
 const PASSWORD_KEY_LENGTH = 64;
 const HASH_PREFIX = "scrypt";
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin123";
+const DEFAULT_ADMIN_FIRST_NAME = "Admin";
+const DEFAULT_ADMIN_LAST_NAME = "Owner";
+const DEFAULT_ADMIN_PHONE = "996555000000";
 
 function toDbRole(role: AdminRole): AdminUserRole {
   if (role === "owner") return AdminUserRole.owner;
@@ -44,16 +49,23 @@ function normalizePhone(input: string) {
 function normalizeAvatarUrl(input?: string | null) {
   const raw = (input ?? "").trim();
   if (!raw) return null;
-  if (raw.length > 500) throw new Error("\u0421\u0441\u044b\u043b\u043a\u0430 \u043d\u0430 \u0430\u0432\u0430\u0442\u0430\u0440 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u0430\u044f");
+  if (raw.length > 500)
+    throw new Error(
+      "\u0421\u0441\u044b\u043b\u043a\u0430 \u043d\u0430 \u0430\u0432\u0430\u0442\u0430\u0440 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u0430\u044f",
+    );
 
   try {
     const url = new URL(raw);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new Error("\u0410\u0432\u0430\u0442\u0430\u0440: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443 http/https");
+      throw new Error(
+        "\u0410\u0432\u0430\u0442\u0430\u0440: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443 http/https",
+      );
     }
     return url.toString();
   } catch {
-    throw new Error("\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430 \u043d\u0430 \u0430\u0432\u0430\u0442\u0430\u0440");
+    throw new Error(
+      "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430 \u043d\u0430 \u0430\u0432\u0430\u0442\u0430\u0440",
+    );
   }
 }
 
@@ -62,7 +74,7 @@ function ensureProfileFields(value: Partial<StaffProfileFields> | undefined): St
     firstName: value?.firstName?.trim() ?? "",
     lastName: value?.lastName?.trim() ?? "",
     phone: value?.phone?.trim() ?? "",
-    avatarUrl: value?.avatarUrl?.trim() ? value.avatarUrl : null
+    avatarUrl: value?.avatarUrl?.trim() ? value.avatarUrl : null,
   };
 }
 
@@ -75,14 +87,36 @@ export function validateStaffProfileInput(firstName: string, lastName: string, p
   const ln = normalizeText(lastName);
   const phoneDigits = normalizePhone(phone);
 
-  if (!fn) return { ok: false as const, error: "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0438\u043c\u044f" };
-  if (fn.length < 2 || fn.length > 40) return { ok: false as const, error: "\u0418\u043c\u044f: \u043e\u0442 2 \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" };
+  if (!fn)
+    return {
+      ok: false as const,
+      error: "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0438\u043c\u044f",
+    };
+  if (fn.length < 2 || fn.length > 40)
+    return {
+      ok: false as const,
+      error:
+        "\u0418\u043c\u044f: \u043e\u0442 2 \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
+    };
 
-  if (!ln) return { ok: false as const, error: "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0444\u0430\u043c\u0438\u043b\u0438\u044e" };
-  if (ln.length < 2 || ln.length > 40) return { ok: false as const, error: "\u0424\u0430\u043c\u0438\u043b\u0438\u044f: \u043e\u0442 2 \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" };
+  if (!ln)
+    return {
+      ok: false as const,
+      error:
+        "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0444\u0430\u043c\u0438\u043b\u0438\u044e",
+    };
+  if (ln.length < 2 || ln.length > 40)
+    return {
+      ok: false as const,
+      error:
+        "\u0424\u0430\u043c\u0438\u043b\u0438\u044f: \u043e\u0442 2 \u0434\u043e 40 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
+    };
 
   if (!/^996\d{9}$/.test(phoneDigits)) {
-    return { ok: false as const, error: "\u041d\u043e\u043c\u0435\u0440: \u0444\u043e\u0440\u043c\u0430\u0442 996XXXXXXXXX" };
+    return {
+      ok: false as const,
+      error: "\u041d\u043e\u043c\u0435\u0440: \u0444\u043e\u0440\u043c\u0430\u0442 996XXXXXXXXX",
+    };
   }
 
   return { ok: true as const, firstName: fn, lastName: ln, phone: phoneDigits };
@@ -99,11 +133,35 @@ export function validateManagedAdminInput(input: {
   const user = normalizeAdminUsername(input.username);
   const roleOk = isAdminRole(input.role);
 
-  if (!user) return { ok: false as const, error: "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u043b\u043e\u0433\u0438\u043d" };
-  if (user.length < 3 || user.length > 48) return { ok: false as const, error: "\u041b\u043e\u0433\u0438\u043d: \u043e\u0442 3 \u0434\u043e 48 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" };
-  if (!/^[a-zA-Z0-9._-]+$/.test(user)) return { ok: false as const, error: "\u041b\u043e\u0433\u0438\u043d: \u0442\u043e\u043b\u044c\u043a\u043e \u043b\u0430\u0442\u0438\u043d\u0438\u0446\u0430, \u0446\u0438\u0444\u0440\u044b, ., _, -" };
-  if (input.password.length < 6) return { ok: false as const, error: "\u041f\u0430\u0440\u043e\u043b\u044c: \u043c\u0438\u043d\u0438\u043c\u0443\u043c 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432" };
-  if (!roleOk) return { ok: false as const, error: "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u0430\u044f \u0440\u043e\u043b\u044c" };
+  if (!user)
+    return {
+      ok: false as const,
+      error: "\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u043b\u043e\u0433\u0438\u043d",
+    };
+  if (user.length < 3 || user.length > 48)
+    return {
+      ok: false as const,
+      error:
+        "\u041b\u043e\u0433\u0438\u043d: \u043e\u0442 3 \u0434\u043e 48 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
+    };
+  if (!/^[a-zA-Z0-9._-]+$/.test(user))
+    return {
+      ok: false as const,
+      error:
+        "\u041b\u043e\u0433\u0438\u043d: \u0442\u043e\u043b\u044c\u043a\u043e \u043b\u0430\u0442\u0438\u043d\u0438\u0446\u0430, \u0446\u0438\u0444\u0440\u044b, ., _, -",
+    };
+  if (input.password.length < 6)
+    return {
+      ok: false as const,
+      error:
+        "\u041f\u0430\u0440\u043e\u043b\u044c: \u043c\u0438\u043d\u0438\u043c\u0443\u043c 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432",
+    };
+  if (!roleOk)
+    return {
+      ok: false as const,
+      error:
+        "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u0430\u044f \u0440\u043e\u043b\u044c",
+    };
 
   const profileCheck = validateStaffProfileInput(input.firstName, input.lastName, input.phone);
   if (!profileCheck.ok) return profileCheck;
@@ -114,7 +172,7 @@ export function validateManagedAdminInput(input: {
     role: input.role as AdminRole,
     firstName: profileCheck.firstName,
     lastName: profileCheck.lastName,
-    phone: profileCheck.phone
+    phone: profileCheck.phone,
   };
 }
 
@@ -122,6 +180,12 @@ function hashPassword(password: string) {
   const salt = randomBytes(PASSWORD_SALT_BYTES);
   const derived = scryptSync(password, salt, PASSWORD_KEY_LENGTH);
   return `${HASH_PREFIX}$${salt.toString("base64")}$${derived.toString("base64")}`;
+}
+
+function validateNextPassword(password: string) {
+  if (password.length < 6) {
+    throw new Error("Пароль: минимум 6 символов");
+  }
 }
 
 function verifyPassword(password: string, hashValue: string) {
@@ -141,7 +205,7 @@ async function getProfilesMap(usernames: string[]) {
   if (usernames.length === 0) return new Map<string, StaffProfileFields>();
 
   const profiles = await prisma.adminProfile.findMany({
-    where: { username: { in: usernames } }
+    where: { username: { in: usernames } },
   });
 
   const map = new Map<string, StaffProfileFields>();
@@ -150,7 +214,7 @@ async function getProfilesMap(usernames: string[]) {
       firstName: profile.firstName,
       lastName: profile.lastName,
       phone: profile.phone,
-      avatarUrl: profile.avatarUrl ?? null
+      avatarUrl: profile.avatarUrl ?? null,
     });
   }
 
@@ -178,10 +242,58 @@ export async function hasDatabaseAdminUsers() {
   return count > 0;
 }
 
+export async function ensureDefaultDatabaseAdminUser() {
+  const activeUser = await prisma.adminUser.findFirst({
+    where: { isActive: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (activeUser) {
+    return activeUser;
+  }
+
+  const passwordHash = hashPassword(DEFAULT_ADMIN_PASSWORD);
+
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.adminUser.upsert({
+      where: { username: DEFAULT_ADMIN_USERNAME },
+      update: {
+        passwordHash,
+        role: AdminUserRole.owner,
+        isActive: true,
+      },
+      create: {
+        username: DEFAULT_ADMIN_USERNAME,
+        passwordHash,
+        role: AdminUserRole.owner,
+        isActive: true,
+      },
+    });
+
+    await tx.adminProfile.upsert({
+      where: { username: DEFAULT_ADMIN_USERNAME },
+      update: {
+        firstName: DEFAULT_ADMIN_FIRST_NAME,
+        lastName: DEFAULT_ADMIN_LAST_NAME,
+        phone: DEFAULT_ADMIN_PHONE,
+      },
+      create: {
+        username: DEFAULT_ADMIN_USERNAME,
+        firstName: DEFAULT_ADMIN_FIRST_NAME,
+        lastName: DEFAULT_ADMIN_LAST_NAME,
+        phone: DEFAULT_ADMIN_PHONE,
+        avatarUrl: null,
+      },
+    });
+
+    return user;
+  });
+}
+
 export async function listDatabaseAdminUsers(): Promise<ManagedAdminUser[]> {
   const users = await prisma.adminUser.findMany({
     where: { isActive: true },
-    orderBy: [{ role: "asc" }, { username: "asc" }]
+    orderBy: [{ role: "asc" }, { username: "asc" }],
   });
 
   const profiles = await getProfilesMap(users.map((user) => user.username));
@@ -193,7 +305,7 @@ export async function listDatabaseAdminUsers(): Promise<ManagedAdminUser[]> {
       user: user.username,
       role: fromDbRole(user.role),
       createdAt: user.createdAt.toISOString(),
-      ...profile
+      ...profile,
     };
   });
 }
@@ -214,8 +326,8 @@ export async function createDatabaseAdminUser(input: {
       data: {
         username,
         passwordHash,
-        role: toDbRole(input.role)
-      }
+        role: toDbRole(input.role),
+      },
     });
 
     await tx.adminProfile.upsert({
@@ -223,15 +335,15 @@ export async function createDatabaseAdminUser(input: {
       update: {
         firstName: input.firstName,
         lastName: input.lastName,
-        phone: input.phone
+        phone: input.phone,
       },
       create: {
         username,
         firstName: input.firstName,
         lastName: input.lastName,
         phone: input.phone,
-        avatarUrl: null
-      }
+        avatarUrl: null,
+      },
     });
 
     return user;
@@ -245,7 +357,7 @@ export async function createDatabaseAdminUser(input: {
     firstName: input.firstName,
     lastName: input.lastName,
     phone: input.phone,
-    avatarUrl: null
+    avatarUrl: null,
   } satisfies ManagedAdminUser;
 }
 
@@ -261,18 +373,20 @@ export async function updateDatabaseAdminUserRole(userId: string, role: AdminRol
         where: {
           id: { not: userId },
           isActive: true,
-          role: AdminUserRole.owner
-        }
+          role: AdminUserRole.owner,
+        },
       });
 
       if (envOwners + dbOwners < 1) {
-        throw new Error("\u041d\u0435\u043b\u044c\u0437\u044f \u0441\u043d\u044f\u0442\u044c \u0440\u043e\u043b\u044c \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430 \u0443 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430");
+        throw new Error(
+          "\u041d\u0435\u043b\u044c\u0437\u044f \u0441\u043d\u044f\u0442\u044c \u0440\u043e\u043b\u044c \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430 \u0443 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0430",
+        );
       }
     }
 
     await prisma.adminUser.update({
       where: { id: userId },
-      data: { role: toDbRole(role) }
+      data: { role: toDbRole(role) },
     });
   }
 
@@ -287,7 +401,7 @@ export async function updateDatabaseAdminUserRole(userId: string, role: AdminRol
     user: refreshed.username,
     role: fromDbRole(refreshed.role),
     createdAt: refreshed.createdAt.toISOString(),
-    ...profile
+    ...profile,
   } satisfies ManagedAdminUser;
 }
 
@@ -298,16 +412,22 @@ export async function upsertAdminProfileByUsername(
     lastName: string;
     phone: string;
     avatarUrl?: string | null;
-  }
+  },
 ): Promise<StaffProfileFields> {
   const username = normalizeAdminUsername(usernameInput);
-  if (!username) throw new Error("\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c");
+  if (!username)
+    throw new Error(
+      "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c",
+    );
 
   const profileCheck = validateStaffProfileInput(input.firstName, input.lastName, input.phone);
   if (!profileCheck.ok) throw new Error(profileCheck.error);
 
   const current = await prisma.adminProfile.findUnique({ where: { username } });
-  const avatarUrl = input.avatarUrl === undefined ? current?.avatarUrl ?? null : normalizeAvatarUrl(input.avatarUrl);
+  const avatarUrl =
+    input.avatarUrl === undefined
+      ? (current?.avatarUrl ?? null)
+      : normalizeAvatarUrl(input.avatarUrl);
 
   const profile = await prisma.adminProfile.upsert({
     where: { username },
@@ -315,26 +435,54 @@ export async function upsertAdminProfileByUsername(
       firstName: profileCheck.firstName,
       lastName: profileCheck.lastName,
       phone: profileCheck.phone,
-      avatarUrl
+      avatarUrl,
     },
     create: {
       username,
       firstName: profileCheck.firstName,
       lastName: profileCheck.lastName,
       phone: profileCheck.phone,
-      avatarUrl
-    }
+      avatarUrl,
+    },
   });
 
   return {
     firstName: profile.firstName,
     lastName: profile.lastName,
     phone: profile.phone,
-    avatarUrl: profile.avatarUrl ?? null
+    avatarUrl: profile.avatarUrl ?? null,
   };
 }
 
-export async function authenticateDatabaseAdminUser(inputUser: string, inputPass: string): Promise<{ user: string; role: AdminRole } | null> {
+export async function updateDatabaseAdminUserPassword(
+  usernameInput: string,
+  currentPassword: string,
+  nextPassword: string,
+) {
+  const username = normalizeAdminUsername(usernameInput);
+  if (!username) throw new Error("Некорректный пользователь");
+  if (!currentPassword) throw new Error("Введите текущий пароль");
+  validateNextPassword(nextPassword);
+
+  const user = await prisma.adminUser.findUnique({ where: { username } });
+  if (!user || !user.isActive) {
+    throw new Error("Пользователь не найден");
+  }
+
+  if (!verifyPassword(currentPassword, user.passwordHash)) {
+    throw new Error("Текущий пароль указан неверно");
+  }
+
+  await prisma.adminUser.update({
+    where: { username },
+    data: { passwordHash: hashPassword(nextPassword) },
+  });
+}
+
+export async function authenticateDatabaseAdminUser(
+  inputUser: string,
+  inputPass: string,
+): Promise<{ user: string; role: AdminRole } | null> {
   const user = normalizeAdminUsername(inputUser);
   if (!user || !inputPass) return null;
 
@@ -344,7 +492,7 @@ export async function authenticateDatabaseAdminUser(inputUser: string, inputPass
 
   return {
     user: dbUser.username,
-    role: fromDbRole(dbUser.role)
+    role: fromDbRole(dbUser.role),
   };
 }
 

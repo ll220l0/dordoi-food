@@ -1,10 +1,73 @@
-import { PrismaClient } from "@prisma/client";
+import { randomBytes, scryptSync } from "node:crypto";
+import { AdminUserRole, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin123";
+const DEFAULT_ADMIN_FIRST_NAME = "Admin";
+const DEFAULT_ADMIN_LAST_NAME = "Owner";
+const DEFAULT_ADMIN_PHONE = "996555000000";
+
+function hashPassword(password) {
+  const salt = randomBytes(16);
+  const derived = scryptSync(password, salt, 64);
+  return `scrypt$${salt.toString("base64")}$${derived.toString("base64")}`;
+}
+
+async function ensureDefaultAdmin() {
+  const activeAdmin = await prisma.adminUser.findFirst({
+    where: { isActive: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (activeAdmin) {
+    console.log(`Active admin already exists: ${activeAdmin.username}`);
+    return activeAdmin;
+  }
+
+  const passwordHash = hashPassword(DEFAULT_ADMIN_PASSWORD);
+  const admin = await prisma.$transaction(async (tx) => {
+    const user = await tx.adminUser.upsert({
+      where: { username: DEFAULT_ADMIN_USERNAME },
+      update: {
+        passwordHash,
+        role: AdminUserRole.owner,
+        isActive: true,
+      },
+      create: {
+        username: DEFAULT_ADMIN_USERNAME,
+        passwordHash,
+        role: AdminUserRole.owner,
+        isActive: true,
+      },
+    });
+
+    await tx.adminProfile.upsert({
+      where: { username: DEFAULT_ADMIN_USERNAME },
+      update: {
+        firstName: DEFAULT_ADMIN_FIRST_NAME,
+        lastName: DEFAULT_ADMIN_LAST_NAME,
+        phone: DEFAULT_ADMIN_PHONE,
+      },
+      create: {
+        username: DEFAULT_ADMIN_USERNAME,
+        firstName: DEFAULT_ADMIN_FIRST_NAME,
+        lastName: DEFAULT_ADMIN_LAST_NAME,
+        phone: DEFAULT_ADMIN_PHONE,
+        avatarUrl: null,
+      },
+    });
+
+    return user;
+  });
+
+  console.log(`Ensured default admin in DB: ${admin.username}`);
+  return admin;
+}
 
 async function ensureBaseRestaurant() {
   const activeRestaurant = await prisma.restaurant.findFirst({
     where: { isActive: true },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" },
   });
 
   if (activeRestaurant) {
@@ -17,8 +80,8 @@ async function ensureBaseRestaurant() {
       slug: "dordoi-food",
       name: "Dordoi Food",
       qrImageUrl: "/qr/demo-restaurant.png",
-      isActive: true
-    }
+      isActive: true,
+    },
   });
 
   console.log(`Created empty restaurant: ${restaurant.slug}`);
@@ -26,13 +89,16 @@ async function ensureBaseRestaurant() {
 }
 
 async function main() {
+  await ensureDefaultAdmin();
   await ensureBaseRestaurant();
   console.log("Seed completed without creating test menu items");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-}).finally(async () => {
-  await prisma.$disconnect();
-});
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

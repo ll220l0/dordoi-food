@@ -29,13 +29,13 @@ type StaffResponse = {
 const ROLE_LABEL: Record<AdminRole, string> = {
   owner: "Владелец",
   operator: "Оператор",
-  courier: "Курьер"
+  courier: "Курьер",
 };
 
 const ROLE_ICON_TONE: Record<AdminRole, string> = {
   owner: "border-amber-300/70 bg-amber-50 text-amber-700",
   operator: "border-sky-300/70 bg-sky-50 text-sky-700",
-  courier: "border-emerald-300/70 bg-emerald-50 text-emerald-700"
+  courier: "border-emerald-300/70 bg-emerald-50 text-emerald-700",
 };
 
 function getErrorMessage(error: unknown) {
@@ -71,7 +71,17 @@ function memberName(firstName: string, lastName: string) {
   return full || "Имя не заполнено";
 }
 
-function SelectField({ value, onChange, children, className }: { value: string; onChange: (next: string) => void; children: ReactNode; className?: string }) {
+function SelectField({
+  value,
+  onChange,
+  children,
+  className,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={`relative ${className ?? ""}`}>
       <select
@@ -83,7 +93,13 @@ function SelectField({ value, onChange, children, className }: { value: string; 
       </select>
       <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-slate-500">
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
-          <path d="M5.5 7.5L10 12.5L14.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M5.5 7.5L10 12.5L14.5 7.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
     </div>
@@ -94,7 +110,13 @@ function RoleGlyph({ role }: { role: AdminRole }) {
   if (role === "owner") {
     return (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-        <path d="M4 17L6 7L12 12L18 7L20 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M4 17L6 7L12 12L18 7L20 17"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <path d="M4 17H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     );
@@ -103,10 +125,20 @@ function RoleGlyph({ role }: { role: AdminRole }) {
   if (role === "operator") {
     return (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-        <path d="M4 12C4 7.6 7.6 4 12 4C16.4 4 20 7.6 20 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path
+          d="M4 12C4 7.6 7.6 4 12 4C16.4 4 20 7.6 20 12"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
         <rect x="4" y="11" width="4" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
         <rect x="16" y="11" width="4" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M12 20H14.5C16.4 20 18 18.4 18 16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path
+          d="M12 20H14.5C16.4 20 18 18.4 18 16.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
@@ -114,7 +146,12 @@ function RoleGlyph({ role }: { role: AdminRole }) {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
       <rect x="3" y="11" width="11" height="6" rx="1.8" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M14 13H17.5L20 15.5V17H14V13Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path
+        d="M14 13H17.5L20 15.5V17H14V13Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <circle cx="7" cy="18" r="1.8" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="17" cy="18" r="1.8" stroke="currentColor" strokeWidth="1.8" />
     </svg>
@@ -123,7 +160,9 @@ function RoleGlyph({ role }: { role: AdminRole }) {
 
 function RoleIcon({ role }: { role: AdminRole }) {
   return (
-    <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-full border shadow-[0_8px_20px_rgba(15,23,42,0.12)] ${ROLE_ICON_TONE[role]}`}>
+    <div
+      className={`grid h-14 w-14 shrink-0 place-items-center rounded-full border shadow-[0_8px_20px_rgba(15,23,42,0.12)] ${ROLE_ICON_TONE[role]}`}
+    >
       <RoleGlyph role={role} />
     </div>
   );
@@ -150,6 +189,10 @@ export default function AdminStaffPage() {
   const [profileFirstName, setProfileFirstName] = useState("");
   const [profileLastName, setProfileLastName] = useState("");
   const [profilePhone, setProfilePhone] = useState("996");
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileNewPasswordConfirm, setProfileNewPasswordConfirm] = useState("");
+  const [showProfilePasswords, setShowProfilePasswords] = useState(false);
 
   const [roleDraft, setRoleDraft] = useState<Record<string, AdminRole>>({});
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
@@ -160,9 +203,14 @@ export default function AdminStaffPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/staff", { cache: "no-store" });
-      const json = (await res.json().catch(() => null)) as StaffResponse | { error?: string } | null;
+      const json = (await res.json().catch(() => null)) as
+        | StaffResponse
+        | { error?: string }
+        | null;
       if (!res.ok || !json || !("staff" in json)) {
-        throw new Error((json as { error?: string } | null)?.error ?? "Не удалось загрузить сотрудников");
+        throw new Error(
+          (json as { error?: string } | null)?.error ?? "Не удалось загрузить сотрудников",
+        );
       }
       setData(json);
       setRoleDraft({});
@@ -183,12 +231,17 @@ export default function AdminStaffPage() {
     if (!data) return null;
     return data.staff.find((member) => member.user === data.user) ?? null;
   }, [data]);
+  const canChangeOwnPassword = currentUserMember?.source === "db";
 
   useEffect(() => {
     if (!currentUserMember) return;
     setProfileFirstName(currentUserMember.firstName || "");
     setProfileLastName(currentUserMember.lastName || "");
     setProfilePhone(formatPhoneInput(currentUserMember.phone || "996"));
+    setProfileCurrentPassword("");
+    setProfileNewPassword("");
+    setProfileNewPasswordConfirm("");
+    setShowProfilePasswords(false);
   }, [currentUserMember]);
 
   useEffect(() => {
@@ -252,8 +305,8 @@ export default function AdminStaffPage() {
           role,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          phone
-        })
+          phone,
+        }),
       });
       const json = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(json?.error ?? "Не удалось создать пользователя");
@@ -270,6 +323,23 @@ export default function AdminStaffPage() {
 
   async function saveProfile() {
     if (!data) return;
+    const wantsPasswordChange = Boolean(
+      profileCurrentPassword || profileNewPassword || profileNewPasswordConfirm,
+    );
+    if (wantsPasswordChange) {
+      if (!canChangeOwnPassword) {
+        toast.error("Для этого аккаунта пароль не хранится в базе");
+        return;
+      }
+      if (!profileCurrentPassword || !profileNewPassword || !profileNewPasswordConfirm) {
+        toast.error("Заполните текущий пароль и оба поля нового пароля");
+        return;
+      }
+      if (profileNewPassword !== profileNewPasswordConfirm) {
+        toast.error("Новый пароль и подтверждение не совпадают");
+        return;
+      }
+    }
 
     setProfileSaving(true);
     try {
@@ -279,8 +349,10 @@ export default function AdminStaffPage() {
         body: JSON.stringify({
           firstName: profileFirstName.trim(),
           lastName: profileLastName.trim(),
-          phone: profilePhone
-        })
+          phone: profilePhone,
+          currentPassword: wantsPasswordChange ? profileCurrentPassword : undefined,
+          newPassword: wantsPasswordChange ? profileNewPassword : undefined,
+        }),
       });
 
       const json = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -288,7 +360,7 @@ export default function AdminStaffPage() {
         throw new Error(json?.error ?? "Не удалось сохранить профиль");
       }
 
-      toast.success("Профиль обновлен");
+      toast.success(wantsPasswordChange ? "Профиль и пароль обновлены" : "Профиль обновлен");
       setProfileModalOpen(false);
       await load();
     } catch (error: unknown) {
@@ -308,7 +380,7 @@ export default function AdminStaffPage() {
       const res = await fetch("/api/admin/staff/" + member.id, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role: nextRole })
+        body: JSON.stringify({ role: nextRole }),
       });
       const json = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) throw new Error(json?.error ?? "Не удалось обновить роль");
@@ -346,10 +418,19 @@ export default function AdminStaffPage() {
                 + Новый сотрудник
               </Button>
             ) : null}
-            <Button className="h-11 px-5" variant="secondary" onClick={() => setProfileModalOpen(true)}>
+            <Button
+              className="h-11 px-5"
+              variant="secondary"
+              onClick={() => setProfileModalOpen(true)}
+            >
               Мой профиль
             </Button>
-            <Button variant="secondary" className="ml-auto h-11 px-4 text-sm" onClick={() => void load()} disabled={loading}>
+            <Button
+              variant="secondary"
+              className="ml-auto h-11 px-4 text-sm"
+              onClick={() => void load()}
+              disabled={loading}
+            >
               Обновить
             </Button>
           </div>
@@ -365,7 +446,9 @@ export default function AdminStaffPage() {
               {members.map((member) => {
                 const selectedRole = roleDraft[member.id] ?? member.role;
                 const changed = selectedRole !== member.role;
-                const canEditRole = Boolean(canManage && !member.readonly && member.role !== "owner");
+                const canEditRole = Boolean(
+                  canManage && !member.readonly && member.role !== "owner",
+                );
                 const isCurrent = member.user === data?.user;
 
                 return (
@@ -378,11 +461,19 @@ export default function AdminStaffPage() {
                         <RoleIcon role={member.role} />
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="truncate text-lg font-black text-black/90">{memberName(member.firstName, member.lastName)}</div>
-                            {isCurrent ? <span className="rounded-full bg-black px-2 py-0.5 text-[11px] font-bold text-white">Вы</span> : null}
+                            <div className="truncate text-lg font-black text-black/90">
+                              {memberName(member.firstName, member.lastName)}
+                            </div>
+                            {isCurrent ? (
+                              <span className="rounded-full bg-black px-2 py-0.5 text-[11px] font-bold text-white">
+                                Вы
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-sm text-black/55">@{member.user}</div>
-                          <div className="mt-1 text-sm font-medium text-black/80">{formatPhoneDisplay(member.phone)}</div>
+                          <div className="mt-1 text-sm font-medium text-black/80">
+                            {formatPhoneDisplay(member.phone)}
+                          </div>
                         </div>
                       </div>
 
@@ -405,17 +496,31 @@ export default function AdminStaffPage() {
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {canEditRole ? (
                         <>
-                          <SelectField value={selectedRole} onChange={(next) => setRoleDraft((prev) => ({ ...prev, [member.id]: next as AdminRole }))} className="w-full sm:w-[220px]">
-                                                        <option value="operator">Оператор</option>
+                          <SelectField
+                            value={selectedRole}
+                            onChange={(next) =>
+                              setRoleDraft((prev) => ({ ...prev, [member.id]: next as AdminRole }))
+                            }
+                            className="w-full sm:w-[220px]"
+                          >
+                            <option value="operator">Оператор</option>
                             <option value="courier">Курьер</option>
                           </SelectField>
-                          <Button className="h-11 px-4 text-sm" disabled={!changed || savingRoleId === member.id} onClick={() => void saveRole(member)}>
+                          <Button
+                            className="h-11 px-4 text-sm"
+                            disabled={!changed || savingRoleId === member.id}
+                            onClick={() => void saveRole(member)}
+                          >
                             {savingRoleId === member.id ? "Сохраняем..." : "Сохранить роль"}
                           </Button>
                         </>
                       ) : (
                         <div className="text-xs text-black/55">
-                          {member.readonly ? "Роль этого аккаунта задается через переменные окружения" : member.role === "owner" ? "Роль владельца фиксирована" : "Недостаточно прав для изменения роли"}
+                          {member.readonly
+                            ? "Роль этого аккаунта задается через переменные окружения"
+                            : member.role === "owner"
+                              ? "Роль владельца фиксирована"
+                              : "Недостаточно прав для изменения роли"}
                         </div>
                       )}
                     </div>
@@ -429,15 +534,26 @@ export default function AdminStaffPage() {
 
       {createModalOpen && canManage ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
-          <button className="absolute inset-0 bg-black/35 backdrop-blur-sm" aria-label="Закрыть окно создания сотрудника" onClick={() => setCreateModalOpen(false)} />
+          <button
+            className="absolute inset-0 bg-black/35 backdrop-blur-sm"
+            aria-label="Закрыть окно создания сотрудника"
+            onClick={() => setCreateModalOpen(false)}
+          />
 
           <Card className="motion-pop relative z-10 w-full max-w-2xl border border-white/80 bg-gradient-to-br from-white/95 via-white/90 to-slate-100/75 p-5 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.58)]">
             <div className="flex items-start justify-between gap-3 rounded-2xl border border-white/80 bg-white/70 p-3">
               <div>
-                <div className="text-2xl font-black leading-tight text-slate-900">Новый сотрудник</div>
-                <div className="mt-1 text-sm text-slate-600">Заполните данные. Иконка сотрудника ставится автоматически по роли.</div>
+                <div className="text-2xl font-black leading-tight text-slate-900">
+                  Новый сотрудник
+                </div>
+                <div className="mt-1 text-sm text-slate-600">
+                  Заполните данные. Иконка сотрудника ставится автоматически по роли.
+                </div>
               </div>
-              <button className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.45)]" onClick={() => setCreateModalOpen(false)}>
+              <button
+                className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.45)]"
+                onClick={() => setCreateModalOpen(false)}
+              >
                 Закрыть
               </button>
             </div>
@@ -454,8 +570,12 @@ export default function AdminStaffPage() {
                 <div className="shrink-0 scale-90">
                   <RoleIcon role={role} />
                 </div>
-                <SelectField value={role} onChange={(next) => setRole(next as AdminRole)} className="flex-1">
-                                    <option value="operator">Оператор</option>
+                <SelectField
+                  value={role}
+                  onChange={(next) => setRole(next as AdminRole)}
+                  className="flex-1"
+                >
+                  <option value="operator">Оператор</option>
                   <option value="courier">Курьер</option>
                 </SelectField>
               </div>
@@ -482,7 +602,9 @@ export default function AdminStaffPage() {
               />
               <div className="sm:col-span-2 rounded-2xl border border-slate-200 bg-white/92 p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Пароль</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Пароль
+                  </div>
                   <button
                     type="button"
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700"
@@ -514,7 +636,11 @@ export default function AdminStaffPage() {
             </div>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="secondary" className="h-11 px-4" onClick={() => setCreateModalOpen(false)}>
+              <Button
+                variant="secondary"
+                className="h-11 px-4"
+                onClick={() => setCreateModalOpen(false)}
+              >
                 Отмена
               </Button>
               <Button className="h-11 px-5" disabled={submitting} onClick={() => void createUser()}>
@@ -527,15 +653,24 @@ export default function AdminStaffPage() {
 
       {profileModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
-          <button className="absolute inset-0 bg-black/35 backdrop-blur-sm" aria-label="Закрыть окно профиля" onClick={() => setProfileModalOpen(false)} />
+          <button
+            className="absolute inset-0 bg-black/35 backdrop-blur-sm"
+            aria-label="Закрыть окно профиля"
+            onClick={() => setProfileModalOpen(false)}
+          />
 
           <Card className="motion-pop relative z-10 w-full max-w-2xl p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3 rounded-2xl border border-white/80 bg-white/70 p-3">
               <div>
                 <div className="text-xl font-extrabold">Мой профиль</div>
-                <div className="mt-1 text-sm text-black/55">Фото отключены. В интерфейсе используется иконка по роли.</div>
+                <div className="mt-1 text-sm text-black/55">
+                  Фото отключены. В интерфейсе используется иконка по роли.
+                </div>
               </div>
-              <button className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/65" onClick={() => setProfileModalOpen(false)}>
+              <button
+                className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/65"
+                onClick={() => setProfileModalOpen(false)}
+              >
                 Закрыть
               </button>
             </div>
@@ -545,7 +680,9 @@ export default function AdminStaffPage() {
                 <RoleIcon role={currentUserMember?.role ?? "operator"} />
                 <div>
                   <div className="text-sm font-semibold text-black/85">Иконка роли</div>
-                  <div className="mt-1 text-xs text-black/55">Меняется автоматически, если изменить роль сотрудника.</div>
+                  <div className="mt-1 text-xs text-black/55">
+                    Меняется автоматически, если изменить роль сотрудника.
+                  </div>
                 </div>
               </div>
             </div>
@@ -572,11 +709,72 @@ export default function AdminStaffPage() {
               />
             </div>
 
+            {canChangeOwnPassword ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white/92 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Смена пароля
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      Укажите текущий пароль и дважды новый, если хотите его поменять.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700"
+                    onClick={() => setShowProfilePasswords((prev) => !prev)}
+                  >
+                    {showProfilePasswords ? "Скрыть" : "Показать"}
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[16px] text-slate-900 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition focus:border-slate-300 focus:outline-none sm:col-span-2"
+                    type={showProfilePasswords ? "text" : "password"}
+                    placeholder="Текущий пароль"
+                    autoComplete="current-password"
+                    value={profileCurrentPassword}
+                    onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                  />
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[16px] text-slate-900 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition focus:border-slate-300 focus:outline-none"
+                    type={showProfilePasswords ? "text" : "password"}
+                    placeholder="Новый пароль"
+                    autoComplete="new-password"
+                    value={profileNewPassword}
+                    onChange={(e) => setProfileNewPassword(e.target.value)}
+                  />
+                  <input
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[16px] text-slate-900 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition focus:border-slate-300 focus:outline-none"
+                    type={showProfilePasswords ? "text" : "password"}
+                    placeholder="Повторите новый пароль"
+                    autoComplete="new-password"
+                    value={profileNewPasswordConfirm}
+                    onChange={(e) => setProfileNewPasswordConfirm(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-800">
+                Для этого аккаунта пароль управляется вне базы данных и не меняется из профиля.
+              </div>
+            )}
+
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button variant="secondary" className="h-11 px-4" onClick={() => setProfileModalOpen(false)}>
+              <Button
+                variant="secondary"
+                className="h-11 px-4"
+                onClick={() => setProfileModalOpen(false)}
+              >
                 Отмена
               </Button>
-              <Button className="h-11 px-5" disabled={profileSaving} onClick={() => void saveProfile()}>
+              <Button
+                className="h-11 px-5"
+                disabled={profileSaving}
+                onClick={() => void saveProfile()}
+              >
                 {profileSaving ? "Сохраняем..." : "Сохранить профиль"}
               </Button>
             </div>
@@ -586,5 +784,3 @@ export default function AdminStaffPage() {
     </main>
   );
 }
-
-
